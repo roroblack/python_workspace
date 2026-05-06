@@ -1,0 +1,3 @@
+파이썬으로 파일 입출력 테스트용
+2026-05-04 (월)
+python text file str line
