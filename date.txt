@@ -1,0 +1,5 @@
+notes   : 수업하면서 들은 의문점들 리서치한 파일
+
+~ 0430  : ./python_collection
+0504    : ./python_fileio
+0506    : ./python_oop
