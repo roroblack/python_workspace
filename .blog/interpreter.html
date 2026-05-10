@@ -461,10 +461,44 @@ print(test_import.a)
     <figcaption>② <code>__pycache__</code> 폴더 내부 — <code>test_import.cpython-314.pyc</code>만 있고 <code>main.cpython-314.pyc</code>는 없다. "임포트된 것만 캐시된다"가 그대로 드러난다</figcaption>
   </figure>
 
+  <h3 class="step">한 발 더 — HEX 에디터로 .pyc 내부를 열다</h3>
+  <p>여기서 의문이 하나 더 생긴다. <code>test_import.pyc</code>가 생겼으니 그 안에 우리가 선언한 <code>a = 10</code>이 담겨 있어야 하지 않을까? HEX 에디터로 직접 열어 확인한다.</p>
+
+  <div class="callout">
+    <span class="label">설정</span>
+    실험 당시 <code>test_import.py</code>는 <code>a = 10</code> 한 줄짜리 파일이었다. 파일 크기가 작아 HEX 에디터로 전체 내용을 한 화면에 볼 수 있다.
+  </div>
+
+  <figure>
+    <img src="img/interp_ch05_d_hex.png" alt="HEX 에디터로 test_import.cpython-314.pyc 내부 확인" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>③ HEX 에디터로 <code>test_import.cpython-314.pyc</code> 내부를 열어 각 섹션을 태깅한 결과</figcaption>
+  </figure>
+
+  <p>HEX 데이터를 태깅하면 구조가 드러난다.</p>
+  <div class="ascii">[Header]
+Magic   : 0x0D0A0E2B  ← Python 3.13 바이트코드 식별자
+Time    : 2026-04-26 18:34:09  ← 소스 파일 최종 수정 시각
+
+[Code Object]
+Filename: "F:\_proj\_study\python\_practice\test_import.py"
+Name    : "&lt;module&gt;"
+Instructions: RESUME, RETURN_CONST  ← 단 두 개</div>
+
+  <div class="callout">
+    <span class="label">핵심 관찰</span>
+    Instructions 가 <strong>RESUME, RETURN_CONST</strong> 두 개뿐이다. <code>a = 10</code>을 저장하는 <code>LOAD_SMALL_INT</code>·<code>STORE_NAME</code> 명령어가 <strong>없다</strong>. 이유는 간단하다 — 실험 당시 <code>test_import.py</code>는 비어 있었고, 그 상태로 임포트됐다. <code>a = 10</code>은 메인 파일인 <code>main.py</code>에서 접근한 속성이므로 <code>test_import.pyc</code>에는 존재하지 않는다.
+  </div>
+
+  <p>이 결과는 두 가지를 동시에 확인해 준다.</p>
+  <ol>
+    <li><code>.pyc</code>는 단순한 "소스 파일의 복사본"이 아니라 <strong>컴파일된 명령어 리스트(바이트코드)</strong>다 — 소스 텍스트가 아니라 실행 명령어만 담긴다.</li>
+    <li>임포트 시점의 소스 그대로 컴파일되므로, 파일을 나중에 수정해도 <strong>캐시가 무효화되기 전까지 이전 바이트코드가 사용</strong>된다 (magic + 타임스탬프로 일치 여부를 확인).</li>
+  </ol>
+
   <h3 class="step">결론</h3>
   <div class="keypoint">
     <span class="label">KEY POINT</span>
-    <strong><code>__pycache__</code> 는 임포트 시스템의 부산물이다.</strong> 따라서 진입점 스크립트(<code>main.py</code>)는 바이트코드를 메모리에 가지고 있을지언정 디스크에 남기지 않는다. “파일이 안 보인다 = 바이트코드를 안 만들었다”는 추론은 <em>틀렸다</em>.
+    <strong><code>__pycache__</code> 는 임포트 시스템의 부산물이다.</strong> 진입점 스크립트(<code>main.py</code>)는 바이트코드를 메모리에 가지고 있을지언정 디스크에 남기지 않는다. 그리고 생성된 <code>.pyc</code> 안에는 소스 텍스트가 아니라 <strong>컴파일된 명령어 리스트만</strong> 존재한다 — HEX 에디터로 직접 확인한 결과다.
   </div>
 </section>
 
