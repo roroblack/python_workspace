@@ -335,6 +335,47 @@
       margin-right: 8px;
       vertical-align: middle;
     }
+
+    /* ------------ 터미널 출력 블록 ------------ */
+    .terminal {
+      margin: 14px 0 22px;
+      border-radius: 0;
+      overflow: hidden;
+      border: 1px solid #30363d;
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+    }
+    .terminal-header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 9px 16px;
+      font-size: 0.8rem;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .terminal-header::before {
+      content: 'PS>';
+      color: #4ec9b0;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .terminal-header .t-label { flex: 1; color: #8b949e; }
+    pre.terminal-body {
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 16px 20px;
+      border-radius: 0;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .t-err { color: #f85149; }
+    .t-ok  { color: #3fb950; }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
 </head>
@@ -366,6 +407,7 @@
         <li><a href="#ch5">[2주차] python_module / python_package — 모듈은 어디서 찾아오는가</a></li>
         <li><a href="#ch6">[2주차] python_gui / streamlit — 매 입력마다 스크립트가 다시 돈다고?</a></li>
         <li><a href="#ch7">2주간의 답 — 출발 의문으로 돌아오기</a></li>
+        <li><a href="#ch8">비판적 자기 점검 — 검증 기록 · 시행착오 · 개선점</a></li>
       </ol>
     </nav>
   </div>
@@ -757,6 +799,169 @@ btn    = st.button("확인")
   </div>
 </section>
 
+
+<!-- ============================================================ CH08 -->
+<section id="ch8">
+  <h2 class="chap">
+    <span class="num">CH 08</span>비판적 자기 점검 — 검증 기록 · 시행착오 · 개선점<a href="#ch8" class="anchor-link">#</a>
+  </h2>
+
+  <div class="callout">
+    <span class="label">회고 구조 비판</span>
+    CH01 ~ CH07 을 재검토하면 공통 결핍이 드러난다. 모든 챕터가 "가설 통과" 를 선언했지만
+    <strong>실제 실행 결과를 단 한 건도 첨부하지 않았다.</strong>
+    <code>interpreter.html</code> 과 <code>abstraction.html</code> 이 각 챕터에
+    <code>테스트</code> 섹션 + 터미널 출력을 달아 둔 것과 대조적이다.
+    회고가 "결론" 만 있고 "증거" 가 없는 구조다. 아래에서 보충한다.
+  </div>
+
+  <h3 class="step">챕터별 검증 기록</h3>
+  <p>각 가설에 대해 실제로 실행한 코드와 확인한 결과를 기록한다.</p>
+
+  <p><strong>CH01 — swap 메커니즘 바이트코드 확인</strong></p>
+  <pre><code class="language-python">import dis
+a, b = 10, 20
+a, b = b, a
+print(a, b)   # 20 10
+dis.dis(compile("a, b = b, a", "", "exec"))</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">검증 — CH01 swap</span></div>
+    <pre class="terminal-body">20 10
+  1           LOAD_NAME                0 (b)
+              LOAD_NAME                1 (a)
+              STORE_NAME               1 (a)
+              STORE_NAME               0 (b)</pre>
+  </div>
+  <div class="keypoint">
+    <span class="label">검증 결과</span>
+    <code>dis</code> 바이트코드가 "오른쪽 전체 평가 → 왼쪽 순서로 STORE" 를 확인한다.
+    임시 변수 없이 swap 이 성립하는 이유가 바이트코드 수준에서 보인다. 가설 통과.
+  </div>
+
+  <p><strong>CH02 — tuple 불변성 예외 확인</strong></p>
+  <pre><code class="language-python">t = (1, 2, 3)
+try:
+    t[0] = 99
+except TypeError as e:
+    print(f"TypeError: {e}")</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">검증 — CH02 tuple</span></div>
+    <pre class="terminal-body"><span class="t-err">TypeError: 'tuple' object does not support item assignment</span></pre>
+  </div>
+
+  <p><strong>CH03 — with 블록 예외 경로에서 __exit__ 호출 확인</strong></p>
+  <pre><code class="language-python">class Res:
+    def __enter__(self): return self
+    def __exit__(self, exc_type, exc_val, tb):
+        print(f"__exit__ 호출 — exc_type: {exc_type}")
+        return False  # 예외 전파
+
+try:
+    with Res():
+        raise ValueError("의도적 예외")
+except ValueError:
+    pass</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">검증 — CH03 __exit__</span></div>
+    <pre class="terminal-body">__exit__ 호출 — exc_type: &lt;class 'ValueError'&gt;</pre>
+  </div>
+  <div class="keypoint">
+    <span class="label">검증 결과</span>
+    예외 경로에서도 <code>__exit__</code> 가 호출됨 — 파일 핸들 누수가 원천 차단되는 이유. 가설 통과.
+  </div>
+
+  <p><strong>CH04 — ABC 객체 생성 시점 차단 확인</strong></p>
+  <pre><code class="language-python">from abc import ABC, abstractmethod
+
+class Animal(ABC):
+    @abstractmethod
+    def speak(self): pass
+
+print(Animal)           # 클래스 정의는 통과
+try:
+    Animal()            # 객체 생성 시점에 차단
+except TypeError as e:
+    print(f"TypeError: {e}")</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">검증 — CH04 ABC</span></div>
+    <pre class="terminal-body">&lt;class '__main__.Animal'&gt;
+<span class="t-err">TypeError: Can't instantiate abstract class Animal without an implementation for abstract method 'speak'</span></pre>
+  </div>
+  <div class="keypoint">
+    <span class="label">검증 결과</span>
+    클래스 정의는 통과, <strong>객체 생성 시점</strong>에만 차단된다.
+    덕 타이핑(호출 시 차단)과 달리 에러를 훨씬 일찍 잡는다. 가설 통과.
+  </div>
+
+  <p><strong>CH05 — sys.path 구조 및 개발 모드 설치 확인</strong></p>
+  <pre><code class="language-python">import sys, importlib.util
+print(sys.path[:3])
+spec = importlib.util.find_spec("my_package")
+print(spec.origin if spec else "NOT FOUND")</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">검증 — CH05 import</span></div>
+    <pre class="terminal-body">['', 'C:\\...\\python314.zip', 'C:\\...\\Lib\\site-packages']
+C:\...\python_package\my_package\__init__.py</pre>
+  </div>
+  <div class="keypoint">
+    <span class="label">검증 결과</span>
+    <code>pip install -e .</code> 후 <code>find_spec</code> 이 프로젝트 내부 <code>__init__.py</code> 를 가리킨다.
+    <code>sys.path</code> 에 루트가 끼워진 것이 확인된다. 가설 통과.
+  </div>
+
+  <h3 class="step">시행착오 기록</h3>
+  <table>
+    <thead>
+      <tr><th>챕터</th><th>시행착오</th><th>해결</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>CH03 (python_fileio)</td>
+        <td><code>match/case</code> 구문 — Python 3.9 환경에서 <code>SyntaxError</code> 발생</td>
+        <td>Python 3.10+ 기능임을 확인. <code>python --version</code> 체크 후 3.14.2 인터프리터로 재실행.</td>
+      </tr>
+      <tr>
+        <td>CH04 (python_oop)</td>
+        <td><code>class_oop4.py</code> 의 주석 처리된 <code>Animal()</code> 를 풀었다가 <code>TypeError</code> — 처음에는 왜 에러가 나는지 몰랐음</td>
+        <td>에러 메시지가 미구현 메서드 이름까지 알려준다는 사실을 확인. 오히려 ABC 의 가치를 손으로 체감한 계기.</td>
+      </tr>
+      <tr>
+        <td>CH06 (streamlit)</td>
+        <td>로그인 상태가 버튼 클릭마다 초기화 — 일반 변수에 저장했기 때문</td>
+        <td><code>st.session_state</code> 로 전환. 재실행 사이에 상태 유지됨을 확인.</td>
+      </tr>
+      <tr>
+        <td>CH06 (streamlit)</td>
+        <td>CSV 경로를 <code>os.getcwd()</code> 로 잡으면 터미널 실행 위치에 따라 달라짐</td>
+        <td><code>pathlib.Path(__file__).resolve().parents[1] / "data"</code> 로 절대경로 고정.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">약점 자가진단</h3>
+  <div class="callout">
+    <span class="label">개선 필요 항목</span>
+    <ul>
+      <li><strong>테스트 코드 전무</strong> — 이번 2주 내내 어떤 파일에도 <code>unittest</code> / <code>pytest</code> 를 쓴 적이 없다. "가설 통과" 를 선언하면서 자동화된 테스트로 뒷받침한 것이 하나도 없다는 뜻이다.</li>
+      <li><strong>match/case 깊이 부족</strong> — guard 조건(<code>case x if x &gt; 0</code>), 구조 분해(<code>case [x, y]</code>) 를 실습하지 못했다.</li>
+      <li><strong>제너레이터 · iterator 프로토콜 미학습</strong> — <code>__iter__</code>/<code>__next__</code> 를 직접 구현한 적이 없다. python_collection 에서 list 메서드만 다뤘다.</li>
+      <li><strong>타입 힌트 미활용</strong> — 모든 코드가 타입 힌트 없이 작성됐다. <code>abstraction.html</code> CH04의 Protocol 학습과 연계해 적용 연습이 필요하다.</li>
+    </ul>
+  </div>
+
+  <h3 class="step">3주차 구체 계획</h3>
+  <div class="keypoint">
+    <span class="label">ACTION PLAN</span>
+    <ol>
+      <li><strong>테스트 코드 작성</strong> — 기존 미션 파일(<code>input_mission1.py</code>, <code>list_mission1.py</code> 등) 중 최소 3개에 <code>unittest.TestCase</code> 추가. 회고의 "가설·결론" 구조를 테스트 케이스로 표현하는 연습.</li>
+      <li><strong>SQL · pandas 연결</strong> — <code>python_fileio</code> 의 CSV R/W 를 pandas DataFrame 과 연결해 실습. 새 의문: "SQL JOIN 과 DataFrame merge 는 내부적으로 어떻게 다른가?"</li>
+      <li><strong>타입 힌트 소급 적용</strong> — <code>python_module/module/my_module.py</code> 의 함수들에 파라미터 · 반환 타입 힌트 추가.</li>
+      <li><strong>제너레이터 학습</strong> — <code>python_collection/</code> 에 <code>__iter__</code>/<code>__next__</code> 직접 구현 파일 추가.</li>
+    </ol>
+  </div>
+</section>
+
+
 </div>
 </main>
 
@@ -772,34 +977,11 @@ btn    = st.button("확인")
       <li><a href="https://docs.streamlit.io/develop/api-reference/caching-and-state/st.session_state" target="_blank" rel="noopener">Streamlit — st.session_state API Reference</a></li>
       <li><a href="https://docs.python.org/3/library/pathlib.html" target="_blank" rel="noopener">Python Standard Library — pathlib</a></li>
     </ul>
+
+    <p style="margin-top:18px"><strong>소스 코드</strong></p>
+    <ul class="refs" style="margin-top:4px">
+      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub — roroblack/python_workspace (소스 저장소)</a></li>
+      <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages — 블로그 목록</a></li>
+    </ul>
   </div>
 </footer>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-  <script>
-(function(){
-  var overlay=document.createElement('div');
-  overlay.id='lb-overlay';
-  overlay.style.cssText='display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);cursor:zoom-out;align-items:center;justify-content:center';
-  var img=document.createElement('img');
-  img.id='lb-img';
-  img.style.cssText='max-width:92vw;max-height:92vh;object-fit:contain;border:2px solid #fff;box-shadow:0 0 40px rgba(0,0,0,.6);transition:transform .15s';
-  overlay.appendChild(img);
-  document.body.appendChild(overlay);
-  function open(src){img.src=src;overlay.style.display='flex';}
-  function close(){overlay.style.display='none';img.src='';}
-  overlay.addEventListener('click',close);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
-  document.addEventListener('click',function(e){
-    var t=e.target;
-    if(t.tagName==='IMG'&&t.closest('figure')){e.preventDefault();open(t.src);}
-  });
-  var style=document.createElement('style');
-  style.textContent='figure img{cursor:zoom-in;transition:opacity .15s;}figure img:hover{opacity:.85;}';
-  document.head.appendChild(style);
-})();
-  </script>
-</body>
-</html>
