@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>파이썬은 정말 “한 줄씩” 실행되는가 ─ 인터프리터·바이트코드·__pycache__ 추적기</title>  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dee8;
+      --paper: #ffffff;
+      --surface: #ffffff;
+      --accent: #52A97E;
+      --accent-2: #E8875A;
+      --accent-3: #5B9BD5;
+      --accent-4: #9178C4;
+      --accent-soft: #EBF7F1;
+      --warn-soft: #FFF1E8;
+      --code-bg: #1e1e1e;
+      --code-ink: #e5e7eb;
+      --shadow: none;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+      line-height: 1.78;
+      font-size: 16px;
+    }
+    a { color: var(--accent-3); text-underline-offset: 3px; }
+    .page { width: min(880px, calc(100% - 32px)); margin: 0 auto; }
+
+    header.cover {
+      background: #ffffff;
+      border-bottom: 3px solid var(--ink);
+      padding: 64px 0 40px;
+    }
+    .cover .eyebrow {
+      border-top: 4px solid var(--accent);
+      padding-top: 10px;
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+    }
+    .cover h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.9rem);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+    .cover .deck {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-top: 30px;
+      padding-top: 18px;
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .meta-row strong { color: var(--ink); margin-right: 6px; }
+
+    main { padding: 36px 0 60px; }
+    h2.chap {
+      border-top: 3px solid var(--ink);
+      padding-top: 16px;
+      margin: 56px 0 8px;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    h2.chap .num {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin-right: 10px;
+      padding: 2px 8px;
+      border: 2px solid var(--accent);
+      border-radius: 0;
+      vertical-align: middle;
+    }
+    h3.step {
+      margin: 26px 0 8px;
+      font-size: 1.08rem;
+      color: var(--ink);
+    }
+    h3.step::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 1.1em;
+      background: var(--accent);
+      margin-right: 8px;
+      vertical-align: text-bottom;
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { padding-left: 22px; margin: 6px 0 14px; }
+    li { margin-bottom: 6px; }
+
+    code {
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+      font-size: 0.92em;
+    }
+    :not(pre) > code {
+      background: #EEF0F6;
+      border: 1px solid #d8e0ea;
+      border-radius: 0;
+      padding: 1px 6px;
+      color: #1f2933;
+    }
+    pre {
+      margin: 12px 0 18px;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 0;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      tab-size: 4;
+      box-shadow: none;
+    }
+    pre .comment { color: #6a9955; }
+    pre .kw { color: #569cd6; }
+    pre .str { color: #ce9178; }
+
+    .qbox, .keypoint, .callout {
+      border-radius: 0;
+      padding: 16px 18px;
+      margin: 14px 0 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .qbox { border-left: 4px solid var(--accent-3); background: #EBF4FF; border-radius: 0; }
+    .qbox .label {
+      display: block; color: var(--accent-3); font-weight: 800;
+      font-size: 0.84rem; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+    .keypoint { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+    .keypoint .label {
+      display: block; color: var(--accent); font-weight: 800;
+      font-size: 0.84rem; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+    .callout { border-left: 4px solid var(--accent-2); background: var(--warn-soft); }
+    .callout .label {
+      display: block; color: var(--accent-2); font-weight: 800;
+      font-size: 0.84rem; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+
+    blockquote.cite {
+      margin: 12px 0 18px;
+      padding: 12px 16px;
+      border-left: 3px solid #c8d3e0;
+      background: #f5f7fa;
+      color: #3a4a5a;
+      font-size: 0.95rem;
+    }
+    blockquote.cite .src {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left; vertical-align: top;
+      padding: 10px 12px; border-bottom: 1px solid var(--line);
+    }
+    th { background: #EEF0F5; color: #1f2933; font-weight: 800; border-radius: 0; }
+
+    .ascii {
+      background: var(--code-bg); color: var(--code-ink);
+      padding: 16px 18px; border-radius: 0;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.86rem; line-height: 1.45;
+      white-space: pre; overflow-x: auto;
+      margin: 12px 0 18px;
+    }
+
+    figure.placeholder {
+      margin: 14px 0 22px;
+      border: 1px dashed #c8d3e0;
+      background: #f6f8fa;
+      border-radius: 0;
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    figure.placeholder .ph-title { font-weight: 800; color: #3a4a5a; display: block; margin-bottom: 4px; }
+
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--ink);
+      border-radius: 0;
+      padding: 18px 22px;
+      margin: 24px 0 0;
+    }
+    .toc h4 {
+      margin: 0 0 8px;
+      font-size: 0.9rem; letter-spacing: 0.08em;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .toc ol { margin: 0; padding-left: 20px; }
+    .toc ol li { margin-bottom: 4px; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--accent-3); }
+
+    footer {
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      padding: 26px 0 40px;
+      font-size: 0.9rem;
+    }
+    footer .refs { padding-left: 20px; margin: 8px 0 0; }
+    footer .refs li { margin-bottom: 6px; }
+
+    @media (max-width: 720px) {
+      header.cover { padding: 48px 0 32px; }
+      .meta-row { gap: 10px 18px; }
+      h2.chap { font-size: 1.32rem; }
+      pre { font-size: 0.84rem; padding: 14px 16px; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+</head>
+<body>
+
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">Python · Execution Model · 01</p>
+    <h1>파이썬은 정말 “한 줄씩” 실행되는가</h1>
+    <p class="deck">교과서가 말하는 “인터프리터 언어 = 한 줄씩 실행”이라는 한 문장이, 실제로 디버거를 켰을 때 어떻게 어긋나는지를 따라간 기록. <strong>Python 3.14.2</strong> 기준, VS Code 통합 디버거·REPL·<code>dis</code>·HEX 에디터로 검증한다.</p>
+    <div class="meta-row">
+      <span><strong>작성일자</strong>2026/05/02</span>
+      <span><strong>HW</strong> Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+      <span><strong>SW</strong> 윈도우 11 Pro 25H2 · VS Code 1.117.0 · Python 3.14.2 · HEX editor</span>
+    </div>
+    <nav class="toc">
+      <h4>이 글의 흐름</h4>
+      <ol>
+        <li><a href="#ch1">시작 — “한 줄씩 실행”이라는 말의 의심</a></li>
+        <li><a href="#ch2">첫 시도 — 디버거 Step Over로 변수 추적</a></li>
+        <li><a href="#ch3">함정 — 소스를 고쳐도 디버거의 변수가 바뀌지 않는다</a></li>
+        <li><a href="#ch4">답을 찾아서 — 컴파일 파이프라인(PEP 339)</a></li>
+        <li><a href="#ch5">흔적 추적 — <code>__pycache__</code>는 왜 생기지 않는가</a></li>
+        <li><a href="#ch6"><code>dis</code>로 본 바이트코드 — 메모리와 디스크의 분리</a></li>
+        <li><a href="#ch7">두 번째 검증 — REPL로 “일부만 실행”</a></li>
+        <li><a href="#ch8">세 번째 검증 — 에러가 있는 프로그램을 일부러 돌린다</a></li>
+        <li><a href="#ch9">정리 — “인터프리터 vs 컴파일러”라는 이분법을 버리고</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+<!-- ======================== CH 1 ======================== -->
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span>“한 줄씩 실행”이라는 말의 의심</h2>
+
+  <h3 class="step">학습</h3>
+  <p>파이썬을 처음 배울 때 가장 먼저 듣는 정의 중 하나는 “파이썬은 <strong>인터프리터 언어</strong>라 코드를 <strong>한 줄씩</strong> 실행한다”다. 컴파일 언어처럼 빌드 단계가 따로 없고, 인터프리터가 위에서부터 한 줄을 읽고 그 자리에서 처리한다는 그림이다.</p>
+
+  <h3 class="step">의문</h3>
+  <div class="qbox">
+    <span class="label">Q</span>
+    “한 줄씩 실행한다”라는 말이 정말 사실이라면, 디버거에서 <strong>실행이 닿기 전</strong>에는 그 줄에 적힌 변수가 보이지 않아야 하고, 실행 도중 그 줄을 <strong>고쳐 두면</strong> 다음 실행에 반영되어야 하지 않을까?
+  </div>
+  <p>여기서 가설이 두 갈래로 갈린다.</p>
+  <ul>
+    <li><strong>가설 A</strong> — “한 줄씩”이 사실이라면, 디버거 진행과 함께 변수가 등장해야 한다. ✓</li>
+    <li><strong>가설 B</strong> — 같은 논리라면, 실행 중에 다음 줄을 수정·저장하면 디버거가 그 변경을 읽어야 한다. ✓</li>
+  </ul>
+  <p>가설을 “디버거 Step Over”라는 한 가지 도구로 둘 다 검증해 보자. 한 가설이라도 깨지면, 그 자리가 “한 줄씩 실행”이라는 말의 한계다.</p>
+
+  <h3 class="step">결론</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    이 글은 <strong>“한 줄씩 실행”이라는 표어가 어디서 무너지는가</strong>를 따라가는 기록이다. 결과를 미리 한 줄로 말하면 — 실행 단위는 “줄”이 아니라 <strong>코드 블록 단위 바이트코드</strong>다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 2 ======================== -->
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span>첫 시도 — 디버거 Step Over로 변수 추적</h2>
+
+  <h3 class="step">학습</h3>
+  <p>VS Code 의 파이썬 디버거는 “현재 라인”과 “지역 변수” 패널을 동시에 보여준다. 변수가 <em>언제</em> 등장하고 <em>언제까지</em> 살아있는지를 시각적으로 따라가기 좋다.</p>
+<pre><code><span class="kw">def</span> main():
+    a = 10           <span class="comment"># 3행</span>
+    b = 20           <span class="comment"># 4행</span>
+    c = a + b        <span class="comment"># 5행</span>
+    print(a, b, c)
+</code></pre>
+
+  <h3 class="step">의문 → 가설 A 검증</h3>
+  <div class="qbox">
+    <span class="label">가설 A</span>
+    중단점을 4행에 걸고 멈췄을 때, 변수 패널에는 <code>a</code>만 보이고 <code>b</code>는 아직 없어야 한다. 한 줄을 더 진행하면 그제야 <code>b</code>가 등장해야 한다.
+  </div>
+  <p>실제로 그렇다. 3행 실행 직후 변수 <code>a = 10</code>이 등장하고, 4행을 Step Over 한 뒤에 <code>b = 20</code>이 따라 붙는다. <strong>여기까지는 “한 줄씩”이라는 직관이 맞아 보인다.</strong></p>
+
+  <figure>
+    <img src="img/interp_ch02_a_before.png" alt="3행(a=10) 실행 직전 — Variables 패널이 비어 있다" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>① 3행 실행 직전 — Variables 패널에 아무 변수도 없다 (아직 <code>a = 10</code>을 할당하지 않았다)</figcaption>
+  </figure>
+  <figure style="margin-top:16px">
+    <img src="img/interp_ch02_b_after.png" alt="3행 실행 직후, a=10 등장" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>② 3행 Step Over 직후 → 4행 직전 — <code>a = 10</code>이 Variables 패널에 등장. 여기까지는 "한 줄씩"이라는 직관이 통한다</figcaption>
+  </figure>
+
+  <h3 class="step">결론(잠정)</h3>
+  <div class="keypoint">
+    <span class="label">PARTIAL OK</span>
+    “지역 변수가 그 줄이 실행돼야 등장한다”라는 면에서는 가설 A가 통과한다. 다음 챕터에서 가설 B를 깨뜨리면, 표어 전체가 부서진다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 3 ======================== -->
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span>함정 — 소스를 고쳐도 디버거의 변수가 바뀌지 않는다</h2>
+
+  <h3 class="step">학습</h3>
+  <p>이번에는 가설 B를 시험한다. 3행에서 멈춘 뒤, <strong>실행이 도달하지 않은 4행</strong>의 코드를 <code>b = 20</code> → <code>b = 30</code>으로 바꿔 저장한다. “한 줄씩” 모델이라면 이제 4행을 실행할 때 <code>b</code>가 30이 되어야 한다.</p>
+
+  <h3 class="step">의문 → 가설 B 검증</h3>
+  <p>디버거를 한 줄 진행한 결과, 변수 패널은 <strong>여전히 <code>b = 20</code></strong>이다. 파일을 저장했고, 디스크의 소스는 분명히 30인데 디버거의 메모리에는 그 변경이 닿지 않는다.</p>
+
+  <figure>
+    <img src="img/interp_ch03_edit.png" alt="소스 b=30 수정 후 Step Over — 디버거는 여전히 b=20" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>소스 4행을 <code>b = 30</code>으로 수정·저장한 후 Step Over — Variables 패널은 여전히 <code>b = 20</code>이고, 에디터 인라인 힌트도 <code>a = 10, b = 20</code>으로 표시된다</figcaption>
+  </figure>
+
+  <div class="callout">
+    <span class="label">대조</span>
+    Visual Studio + C 환경에서 “디버그 빌드(최적화 미적용)”로 같은 실험을 하면, 일부 IDE는 <em>Edit and Continue</em>로 즉시 반영하거나, 반영 불가 사유를 명시한다. 즉 “한 줄씩 실행”이라는 표어는 인터프리터 언어의 전유물이 아니고, 그 표어로 파이썬의 동작을 설명할 수도 없다.
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">FAILURE → CLUE</span>
+    <strong>가설 B는 깨졌다.</strong> “한 줄씩” 모델이 사실이라면 절대 일어날 수 없는 현상이 일어났다. 즉 파이썬은 “한 줄을 그때그때 읽어 실행”하지 않는다 — 어딘가에서 미리 “고정된 무엇”을 만들어 두고 그걸 돌리고 있다는 뜻이다. 다음 챕터의 단서는 공식 문서다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 4 ======================== -->
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span>답을 찾아서 — 컴파일 파이프라인(PEP 339)</h2>
+
+  <h3 class="step">학습</h3>
+  <p>파이썬 공식 레퍼런스 <em>Execution model</em> 문서에는 다음 두 문장이 있다.</p>
+  <blockquote class="cite">
+    A Python program is constructed from <strong>code blocks</strong>. … The term ‘interpreter’ here is not the same as the ‘bytecode interpreter’, which is what regularly runs in threads, executing compiled Python code.
+    <span class="src">— docs.python.org/3/reference/executionmodel.html</span>
+  </blockquote>
+  <blockquote class="cite">
+    A block is a piece of Python program text that is <strong>executed as a unit</strong>. … The local variables of a code block can be determined by scanning the entire text of the block for name binding operations.
+    <span class="src">— 같은 문서</span>
+  </blockquote>
+  <p>두 문장의 합은 분명하다. 파이썬의 실행 단위는 <strong>줄(line)이 아니라 블록(block)</strong>이고, 그 블록은 미리 컴파일되어 “바이트코드”라는 형태로 메모리에 자리 잡는다. 이 컴파일은 PEP 339(<em>Design of CPython’s Compiler</em>)가 정리한 4단계로 진행된다.</p>
+
+  <div class="ascii">.py 소스 텍스트
+    │
+    ▼
+[1] Parse Tree         ─ 토큰의 트리(고전적 파스 트리)
+    │
+    ▼
+[2] AST (Abstract Syntax Tree) ─ 문법 의미만 남긴 트리
+    │
+    ▼
+[3] CFG (Control Flow Graph)   ─ 기본 블록과 분기
+    │
+    ▼
+[4] Bytecode           ─ 명령어 리스트 (CD 처럼 “구워진” 결과)
+    │
+    ▼
+   PVM (Python Virtual Machine) — 한 명령어씩 페치-디스패치</div>
+
+  <h3 class="step">의문</h3>
+  <div class="qbox">
+    <span class="label">Q</span>
+    그렇다면 “한 줄씩” 모델이 깨진 이유가 명확해진다 — 우리가 4행의 소스를 바꿔도, <strong>이미 [4]단계에서 바이트코드가 굳어 버린 뒤</strong>이기 때문이다. 디버거가 보는 것은 디스크의 텍스트가 아니라 RAM의 바이트코드.
+  </div>
+  <p>레퍼런스의 또 한 줄이 이 추정을 보강한다 — “지역 변수는 블록 전체를 훑어 결정된다.” 즉 <strong>블록 진입 시점에 변수의 자리(슬롯)와 이름 바인딩 계획이 모두 정해진다</strong>. 그래서 파이썬은 단지 “한 줄씩 읽는 인터프리터”가 아니라 “블록 단위로 컴파일하고, 명령어 단위로 인터프리트하는” 두 단계 시스템이다.</p>
+
+  <h3 class="step">결론</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    파이썬의 실행 모델은 <strong>(1) 블록을 바이트코드로 컴파일</strong> → <strong>(2) 바이트코드 인터프리터(PVM)가 명령어를 한 개씩 실행</strong>의 두 단계다. “한 줄씩”이라는 말은 (2)의 PVM 차원에서만 비유적으로 맞고, 사용자 시점의 “.py 파일의 한 줄”과는 다르다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 5 ======================== -->
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span>흔적 추적 — <code>__pycache__</code>는 왜 생기지 않는가</h2>
+
+  <h3 class="step">학습</h3>
+  <p>“바이트코드가 굳어진다”는 주장이 사실이라면, 디스크 어딘가에 그 흔적이 남아야 자연스럽다. 공식 문서가 가리키는 곳은 <code>__pycache__</code> 폴더와 <code>.pyc</code> 파일이다.</p>
+  <blockquote class="cite">
+    Return the PEP 3147/PEP 488 path to the byte-compiled file associated with the source path. For example, if path is <code>/foo/bar/baz.py</code> the return value would be <code>/foo/bar/__pycache__/baz.cpython-32.pyc</code> for Python 3.2.
+    <span class="src">— <code>importlib.util.cache_from_source</code> 도큐먼트</span>
+  </blockquote>
+  <blockquote class="cite">
+    When a Python source file is <strong>imported</strong> for the first time, a <code>__pycache__</code> directory will be created in the package directory, if one does not already exist.
+    <span class="src">— PEP 3147</span>
+  </blockquote>
+
+  <h3 class="step">의문 — 그런데 폴더가 비어 있다</h3>
+  <div class="qbox">
+    <span class="label">Q</span>
+    <code>main.py</code>를 디버깅한 직후, 그 옆 폴더에는 <code>__pycache__</code>가 만들어지지 않았다. 왜?
+  </div>
+  <figure style="margin:12px 0">
+    <img src="img/interp_ch05_a_nopycache.png" alt="main.py 실행 직후 폴더 — __pycache__ 없음" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>main.py 디버깅 직후 파일 탐색기 — <code>__pycache__</code> 폴더가 보이지 않는다. "바이트코드를 만들지 않은 것"으로 착각하기 쉬운 지점</figcaption>
+  </figure>
+  <p>위 인용의 핵심 단어는 <strong>imported</strong>다. <code>__pycache__</code>는 “임포트 시스템”의 부산물이다. 그런데 <code>main.py</code>는 임포트되는 모듈이 아니라 <strong>직접 실행되는 진입점</strong>(<code>__main__</code>)이다. 진입점은 “모듈로서 캐시될 후보”에 들지 않는다.</p>
+
+  <h3 class="step">테스트</h3>
+  <p>이 추정을 한 줄로 검증한다 — 같은 폴더에 <code>test_import.py</code>를 만들고 <code>main.py</code>에서 임포트한 뒤 다시 디버깅한다.</p>
+<pre><code><span class="comment"># test_import.py — 비어 있어도 된다, 임포트되는 게 핵심</span>
+a = 10
+</code></pre>
+<pre><code><span class="comment"># main.py</span>
+<span class="kw">import</span> test_import
+print(test_import.a)
+</code></pre>
+  <p>결과 — 폴더에 <code>__pycache__/</code>가 생기고, <strong><code>test_import.cpython-314.pyc</code></strong>만 들어간다. <code>main.cpython-314.pyc</code>는 <strong>여전히 없다</strong>. “임포트된 모듈만 캐시된다”라는 규칙이 그대로 표면에 드러난다.</p>
+
+  <figure>
+    <img src="img/interp_ch05_b_created.png" alt="test_import 임포트 후 __pycache__ 생성됨" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>① <code>test_import.py</code>를 임포트하고 재실행한 직후 — VS Code 탐색기 + 파일 탐색기 모두에 <code>__pycache__</code>가 생성됨 (생성 시각 5/2/2026 10:04 PM)</figcaption>
+  </figure>
+  <figure style="margin-top:16px">
+    <img src="img/interp_ch05_c_pyc.png" alt="__pycache__ 내용: test_import.cpython-314.pyc만 있다" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>② <code>__pycache__</code> 폴더 내부 — <code>test_import.cpython-314.pyc</code>만 있고 <code>main.cpython-314.pyc</code>는 없다. "임포트된 것만 캐시된다"가 그대로 드러난다</figcaption>
+  </figure>
+
+  <h3 class="step">한 발 더 — HEX 에디터로 .pyc 내부를 열다</h3>
+  <p>여기서 의문이 하나 더 생긴다. <code>test_import.pyc</code>가 생겼으니 그 안에 우리가 선언한 <code>a = 10</code>이 담겨 있어야 하지 않을까? HEX 에디터로 직접 열어 확인한다.</p>
+
+  <div class="callout">
+    <span class="label">설정</span>
+    실험 당시 <code>test_import.py</code>는 <code>a = 10</code> 한 줄짜리 파일이었다. 파일 크기가 작아 HEX 에디터로 전체 내용을 한 화면에 볼 수 있다.
+  </div>
+
+  <figure>
+    <img src="img/interp_ch05_d_hex.png" alt="HEX 에디터로 test_import.cpython-314.pyc 내부 확인" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>③ HEX 에디터로 <code>test_import.cpython-314.pyc</code> 내부를 열어 각 섹션을 태깅한 결과</figcaption>
+  </figure>
+
+  <p>HEX 데이터를 태깅하면 구조가 드러난다.</p>
+  <div class="ascii">[Header]
+Magic   : 0x0D0A0E2B  ← Python 3.13 바이트코드 식별자
+Time    : 2026-04-26 18:34:09  ← 소스 파일 최종 수정 시각
+
+[Code Object]
+Filename: "F:\_proj\_study\python\_practice\test_import.py"
+Name    : "&lt;module&gt;"
+Instructions: RESUME, RETURN_CONST  ← 단 두 개</div>
+
+  <div class="callout">
+    <span class="label">핵심 관찰</span>
+    Instructions 가 <strong>RESUME, RETURN_CONST</strong> 두 개뿐이다. <code>a = 10</code>을 저장하는 <code>LOAD_SMALL_INT</code>·<code>STORE_NAME</code> 명령어가 <strong>없다</strong>. 이유는 간단하다 — 실험 당시 <code>test_import.py</code>는 비어 있었고, 그 상태로 임포트됐다. <code>a = 10</code>은 메인 파일인 <code>main.py</code>에서 접근한 속성이므로 <code>test_import.pyc</code>에는 존재하지 않는다.
+  </div>
+
+  <p>이 결과는 두 가지를 동시에 확인해 준다.</p>
+  <ol>
+    <li><code>.pyc</code>는 단순한 "소스 파일의 복사본"이 아니라 <strong>컴파일된 명령어 리스트(바이트코드)</strong>다 — 소스 텍스트가 아니라 실행 명령어만 담긴다.</li>
+    <li>임포트 시점의 소스 그대로 컴파일되므로, 파일을 나중에 수정해도 <strong>캐시가 무효화되기 전까지 이전 바이트코드가 사용</strong>된다 (magic + 타임스탬프로 일치 여부를 확인).</li>
+  </ol>
+
+  <h3 class="step">결론</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    <strong><code>__pycache__</code> 는 임포트 시스템의 부산물이다.</strong> 진입점 스크립트(<code>main.py</code>)는 바이트코드를 메모리에 가지고 있을지언정 디스크에 남기지 않는다. 그리고 생성된 <code>.pyc</code> 안에는 소스 텍스트가 아니라 <strong>컴파일된 명령어 리스트만</strong> 존재한다 — HEX 에디터로 직접 확인한 결과다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 6 ======================== -->
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span><code>dis</code>로 본 바이트코드 — 메모리와 디스크의 분리</h2>
+
+  <h3 class="step">학습</h3>
+  <p>그렇다면 “디스크에 남지 않는 진입점의 바이트코드”는 어떻게 들여다볼 수 있을까. 표준 라이브러리의 <code>dis</code> 모듈이 그 역할을 한다. <code>dis</code>는 주어진 소스 파일(또는 객체)을 <strong>그 자리에서</strong> 컴파일해 바이트코드로 풀어 보여준다.</p>
+<pre><code><span class="comment"># PowerShell</span>
+python -m dis main.py
+</code></pre>
+<pre><code><span class="comment"># 결과 (요약)</span>
+  3           RESUME                   0
+              LOAD_CONST               0 (10)
+              STORE_NAME               0 (a)
+  4           LOAD_CONST               1 (20)
+              STORE_NAME               1 (b)
+  5           LOAD_NAME                0 (a)
+              LOAD_NAME                1 (b)
+              BINARY_OP                0 (+)
+              STORE_NAME               2 (c)
+</code></pre>
+
+  <h3 class="step">의문 — “디스크의 소스”와 “디버거의 메모리”가 따로 산다는 증명</h3>
+  <div class="qbox">
+    <span class="label">Q</span>
+    그럼 디버깅 도중에 <code>main.py</code>의 <code>b = 20</code>을 <code>b = 30</code>으로 고친 뒤 다시 <code>python -m dis main.py</code>를 돌리면, 그 출력은 <strong>30</strong>일까 <strong>20</strong>일까?
+  </div>
+  <p>출력은 <strong>30</strong>이다. <code>dis</code>는 명령을 받은 그 순간 디스크의 소스를 새로 컴파일하기 때문이다. 그러나 <strong>같은 시간에 디버거 안의 메모리에서는 여전히 20</strong>이다. 두 “바이트코드”가 동시에 존재하지만 같은 객체가 아닌 것이다.</p>
+
+  <figure>
+    <img src="img/interp_ch06_a_dis20.png" alt="dis 출력 b=20 수정 전" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>① <strong>수정 전</strong> — 터미널 <code>python -m dis main.py</code> 출력: 7행 <code>LOAD_SMALL_INT 10</code>(a), 8행 <code>LOAD_SMALL_INT 20</code>(b). 아직 소스를 수정하지 않았으므로 두 값이 일치한다</figcaption>
+  </figure>
+  <figure style="margin-top:16px">
+    <img src="img/interp_ch06_b_dis30.png" alt="소스를 b=30으로 수정 후 dis는 30, 디버거 변수는 여전히 20" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>② <strong>수정 후</strong> — 디버깅 중 소스를 <code>b = 30</code>으로 수정·저장한 뒤 다시 <code>python -m dis main.py</code> 실행: 터미널은 <code>LOAD_SMALL_INT 30</code>을 보여주지만 디버거 변수 패널은 여전히 <code>b = 20</code>. 같은 시점에 두 개의 다른 바이트코드가 공존한다</figcaption>
+  </figure>
+
+  <h3 class="step">결론</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    실행 중 디버거가 보여주는 변수는 <strong>“디버거가 시작될 때 컴파일된 바이트코드 + 그것을 돌리고 있는 PVM 의 프레임”</strong>이다. 디스크 텍스트는 그 바이트코드를 만드는 <em>입력</em>일 뿐, 같은 객체가 아니다. 그래서 “파일을 저장”해도 이미 돌아가는 프로세스의 변수는 바뀌지 않는다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 7 ======================== -->
+<section id="ch7">
+  <h2 class="chap"><span class="num">CH 07</span>두 번째 검증 — REPL로 “일부만 실행”</h2>
+
+  <h3 class="step">학습</h3>
+  <p>여기서 시점을 바꾼다. 위 챕터들이 “블록 단위 컴파일”의 흔적이라면, REPL(읽기·평가·인쇄 루프)은 “인터프리터 언어다움”이 가장 잘 드러나는 자리다. VS Code 에서 코드 일부를 선택하고 <kbd>Shift</kbd>+<kbd>Enter</kbd>를 누르면 그 부분만 파이썬 REPL 로 보내져 즉시 실행된다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    파일에 에러가 있는 줄이 있어도, REPL이 “<strong>그 앞 부분만</strong>”을 받아 실행하면 그것은 정상 결과를 내야 한다. 컴파일 언어라면 “파일 단위 빌드”가 있어 부분 실행 자체가 불가능하다.
+  </div>
+<pre><code><span class="comment"># main.py — 6~9행은 정상, 10행에 의도적 IndexError</span>
+nums = [1, 2, 3]
+total = 0
+<span class="kw">for</span> n <span class="kw">in</span> nums:        <span class="comment">#  6</span>
+    total += n            <span class="comment">#  7</span>
+<span class="kw">print</span>(<span class="str">"total =", total</span>)  <span class="comment">#  8</span>
+<span class="kw">print</span>(<span class="str">"max =", max(nums)</span>) <span class="comment">#  9</span>
+<span class="kw">print</span>(<span class="str">"x =", nums[99]</span>)   <span class="comment"># 10  ← IndexError</span>
+</code></pre>
+
+  <h3 class="step">테스트</h3>
+  <p>6~9행만 블록 선택해 <kbd>Shift</kbd>+<kbd>Enter</kbd> — REPL은 정상적으로 <code>total = 6</code>, <code>max = 3</code>을 찍는다. 그 다음 10행만 추가로 보내면 그 자리에서 <code>IndexError</code>가 난다. <strong>앞쪽 블록은 뒤쪽의 에러와 무관하게 살아 있는다.</strong></p>
+
+  <figure>
+    <img src="img/interp_ch07_a_repl.png" alt="REPL: 6~9행 정상 실행" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>① 6~9행을 블록 선택해 <kbd>Shift</kbd>+<kbd>Enter</kbd> — REPL에서 <code>a = 10</code>, <code>b = 30</code>, <code>c = a + b</code>가 정상 처리된다</figcaption>
+  </figure>
+  <figure style="margin-top:16px">
+    <img src="img/interp_ch07_b_error.png" alt="REPL: 에러 줄만 별도 실행 시 IndexError" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>② 에러가 있는 줄만 추가로 보내면 그 자리에서 <code>IndexError: Replacement index 3 out of range for positional args tuple</code>가 발생한다. 앞의 정상 블록은 이미 완료되어 결과가 유지된다</figcaption>
+  </figure>
+
+  <h3 class="step">결론</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    REPL이 보여주는 것은 “블록 단위 컴파일 → 즉시 실행”의 짧은 순환이다. 즉 <strong>파이썬에서 블록의 경계는 “파일”이 아니다</strong>. 함수 하나, 셀 하나, 선택 영역 하나가 모두 “컴파일·실행의 단위”가 될 수 있다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 8 ======================== -->
+<section id="ch8">
+  <h2 class="chap"><span class="num">CH 08</span>세 번째 검증 — 에러가 있는 프로그램을 일부러 돌린다</h2>
+
+  <h3 class="step">학습</h3>
+  <p>만약 파이썬에 “파일 단위 빌드”가 있다면, 파일 안 어디든 에러가 있는 한 프로그램은 시작조차 못 해야 한다. 그러나 우리는 매일 그 반대를 본다 — 함수 안의 <code>NameError</code>는 그 함수가 호출될 때까지 잠잠하다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    파일에 에러가 있어도 <strong>실행이 그 줄에 닿기 전까지는</strong> 프로세스가 정상 진행된다. 단, “구문 오류(SyntaxError)”는 컴파일 단계에서 잡히므로 시작 자체가 안 된다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+<pre><code><span class="comment"># main.py</span>
+print(<span class="str">"start"</span>)
+print(<span class="str">"middle"</span>)
+print(undefined_name)   <span class="comment">#  NameError — 그러나 “시작” 직후에 발생</span>
+print(<span class="str">"never"</span>)
+</code></pre>
+  <p>F5 로 디버깅을 시작하면 터미널에는 <code>start</code> → <code>middle</code> 두 줄이 그대로 찍히고, 세 번째 줄에서 <code>NameError</code>가 발생하며 종료된다. 컴파일 언어 모델로는 설명되지 않는 진행 방식이다.</p>
+  <figure style="margin:12px 0">
+    <img src="img/interp_ch08_debug.png" alt="에러가 있는 프로그램을 F5로 실행 — start program 출력 후 IndexError" style="max-width:100%;border:1px solid #3a3a3a;border-radius:6px;">
+    <figcaption>F5 디버그 실행 결과 — 터미널에 <code>start program</code>이 먼저 출력된 뒤(블록 컴파일은 통과했으므로 진입점까지 도달), 에러가 있는 줄에서 <code>IndexError</code>가 발생하며 종료된다. 컴파일 언어였다면 <em>start program</em>조차 찍히지 않아야 한다</figcaption>
+  </figure>
+  <p>반대 실험: 같은 파일에 <code>print(</code>처럼 <strong>괄호가 닫히지 않은 구문</strong>을 넣고 실행하면, 첫 줄도 찍히지 않은 채 <code>SyntaxError</code>가 난다. 이는 “블록 컴파일 단계에서 실패”했기 때문이다.</p>
+
+  <h3 class="step">결론</h3>
+  <table>
+    <thead><tr><th>오류의 종류</th><th>잡히는 시점</th><th>관측 동작</th></tr></thead>
+    <tbody>
+      <tr><td><code>SyntaxError</code></td><td>블록 컴파일</td><td>첫 줄도 실행되지 않는다</td></tr>
+      <tr><td><code>NameError</code> / <code>TypeError</code> / <code>IndexError</code> 등</td><td>실행</td><td>해당 줄에 닿기 전까지는 정상 진행</td></tr>
+    </tbody>
+  </table>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    “인터프리터 언어 = 에러 줄까지는 정상 실행”이라는 정설은 <strong>실행 시점 오류에 한해서만</strong> 맞다. 구문 오류는 어차피 컴파일 단계에서 차단된다. 즉 파이썬 안에는 “컴파일 측면”과 “인터프리트 측면”이 함께 있다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 9 ======================== -->
+<section id="ch9">
+  <h2 class="chap"><span class="num">CH 09</span>정리 — “인터프리터 vs 컴파일러”라는 이분법을 버리고</h2>
+
+  <h3 class="step">압축</h3>
+  <p>이 글의 8개 챕터는 한 문장으로 줄어든다.</p>
+  <div class="keypoint">
+    <span class="label">ONE-LINER</span>
+    파이썬은 <strong>“블록을 바이트코드로 컴파일하고, 그 바이트코드를 PVM이 명령어 단위로 인터프리트”</strong>하는 두 단계 시스템이다. “한 줄씩 실행”은 그 인터프리트 단계에서나 통하는 비유이고, 사용자가 보는 .py 파일의 “한 줄”과는 분리된 개념이다.
+  </div>
+
+  <h3 class="step">실무 체크리스트</h3>
+  <ul>
+    <li>디버깅 중 변수 값을 바꾸고 싶다면 — <strong>소스 파일 수정이 아니라 디버거의 변수 직접 수정 기능</strong>을 쓴다.</li>
+    <li><code>__pycache__</code>가 안 생긴다고 “컴파일이 안 됐다”라고 단정하지 말 것. <strong>임포트된 모듈만 캐시</strong>된다.</li>
+    <li>진입점의 바이트코드를 보고 싶다면 <code>python -m dis main.py</code>. 단 그 결과는 <strong>그 시점의 디스크 파일</strong>을 컴파일한 것이지, 이미 돌아가는 프로세스의 메모리는 아니다.</li>
+    <li>파일에 실행 시점 오류가 있어도 그 줄에 닿기 전까지는 정상 진행. 단 <code>SyntaxError</code>는 “블록 컴파일” 단계에서 차단되므로 처음부터 멈춘다.</li>
+    <li>“파이썬은 인터프리터 언어”라는 한 줄로 끝내지 말 것. <strong>컴파일과 인터프리트가 같은 런타임 안에 공존한다</strong>.</li>
+  </ul>
+
+  <h3 class="step">한 그림으로</h3>
+  <div class="ascii">[ 디스크 ]                   [ 프로세스 메모리 ]
+ main.py  ──── python -m dis ────►  (그 시점의) bytecode 출력
+   │
+   │ python main.py / F5
+   ▼
+ 컴파일 (Parse → AST → CFG → Bytecode)
+   │
+   ▼
+ PVM 이 명령어 한 개씩 페치-디스패치
+   │
+   ▼
+ 디버거가 보는 “변수 패널” = 이 메모리
+
+  ※ 디버거 시작 후 디스크의 main.py 를 수정해도
+     PVM 이 들고 있는 바이트코드는 그대로 — 두 메모리는 분리</div>
+</section>
+
+</main>
+
+<footer>
+  <div class="page">
+    <p>본 글은 부트캠프 학습 정리이며, 인용한 모든 사양 문구는 PSF 라이선스에 따른 공식 문서에서 그대로 가져왔다. 검증 환경: <strong>윈도우 11 Pro 25H2 · VS Code 1.117.0 · Python 3.14.2 · HEX editor</strong> (HW: Asrock x600, Ryzen 8600G, 24GB LPDDR5, RTX 4070 Super 12GB).</p>
+    <p style="margin-top:10px"><strong>레퍼런스</strong></p>
+    <ol class="refs">
+      <li>Python Docs — <em>Execution model</em>: <a href="https://docs.python.org/3/reference/executionmodel.html">reference/executionmodel.html</a></li>
+      <li>Python Docs — <em>importlib</em> (<code>cache_from_source</code>): <a href="https://docs.python.org/3/library/importlib.html">library/importlib.html</a></li>
+      <li>Python Docs — <em>dis</em>: <a href="https://docs.python.org/3/library/dis.html">library/dis.html</a></li>
+      <li>PEP 339 — <em>Design of CPython’s Compiler</em>: <a href="https://peps.python.org/pep-0339/">peps.python.org/pep-0339/</a></li>
+      <li>PEP 3147 — <em>PYC Repository Directories</em>: <a href="https://peps.python.org/pep-3147/">peps.python.org/pep-3147/</a></li>
+      <li>PEP 488 — <em>Elimination of PYO files</em>: <a href="https://peps.python.org/pep-0488/">peps.python.org/pep-0488/</a></li>
+    </ol>
+
+    <p style="margin-top:18px"><strong>소스 코드</strong></p>
+    <ul class="refs" style="margin-top:4px">
+      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub — roroblack/python_workspace (소스 저장소)</a></li>
+      <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages — 블로그 목록</a></li>
+    </ul>
+  </div>
+</footer>
