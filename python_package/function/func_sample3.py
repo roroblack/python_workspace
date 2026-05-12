@@ -87,6 +87,18 @@ def func_default_param() :
     print('가장 작은 값 : ', tmin())
 #----------------------------------------
 
+# 재귀 호출 함수 (Recursive Call Function)
+# 함수 안에서 자신을 호출
+# 주의 : 무한 루프가 되지 않게 종료 조건이 반드시 필요함
+# 파이썬은 무한루프에 빠지면 일정 구간 1000회 이상 반복되면 RecursionError: maximum recursion depth exceeded in comparison 에러 발생
+def fectorial(n) :
+    print(n, ' * ', end='') # end=''  # 줄바꿈 없게
+    if n == 0 :
+        return 1
+    else :
+        return n * fectorial(n-1) # 재귀 호출
+#----------------------------------------
+
 
 
 
@@ -94,3 +106,5 @@ if __name__ == '__main__':
     func_callby_value()
     func_callby_reference()
     func_default_param()
+
+    print('\n10f : ', fectorial(10))
