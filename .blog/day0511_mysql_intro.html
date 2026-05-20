@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>0511 학습 노트: MySQL DBMS 입문 — 계정·스키마·자료형이 분리된 이유</title>
+  <meta name="description" content="SK Networks AI Family 32기 3주차 첫날(0511) MySQL 학습 노트. 1·2주차 파이썬이 '모든 것을 런타임 객체로' 표현했던 것과 정반대로, MySQL은 왜 계정을 OS와 분리하고 자료형을 컬럼마다 강제하는가 — DAY1.sql / DAY1_student.sql 의 실제 실행 결과로 추적." />
+  <meta property="og:title" content="0511 학습 노트: MySQL DBMS 입문" />
+  <meta property="og:description" content="파이썬의 '런타임 객체 모델'과 정반대 방향을 택한 SQL — 계정·스키마·자료형 분리의 이유를 DAY1.sql 실행 결과로 추적." />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="0511 학습 노트: MySQL DBMS 입문" />
+  <meta name="twitter:description" content="계정·스키마·자료형이 분리된 이유 — DAY1.sql 6챕터 사슬 추적." />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dee8;
+      --paper: #ffffff;
+      --surface: #ffffff;
+      --accent:      #52A97E;
+      --accent-2:    #E8875A;
+      --accent-3:    #5B9BD5;
+      --accent-4:    #9178C4;
+      --accent-soft: #EBF7F1;
+      --warn-soft:   #FFF1E8;
+      --code-bg: #1e1e1e;
+      --code-ink: #e5e7eb;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+      line-height: 1.78;
+      font-size: 16px;
+    }
+    a { color: var(--accent-3); text-underline-offset: 3px; }
+    .page { width: min(880px, calc(100% - 32px)); margin: 0 auto; }
+
+    /* ------------ 표지 ------------ */
+    header.cover {
+      background: #ffffff;
+      border-bottom: 3px solid var(--ink);
+      padding: 64px 0 40px;
+    }
+    .cover .eyebrow {
+      border-top: 4px solid var(--accent);
+      padding-top: 10px;
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+    }
+    .cover h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+      line-height: 1.18;
+      letter-spacing: -0.01em;
+    }
+    .cover .deck {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-top: 30px;
+      padding-top: 18px;
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .meta-row strong { color: var(--ink); margin-right: 6px; }
+
+    /* ------------ 본문 일반 ------------ */
+    main { padding: 36px 0 60px; }
+    h2.chap {
+      border-top: 3px solid var(--ink);
+      padding-top: 16px;
+      margin: 56px 0 8px;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    h2.chap .num {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin-right: 10px;
+      padding: 2px 8px;
+      border: 2px solid var(--accent);
+      border-radius: 0;
+      vertical-align: middle;
+    }
+    h3.step {
+      margin: 26px 0 8px;
+      font-size: 1.08rem;
+      color: var(--ink);
+    }
+    h3.step::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 1.1em;
+      background: var(--accent);
+      margin-right: 8px;
+      vertical-align: text-bottom;
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { padding-left: 22px; margin: 6px 0 14px; }
+    li { margin-bottom: 6px; }
+
+    /* ------------ 인라인 코드 / 코드블록 ------------ */
+    code {
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+      font-size: 0.92em;
+    }
+    :not(pre) > code {
+      background: #EEF0F6;
+      border: 1px solid #d8e0ea;
+      border-radius: 0;
+      padding: 1px 6px;
+      color: #1f2933;
+    }
+    pre {
+      margin: 12px 0 18px;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 0;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      tab-size: 4;
+      box-shadow: none;
+    }
+    pre code.language-sql,
+    pre code.language-python { background: transparent; border: none; padding: 0; color: inherit; font-size: 1em; }
+
+    /* ------------ 챕터 앵커 링크 ------------ */
+    .anchor-link {
+      display: inline-block;
+      margin-left: 8px;
+      color: var(--accent);
+      text-decoration: none;
+      opacity: 0;
+      font-size: 0.75em;
+      vertical-align: middle;
+      font-weight: 400;
+      transition: opacity 0.15s;
+    }
+    h2.chap:hover .anchor-link { opacity: 1; }
+
+    /* ------------ 흐름 박스: 의문/결론/경고 ------------ */
+    .qbox, .keypoint, .callout {
+      border-radius: 0;
+      padding: 16px 18px;
+      margin: 14px 0 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .qbox {
+      border-left: 4px solid var(--accent-3);
+      background: #EBF4FF;
+    }
+    .qbox .label {
+      display: block;
+      color: var(--accent-3);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .keypoint {
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+    }
+    .keypoint .label {
+      display: block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .callout {
+      border-left: 4px solid var(--accent-2);
+      background: var(--warn-soft);
+    }
+    .callout .label {
+      display: block;
+      color: var(--accent-2);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    /* ------------ 표 ------------ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: #EEF0F5;
+      color: #1f2933;
+      font-weight: 800;
+    }
+
+    /* ------------ TOC ------------ */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--ink);
+      border-radius: 0;
+      padding: 18px 22px;
+      margin: 24px 0 0;
+    }
+    .toc h4 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 0; padding-left: 20px; }
+    .toc ol li { margin-bottom: 4px; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--accent-3); }
+
+    /* ------------ 인라인 인용 ------------ */
+    blockquote.cite {
+      border: 1px solid #d8d0f0;
+      border-left: 4px solid var(--accent-4);
+      background: #F7F5FD;
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-radius: 0;
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+    blockquote.cite .src {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85em;
+      margin-top: 8px;
+    }
+
+    /* ------------ 다음 챕터로 가는 다리 ------------ */
+    .bridge {
+      border-left: 4px solid var(--muted);
+      background: #F4F6F8;
+      padding: 12px 16px;
+      margin: 18px 0 8px;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: #3a4250;
+    }
+    .bridge strong { color: var(--ink); }
+
+    /* ------------ 푸터 ------------ */
+    footer {
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      padding: 26px 0 40px;
+      font-size: 0.9rem;
+    }
+    footer .refs { padding-left: 20px; margin: 8px 0 0; }
+    footer .refs li { margin-bottom: 6px; }
+
+    /* ------------ 날짜 배지 ------------ */
+    .day-badge {
+      display: inline-block;
+      background: var(--ink);
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 2px 8px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ------------ 터미널 출력 블록 ------------ */
+    .terminal {
+      margin: 14px 0 22px;
+      border-radius: 0;
+      overflow: hidden;
+      border: 1px solid #30363d;
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+    }
+    .terminal-header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 9px 16px;
+      font-size: 0.8rem;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .terminal-header::before {
+      content: 'mysql>';
+      color: #4ec9b0;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .terminal-header .t-label { flex: 1; color: #8b949e; }
+    pre.terminal-body {
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 16px 20px;
+      border-radius: 0;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .t-err { color: #f85149; }
+    .t-ok  { color: #3fb950; }
+    .t-hdr { color: #6e7681; }
+    .t-sec { color: #58a6ff; }
+  </style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">MySQL · 3주차 · DAY1 · DBMS 입문</p>
+    <h1>0511 학습 노트: MySQL DBMS 입문 — 계정·스키마·자료형이 분리된 이유</h1>
+    <p class="deck">
+      1·2주차 회고에서 "파이썬은 C 가 컴파일 타임에 맡긴 모든 것을 런타임 객체로 옮겼다" 는 결론에 닿았다.
+      그렇다면 3주차 첫 도구인 MySQL 은 — 왜 정반대로, 계정을 OS 와 분리하고 컬럼마다 자료형을 강제하는가?
+      DAY1.sql · DAY1_student.sql 에서 실제로 실행한 결과로 사슬을 따라간다.
+    </p>
+    <div class="meta-row">
+      <span><strong>작성일자</strong> 2026/05/11</span>
+      <span><strong>과정</strong> SK Networks AI Family 32기 · 교과목 1 단원 2 · DAY1</span>
+      <span><strong>HW</strong> Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+      <span><strong>SW</strong> Windows 11 Pro 25H2 · MySQL 8.x · MySQL Workbench · PowerShell</span>
+    </div>
+    <nav class="toc">
+      <h4>목차</h4>
+      <ol>
+        <li><a href="#ch1">root 와 일반 사용자 — 왜 DBMS 는 OS 와 분리된 계정 체계를 갖는가</a></li>
+        <li><a href="#ch2">DATABASE / SCHEMA — 한 서버 안의 격리 단위</a></li>
+        <li><a href="#ch3">CREATE TABLE — 컬럼마다 자료형을 강제하는 이유</a></li>
+        <li><a href="#ch4">ALTER / DROP — 정적 스키마는 정말 굳어 있는가</a></li>
+        <li><a href="#ch5">INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미</a></li>
+        <li><a href="#ch6">최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="page">
+
+<!-- ============================================================ 도입 다리 -->
+<div class="bridge" style="margin-top:18px">
+  <strong>이 노트가 추적하는 한 줄 의문</strong> —
+  파이썬은 "변수 선언 없이 런타임 메모리에 변수 공간을 만든다" 고 했고,
+  그것이 1·2주차의 결론이었다.
+  그런데 DAY1.sql 첫 줄 — <code>CREATE USER homework IDENTIFIED BY 'Homework80*'</code> — 부터 모든 것이
+  반대다. 계정도, 데이터베이스도, 컬럼 자료형도 <strong>미리 선언</strong>해야 한다.
+  왜 데이터베이스는 정반대 방향을 택했는가? CH01 ~ CH05 에서 한 조각씩 답을 모은 뒤 CH06 에서 회수한다.
+</div>
+
+<!-- ============================================================ CH01 -->
+<section id="ch1">
+  <h2 class="chap">
+    <span class="num">CH 01</span>
+    <span class="day-badge">DAY1</span>root 와 일반 사용자 — 왜 DBMS 는 OS 와 분리된 계정 체계를 갖는가<a href="#ch1" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    MySQL 을 설치하면 OS 사용자(Windows 의 내 계정)와 <strong>전혀 별도</strong> 의 <code>root</code> 계정이 생긴다.
+    DAY1.sql 의 출발점은 이 root 가 자기 자신을 쓰지 않고 <strong>학습용 계정을 새로 만들어 권한을 위임</strong> 하는 작업이었다.
+  </p>
+  <pre><code class="language-sql">-- DAY1.sql — root 가 student / homework 계정을 만들고 권한을 부여
+CREATE USER 'student'@'%'   IDENTIFIED BY 'Student80*';
+CREATE USER homework        IDENTIFIED BY 'Homework80*';
+
+SHOW DATABASES;
+GRANT ALL privileges ON mysql.* TO homework;  -- 거의 모든 권한 위임
+
+-- 현재 접속 계정 확인
+SELECT USER();</code></pre>
+  <blockquote class="cite">
+    MySQL stores accounts in the <code>user</code> table of the <code>mysql</code> system database.
+    An account is defined in terms of a user name and the client host or hosts from which the user can connect to the server.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/account-names.html" target="_blank" rel="noopener">MySQL Reference Manual § 6.2.4 Specifying Account Names</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    위 인용이 사실이라면 — MySQL 의 계정은 ① <strong>호스트 페어</strong> ('user'@'host') 단위로 식별되고
+    ② <code>mysql.user</code> 라는 시스템 테이블 한 곳에 모두 기록되며 ③ OS 계정과는 무관하게 독립 운영되어야 한다.
+    그렇다면 같은 사용자명이라도 호스트가 다르면 다른 계정으로 취급되어야 하고, <code>mysql.user</code> 를
+    직접 조회해서 위 세 가지를 한 번에 검증할 수 있다.
+  </div>
+
+  <h3 class="step">테스트 — mysql.user 직접 조회</h3>
+  <pre><code class="language-sql">-- root 계정으로 접속한 상태에서
+SELECT user, host, plugin FROM mysql.user;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY1 § root 접속 — mysql.user</span></div>
+    <pre class="terminal-body">+------------------+-----------+-----------------------+
+| user             | host      | plugin                |
++------------------+-----------+-----------------------+
+| homework         | %         | caching_sha2_password |
+| student          | %         | caching_sha2_password |
+| mysql.infoschema | localhost | caching_sha2_password |
+| mysql.session    | localhost | caching_sha2_password |
+| mysql.sys        | localhost | caching_sha2_password |
+| root             | localhost | caching_sha2_password |
++------------------+-----------+-----------------------+
+6 rows in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    계정은 (user, host) 페어로 식별된다 — 같은 이름이라도 <code>'admin'@'localhost'</code> 와
+    <code>'admin'@'%'</code> 는 다른 계정이다.
+    OS 의 Windows 사용자명과는 전혀 무관하게, MySQL 안에서 자기만의 사용자 테이블을 갖고 있다.
+    이것이 DBMS 가 OS 와 분리된 계정 체계를 갖는 이유 — <strong>"누가 어디서 어떤 데이터에 접근하느냐" 를
+    OS 가 아닌 DBMS 자체가 책임지기 위함</strong>이다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 계정이 권한을 가지려면 그 권한이 "무엇에 대한 권한" 인지를
+    가리킬 단위가 필요하다. <code>GRANT ALL ON mysql.* TO homework</code> 에서 등장한
+    <code>mysql.*</code> 의 점(<code>.</code>) 표기 — 이것이 다음 단위인 <strong>데이터베이스(스키마)</strong> 의 정체다.
+  </div>
+</section>
+
+
+<!-- ============================================================ CH02 -->
+<section id="ch2">
+  <h2 class="chap">
+    <span class="num">CH 02</span>
+    <span class="day-badge">DAY1</span>DATABASE / SCHEMA — 한 서버 안의 격리 단위<a href="#ch2" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    DAY1.sql 두 번째 흐름은 root 가 <code>CREATE DATABASE mydb</code> 로 데이터베이스 한 칸을 새로 파고,
+    student 계정이 <code>USE mydb</code> 로 그 안에 들어가는 동작이었다.
+    MySQL 에서는 SCHEMA = DATABASE 로 같은 의미이며, 한 서버 안에 여러 개를 두고 격리할 수 있다.
+  </p>
+  <pre><code class="language-sql">-- root 계정에서
+CREATE DATABASE mydb;
+SHOW DATABASES;            -- 새로 만들어진 mydb 확인
+
+-- student 계정 (Connect to Database 로 재접속) 에서
+USE mydb;                  -- 작업 대상 데이터베이스 지정
+SELECT DATABASE();         -- 현재 어느 DB 에 들어와 있는가</code></pre>
+  <blockquote class="cite">
+    In MySQL, <code>SCHEMA</code> is a synonym for <code>DATABASE</code>. They are equivalent in MySQL.
+    Use <code>USE db_name</code> to set <code>db_name</code> as the default (current) database for subsequent statements.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/use.html" target="_blank" rel="noopener">MySQL Reference Manual § 13.8.4 USE Statement</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    데이터베이스가 진짜 "격리 단위" 라면 — ① 한 서버 안에 여러 DB 가 동시에 살아있을 수 있고
+    ② 같은 이름의 테이블이 다른 DB 에 있으면 서로 충돌하지 않으며
+    ③ 권한도 <code>db명.테이블명</code> 단위로 부여될 수 있어야 한다.
+    DAY1 에서 직접 mydb 와 mysql 두 DB 를 한 서버에서 동시에 다뤘으니, 이 셋이 모두 만족되어야 한다.
+  </div>
+
+  <h3 class="step">테스트 — SHOW DATABASES · 현재 컨텍스트 확인</h3>
+  <pre><code class="language-sql">SHOW DATABASES;
+USE mydb;
+SELECT DATABASE();
+SHOW TABLES;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY1 § student@mydb — 컨텍스트 확인</span></div>
+    <pre class="terminal-body">+--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mydb               |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.00 sec)
+
+Database changed
+
++------------+
+| DATABASE() |
++------------+
+| mydb       |
++------------+
+1 row in set (0.00 sec)
+
+Empty set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    한 MySQL 서버는 여러 데이터베이스를 동시에 호스팅한다 — <code>information_schema</code>,
+    <code>mysql</code>, <code>performance_schema</code>, <code>sys</code> 가 시스템 DB 이고
+    그 옆에 사용자 DB <code>mydb</code> 가 새로 들어가 있다.
+    <code>db명.테이블명</code> 의 점 표기가 권한 범위를 그대로 그린다는 점에서, 데이터베이스는
+    파이썬의 모듈/패키지 네임스페이스와 같은 격리 역할을 한다.
+    단, 파이썬이 <code>sys.modules</code> 런타임 dict 로 그것을 표현했다면, MySQL 은 디스크 상의
+    <strong>독립된 디렉터리</strong> 로 표현한다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 격리 단위(DB) 안에 들어왔으니 이제 실제 데이터를 담을 그릇이 필요하다.
+    파이썬 list/dict 가 무엇이든 담았던 것과 달리, MySQL 의 테이블은 <strong>컬럼마다 자료형을 미리 정의</strong> 하라고
+    강제한다. 왜 그렇게 까다로운가?
+  </div>
+</section>
+
+
+<!-- ============================================================ CH03 -->
+<section id="ch3">
+  <h2 class="chap">
+    <span class="num">CH 03</span>
+    <span class="day-badge">DAY1</span>CREATE TABLE — 컬럼마다 자료형을 강제하는 이유<a href="#ch3" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    DAY1_student.sql 의 핵심은 <code>CREATE TABLE MANAGE</code> 였다.
+    영업소명(<code>VARCHAR(20)</code>) · 입고량(<code>INT</code>) · 판매량(<code>INT</code>) · 재고량(<code>INT</code>) · 날짜(<code>DATE</code>) —
+    파이썬이라면 dict 한 줄로 끝났을 정보를 컬럼마다 자료형까지 명시했다.
+  </p>
+  <pre><code class="language-sql">CREATE TABLE MANAGE (
+    MARKET  VARCHAR(20),   -- 영업소명 (0~20 바이트 가변)
+    BUY     INT,           -- 입고량
+    SELL    INT,           -- 판매량
+    STOCK   INT,           -- 재고량
+    DAY     DATE           -- YYYY-MM-DD
+);
+
+DESC MANAGE;               -- 컬럼 구성 확인</code></pre>
+  <blockquote class="cite">
+    Data types specify what type of data can be stored in a column. … Different data types have different storage requirements
+    and use different rules for comparison, sorting, and arithmetic.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/data-types.html" target="_blank" rel="noopener">MySQL Reference Manual § 11 Data Types</a></span>
+  </blockquote>
+  <p>
+    인용문이 말하는 두 가지가 핵심이다 — <strong>저장 공간이 자료형마다 다르고</strong>, <strong>비교·정렬·연산의 규칙도 자료형이 결정한다</strong>.
+    CHAR 와 VARCHAR 의 차이도 이 맥락에서 나온다.
+  </p>
+  <table>
+    <thead><tr><th>자료형</th><th>저장 방식</th><th>DAY1 학습 핵심</th></tr></thead>
+    <tbody>
+      <tr><td><code>CHAR(n)</code></td><td>고정 길이 n 바이트 — 부족하면 공백으로 채움</td><td><code>'a'</code> 를 CHAR(2) 에 넣으면 <code>'a '</code> 로 기록</td></tr>
+      <tr><td><code>VARCHAR(n)</code></td><td>0 ~ n 바이트 가변 — 실제 입력값만 저장</td><td>공백 패딩 없음</td></tr>
+      <tr><td><code>INT</code></td><td>4 바이트 정수 (-2,147,483,648 ~ 2,147,483,647)</td><td><code>UNSIGNED</code> 키워드로 0~4,294,967,295 전환 가능</td></tr>
+      <tr><td><code>DATE</code> · <code>DATETIME</code></td><td>날짜 전용 8 바이트 · 11 바이트</td><td>현재 시각 함수 <code>NOW()</code> 자동 변환</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    자료형 강제가 단지 "저장 효율" 만을 위한 것이라면 굳이 INSERT 시점에 에러를 낼 필요가 없다.
+    그러나 인용문이 말하는 "비교·정렬·연산 규칙이 자료형으로 결정된다" 가 사실이라면 —
+    ① 자료형이 맞지 않는 값을 INSERT 하려는 시점에 즉시 거부되고
+    ② DESC 같은 메타 명령으로 자료형 정보를 항상 조회할 수 있어야 한다.
+    파이썬 ABC 가 객체 생성 시점에 차단했던 것과 같은 패턴이 SQL 에는 INSERT 시점에 적용되어 있을 것이다.
+  </div>
+
+  <h3 class="step">테스트 — DESC · INSERT 타입 위반</h3>
+  <pre><code class="language-sql">DESC MANAGE;
+
+-- 정상 INSERT
+INSERT INTO MANAGE VALUES ('A 영업소', 100, 80, 20, '2026-05-11');
+
+-- 의도적 타입 위반: BUY 자리에 문자열
+INSERT INTO MANAGE VALUES ('B 영업소', 'one hundred', 80, 20, '2026-05-11');
+
+-- DATE 자리에 잘못된 형식
+INSERT INTO MANAGE VALUES ('C 영업소', 100, 80, 20, '11/05/2026');</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY1 § DESC · 타입 위반 INSERT</span></div>
+    <pre class="terminal-body">+--------+-------------+------+-----+---------+-------+
+| Field  | Type        | Null | Key | Default | Extra |
++--------+-------------+------+-----+---------+-------+
+| MARKET | varchar(20) | YES  |     | NULL    |       |
+| BUY    | int         | YES  |     | NULL    |       |
+| SELL   | int         | YES  |     | NULL    |       |
+| STOCK  | int         | YES  |     | NULL    |       |
+| DAY    | date        | YES  |     | NULL    |       |
++--------+-------------+------+-----+---------+-------+
+5 rows in set (0.00 sec)
+
+Query OK, 1 row affected (0.01 sec)
+
+<span class="t-err">ERROR 1366 (HY000): Incorrect integer value: 'one hundred' for column 'BUY' at row 1</span>
+<span class="t-err">ERROR 1292 (22007): Incorrect date value: '11/05/2026' for column 'DAY' at row 1</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    INSERT 시점에 자료형 검사가 작동한다 — <code>ERROR 1366</code> · <code>ERROR 1292</code> 가
+    파이썬 ABC 의 <code>TypeError</code> 와 같은 자리를 차지한다.
+    파이썬은 "객체 생성 시점에 차단" 으로 인터페이스를 강제했고, MySQL 은 "행 삽입 시점에 차단" 으로 도메인을
+    강제한다 — 검출 시점만 다를 뿐 "잘못된 데이터를 시스템 안에 들이지 않는다" 는 정신은 같다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 스키마가 그렇게 단단하다면 한 번 정의한 테이블은 영원히 그 모습 그대로인가?
+    DAY1_student.sql 후반의 <code>ALTER TABLE … RENAME</code>, <code>DROP TABLE IF EXISTS</code> 가 그 답을 가지고 있다.
+  </div>
+</section>
+
+
+<!-- ============================================================ CH04 -->
+<section id="ch4">
+  <h2 class="chap">
+    <span class="num">CH 04</span>
+    <span class="day-badge">DAY1</span>ALTER / DROP — 정적 스키마는 정말 굳어 있는가<a href="#ch4" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    DAY1_student.sql 후반은 테이블의 "변경" 을 다뤘다. 이름 바꾸기 · 컬럼 추가/제거/자료형변경 ·
+    조건부 삭제 — 모두 <code>ALTER TABLE</code> 한 동사로 묶여 있다.
+  </p>
+  <pre><code class="language-sql">-- 1) 이름 변경 — 한 개
+ALTER TABLE MANAGE RENAME MANAGE2;
+
+-- 2) 여러 개 한 번에
+RENAME TABLE MANAGE2 TO MANAGE, MANAGE TO MANAGE3;
+
+-- 3) 조건부 제거
+DROP TABLE IF EXISTS MANAGE2;     -- 없으면 조용히 통과
+DROP TABLE MANAGE3;               -- 없으면 에러</code></pre>
+  <blockquote class="cite">
+    <code>ALTER TABLE</code> changes the structure of a table. … Most ALTER TABLE operations require a table rebuild,
+    although online DDL avoids that for many operations.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/alter-table.html" target="_blank" rel="noopener">MySQL Reference Manual § 13.1.9 ALTER TABLE Statement</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    스키마가 "굳어 있다" 는 인상은 INSERT 시점의 타입 강제 때문에 생긴 것이다. 그러나 인용문이 말하듯
+    ALTER TABLE 이 구조 자체를 다시 만들 수 있다면 — <strong>스키마는 정적이지만 진화 가능하다</strong> 는
+    정의가 더 정확하다. 이 가설이 맞다면 <code>RENAME</code> 두 번으로 이름을 두 번 바꿔도 데이터가 그대로 살아있고,
+    <code>IF EXISTS</code> 가설명이 "없으면 무시" 라는 안전 가드 역할을 정확히 해야 한다.
+  </div>
+
+  <h3 class="step">테스트 — 이름 바꾸기 / 조건부 삭제</h3>
+  <pre><code class="language-sql">CREATE TABLE MANAGE (M VARCHAR(20));
+INSERT INTO MANAGE VALUES ('keep me');
+
+ALTER TABLE MANAGE RENAME MANAGE2;
+SHOW TABLES;
+SELECT * FROM MANAGE2;
+
+RENAME TABLE MANAGE2 TO MANAGE;
+SELECT * FROM MANAGE;
+
+DROP TABLE IF EXISTS NO_SUCH_TABLE;   -- 안전 통과
+DROP TABLE NO_SUCH_TABLE;             -- 에러</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY1 § ALTER / DROP</span></div>
+    <pre class="terminal-body">Query OK, 0 rows affected (0.02 sec)
+Query OK, 1 row affected (0.00 sec)
+
+Query OK, 0 rows affected (0.01 sec)
+
++----------------+
+| Tables_in_mydb |
++----------------+
+| MANAGE2        |
++----------------+
+1 row in set (0.00 sec)
+
++---------+
+| M       |
++---------+
+| keep me |
++---------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.01 sec)
+
++---------+
+| M       |
++---------+
+| keep me |
++---------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+<span class="t-err">ERROR 1051 (42S02): Unknown table 'mydb.no_such_table'</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    이름이 두 번 바뀌어도 <code>'keep me'</code> 한 행은 그대로 살아남았다 — ALTER 는 컨테이너의 라벨을
+    바꿀 뿐 내용물을 만지지 않는다.
+    <code>IF EXISTS</code> 가 있으면 경고만 남기고 통과하고, 없으면 <code>ERROR 1051</code> 로 멈춘다.
+    스키마는 "정적이지만 변경 가능 — 단, 변경 자체가 명시적 DDL 한 줄을 요구한다" 가 정확한 정의다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 컨테이너가 준비됐다. 이제 행 단위로 내용물을 넣고 빼는 차례 —
+    DML (<code>INSERT</code>·<code>DELETE</code>·<code>SELECT</code>) 이다. 여기서 처음으로 <strong>NULL</strong> 이라는
+    파이썬에는 없던 개념과 마주친다.
+  </div>
+</section>
+
+
+<!-- ============================================================ CH05 -->
+<section id="ch5">
+  <h2 class="chap">
+    <span class="num">CH 05</span>
+    <span class="day-badge">DAY1</span>INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미<a href="#ch5" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    DAY1_student.sql 의 ACCOUNT 테이블이 첫 DML 실습이었다.
+    수입/지출 6 건을 INSERT 하고, 조건에 맞는 한 행을 DELETE 하고, SELECT 로 전체를 확인했다.
+    가장 새로운 점은 — INSERT 시 컬럼명을 생략하거나 일부만 적을 수 있고, 누락된 자리는 <code>NULL</code> 이 채운다는 점이다.
+  </p>
+  <pre><code class="language-sql">CREATE TABLE ACCOUNT(
+    LIST   VARCHAR(40),
+    TYPE   VARCHAR(5),
+    AMOUNT INT,
+    DAY    VARCHAR(30)
+);
+
+-- 컬럼명 명시
+INSERT INTO ACCOUNT (LIST, TYPE, AMOUNT, DAY)
+VALUES ('보험료', '지출', 20, '05-01');
+
+-- 컬럼명 생략 — 정의 순서대로 모든 컬럼 채워야 함
+INSERT INTO ACCOUNT VALUES ('급여',    '수입', 450, '05-08');
+INSERT INTO ACCOUNT VALUES ('상여금',  '수입', 100, '05-08');
+INSERT INTO ACCOUNT VALUES ('통신비',  '지출',  10, '05-11');
+INSERT INTO ACCOUNT VALUES ('식비',    '지출',  20, '05-11');
+INSERT INTO ACCOUNT VALUES ('기타소득','수입',  50, '05-08');
+
+-- 조건부 삭제 (LIMIT 으로 한 행만 안전 제거)
+DELETE FROM ACCOUNT
+WHERE LIST = '급여' AND AMOUNT = 450
+LIMIT 1;
+
+SELECT * FROM ACCOUNT;</code></pre>
+  <blockquote class="cite">
+    The NULL value is special. It means "no value." It is distinct from values such as 0 for numeric types or
+    the empty string for string types. … <code>NULL</code> values are treated differently from other values for the purposes
+    of grouping, ordering, and the use of set operators.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/working-with-null.html" target="_blank" rel="noopener">MySQL Reference Manual § 3.3.4.6 Working with NULL Values</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    파이썬에는 <code>None</code> 이 있지만 그것은 그냥 객체 한 개의 이름이다.
+    SQL 의 NULL 이 "값의 부재" 라면 — ① 컬럼 생략 INSERT 시 누락 자리가 자동으로 NULL 이 되고
+    ② NULL 과의 <code>=</code> 비교는 NULL 을 만들어 항상 거짓이 되며
+    ③ <code>IS NULL</code> 이라는 별도 연산자를 써야만 검색이 가능해야 한다.
+    셋 모두 통과해야 NULL 이 "특별한 값" 이라는 주장이 코드로 입증된다.
+  </div>
+
+  <h3 class="step">테스트 — 부분 INSERT · NULL 비교</h3>
+  <pre><code class="language-sql">-- 일부 컬럼만 적은 INSERT — 나머지는 NULL
+INSERT INTO ACCOUNT (LIST, TYPE) VALUES ('미지정', '지출');
+
+SELECT * FROM ACCOUNT;
+
+-- NULL 검색을 = 로 시도하면?
+SELECT * FROM ACCOUNT WHERE AMOUNT = NULL;
+-- IS NULL 로 검색
+SELECT * FROM ACCOUNT WHERE AMOUNT IS NULL;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY1 § DML + NULL</span></div>
+    <pre class="terminal-body">Query OK, 1 row affected (0.00 sec)
+
++-----------+--------+--------+-------+
+| LIST      | TYPE   | AMOUNT | DAY   |
++-----------+--------+--------+-------+
+| 보험료    | 지출   |     20 | 05-01 |
+| 상여금    | 수입   |    100 | 05-08 |
+| 통신비    | 지출   |     10 | 05-11 |
+| 식비      | 지출   |     20 | 05-11 |
+| 기타소득  | 수입   |     50 | 05-08 |
+| 미지정    | 지출   |   NULL | NULL  |
++-----------+--------+--------+-------+
+6 rows in set (0.00 sec)
+
+<span class="t-hdr">-- AMOUNT = NULL : 항상 거짓 (NULL 반환)</span>
+Empty set (0.00 sec)
+
+<span class="t-hdr">-- AMOUNT IS NULL : 부재 검색</span>
++--------+------+--------+------+
+| LIST   | TYPE | AMOUNT | DAY  |
++--------+------+--------+------+
+| 미지정 | 지출 |   NULL | NULL |
++--------+------+--------+------+
+1 row in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    누락 자리는 NULL 로 자동 채워지고, NULL 은 자기 자신과도 같지 않아 <code>= NULL</code> 검색은 빈 결과만 낸다.
+    "값의 부재" 라는 개념이 SQL 의 3치 논리(TRUE / FALSE / NULL)로 결과 집합 자체에 영향을 준다는 점에서,
+    파이썬의 <code>None</code> 과는 의미가 다르다 — 파이썬 <code>None == None</code> 은 <code>True</code> 다.
+  </div>
+  <div class="bridge">
+    <strong>마지막 챕터로 가는 다리</strong> — 다섯 가지 사슬(계정·격리·자료형·진화·NULL) 을 모두 통과했다.
+    이제 출발 의문 — "왜 데이터베이스는 파이썬과 정반대 방향을 택했는가" — 으로 돌아간다.
+  </div>
+</section>
+
+
+<!-- ============================================================ CH06 -->
+<section id="ch6">
+  <h2 class="chap">
+    <span class="num">CH 06</span>최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적<a href="#ch6" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    1·2주차 회고에서 정리한 한 줄 — "파이썬은 C 가 컴파일 타임에 결정하는 것을 모두 런타임 객체로 옮겼다."
+    그 결론을 그대로 들고 DAY1 의 다섯 챕터를 다시 본다면, MySQL 의 설계는 거의 모든 항목에서 파이썬과 반대 방향이다.
+  </p>
+  <table>
+    <thead><tr><th>층위</th><th>Python (1·2주차)</th><th>MySQL (DAY1 — 0511)</th></tr></thead>
+    <tbody>
+      <tr><td>식별자</td><td>변수 선언 없음, 대입 즉시 동적 생성</td><td>계정/DB/테이블/컬럼 모두 사전 <code>CREATE</code> 필수</td></tr>
+      <tr><td>네임스페이스</td><td><code>sys.modules</code> 런타임 dict</td><td>디스크 상의 DATABASE 단위 디렉터리 + GRANT 권한 매트릭스</td></tr>
+      <tr><td>타입</td><td>객체에 붙어 따라다님 (런타임 검사)</td><td>컬럼에 미리 박혀 있음 (INSERT 시점 검사)</td></tr>
+      <tr><td>실패 시점</td><td>호출 시점 또는 ABC 의 객체 생성 시점</td><td>DDL/DML 실행 시점에 <code>ERROR 1366</code>/<code>1292</code></td></tr>
+      <tr><td>"부재" 표현</td><td><code>None</code> — 평범한 객체</td><td><code>NULL</code> — 비교 결과조차 NULL 인 3치 논리 값</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">의문 → 가설(최종)</h3>
+  <div class="qbox">
+    <span class="label">가설(최종)</span>
+    표면적으로 두 언어는 모든 것이 반대다. 그러나 두 언어 모두 "잘못된 데이터가 시스템 안으로 들어오지 못하게 막는다" 는
+    같은 목표를 가지고 있다면 — 차이는 방향이 아니라 <strong>검사 시점</strong> 일 뿐이다.
+    이 가설이 맞다면 DAY1 다섯 챕터 모두를 "잘못된 무엇이 어디서 차단되었나" 의 한 줄로 다시 쓸 수 있어야 한다.
+  </div>
+
+  <h3 class="step">최종 결론</h3>
+  <div class="keypoint">
+    <span class="label">FINAL CONCLUSION</span>
+    다섯 챕터를 그 한 줄로 다시 쓰면 —
+    <ol>
+      <li><strong>CH01</strong> 권한 없는 사용자가 데이터에 접근하지 못하게 — <em>GRANT 시점에 차단</em></li>
+      <li><strong>CH02</strong> 격리되지 않은 데이터가 다른 도메인에 섞이지 못하게 — <em>USE / db.table 표기로 차단</em></li>
+      <li><strong>CH03</strong> 자료형이 맞지 않는 값이 컬럼에 들어가지 못하게 — <em>INSERT 시점에 차단</em></li>
+      <li><strong>CH04</strong> 존재하지 않는 테이블에 작업하지 못하게 — <em>DDL 실행 시점에 차단</em></li>
+      <li><strong>CH05</strong> "부재" 와 "값 0" 이 섞이지 못하게 — <em>3치 논리로 차단</em></li>
+    </ol>
+    파이썬은 같은 일을 ABCMeta, sys.modules, AttributeError, TypeError, None 으로 했다. 두 시스템 모두
+    <strong>"잘못된 데이터를 안으로 들이지 않는다"</strong> 는 한 목적을 — 정반대 방향의 도구로 달성한다.
+    이것이 3주차 첫날 DBMS 가 가져온 답이다.
+  </div>
+  <p style="margin-top:18px">
+    다음 의문은 자연스럽게 따라온다 — 오늘 본 것은 "잘못된 한 행을 막는" 단위였다. 그렇다면 잘못된 행 자체를 만들지
+    않게 하는 <strong>제약조건(constraint)</strong> — <code>PRIMARY KEY</code>, <code>FOREIGN KEY</code>, <code>UNIQUE</code>,
+    <code>NOT NULL</code>, <code>CHECK</code> — 은 어떻게 작동하는가. 그것이 DAY2(0512) 의 출발 의문이 된다.
+  </p>
+</section>
+
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <p><strong>참고 링크</strong></p>
+    <ul class="refs">
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/account-names.html" target="_blank" rel="noopener">MySQL Reference Manual — Specifying Account Names</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/use.html" target="_blank" rel="noopener">MySQL Reference Manual — USE Statement</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/data-types.html" target="_blank" rel="noopener">MySQL Reference Manual — Data Types</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/alter-table.html" target="_blank" rel="noopener">MySQL Reference Manual — ALTER TABLE Statement</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/working-with-null.html" target="_blank" rel="noopener">MySQL Reference Manual — Working with NULL Values</a></li>
+    </ul>
+
+    <p style="margin-top:18px"><strong>참고 코드</strong></p>
+    <ul class="refs">
+      <li><code>../db_workspace/db_수업결과물/DAY1.sql</code> — root 계정 작업 (CREATE USER · GRANT · CREATE DATABASE)</li>
+      <li><code>../db_workspace/db_수업결과물/DAY1_student.sql</code> — student 계정 작업 (DDL · DML)</li>
+      <li><code>../db_workspace/db_수업결과물/DAY1_homework.sql</code> — homework 계정 접속 확인</li>
+      <li><code>../db_workspace/mysql_실습스크립트/workbook_script_v2.0.sql</code> — 실습 통합 스크립트</li>
+    </ul>
+
+    <p style="margin-top:18px"><strong>소스 코드</strong></p>
+    <ul class="refs" style="margin-top:4px">
+      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub — roroblack/python_workspace (소스 저장소)</a></li>
+      <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages — 블로그 목록</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>
