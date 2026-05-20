@@ -22,6 +22,8 @@
     \                       ./python_module
     |- 0508         :       ./python_gui
     \                       ./python_streamlit_login_csv_project
+    |- 0511
+    |- 0512
 
 
 
@@ -67,3 +69,16 @@ https://spotted-town-11d.notion.site/SK-AI-Family-32-321e836ab887806cbc8ee81f8c9
 [교과목 4 단위 프로젝트](https://www.notion.so/322e836ab8878097b4ecf15aa2b1e144?pvs=21)
 
 ## 최종 프로젝트
+
+
+
+----------------------------------------------------------------------------------------------
+link
+구글 머신러닝 강의 :    https://developers.google.com/machine-learning/crash-course?hl=ko
+                        https://www.skills.google/paths/17/course_templates/593/video/617355?locale=ko
+                        https://www.skills.google/paths/17?locale=ko
+
+https://playdatacademy.notion.site/e08909d36eac464b8fc55df0959f162e
+https://playdatacademy.notion.site/WIL-c369e8df522e4811a76edc4cf74fcf06
+
+https://certi.programmers.co.kr/about/sample
