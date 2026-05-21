@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>0516-0519 학습 노트: 첫 단위 프로젝트 — "물로간다" 수소차 통합 대시보드</title>
-  <meta name="description" content="3주차 6~9일차 — DB 와 크롤링이 만나는 첫 실전. 4명 팀 '카데이터' 가 수소차 보급/충전소/FAQ 데이터를 모아 Streamlit 대시보드로 합친다. 역할 분담, 데이터 파이프라인 설계, MySQL 스키마와 4페이지 UI 의 결합 과정 회고." />
+  <meta name="description" content="3주차 6~9일차 — DB 와 크롤링이 만나는 첫 실전. 4명 팀 '카데이터' 가 국토부/공공데이터포털/ev.or.kr/현대차에서 수소차 데이터를 Playwright 로 수집해 SQLAlchemy+MySQL 로 저장하고 Streamlit+Altair+Folium 으로 시각화한다. 실제 코드에서 발생한 asyncio 충돌, 봇 챌린지 우회, 시도명 정규화 등의 시행착오를 추적." />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -72,23 +72,25 @@
     <p class="eyebrow">Team Project · 3주차 · DAY6~9 · 카데이터</p>
     <h1>0516–0519 학습 노트: 첫 단위 프로젝트 — "물로간다" 수소차 통합 대시보드</h1>
     <p class="deck">
-      한 주 동안 배운 MySQL·정적/동적 크롤링이 한 자리에 모이는 첫 실전. 팀 "카데이터" 의 4명이 수소차 보급 통계,
-      충전소 위치, 정부 정책 FAQ, 사용자 FAQ 를 모아 Streamlit 단일 대시보드로 묶은 4일치 작업의 회고.
+      한 주 동안 배운 MySQL·크롤링이 한 자리에 모이는 첫 실전. 팀 "카데이터" 의 4명이 국토부 Excel·공공데이터포털 CSV·
+      ev.or.kr·현대차 FAQ 를 모두 Playwright 로 수집해 SQLAlchemy + MySQL 에 저장하고, Streamlit + Altair + Folium 으로 시각화한다.
+      4일 안에 만든 아키텍처와 실제로 터진 문제들 — asyncio 충돌, 봇 챌린지, 시도명 정규화 — 의 추적 기록.
     </p>
     <div class="meta-row">
       <span><strong>작성일자</strong> 2026/05/19</span>
       <span><strong>과정</strong> SK Networks AI Family 32기 · DAY6~9</span>
       <span><strong>팀</strong> SKN32-1st-3Team · 카데이터 (4 명)</span>
-      <span><strong>스택</strong> Streamlit · MySQL · Playwright · Folium · Plotly</span>
+      <span><strong>스택</strong> Streamlit · MySQL · Playwright · Folium · Altair · SQLAlchemy · APScheduler</span>
     </div>
     <nav class="toc">
       <h4>목차</h4>
       <ol>
         <li><a href="#ch1">기획 — "물로간다" 의 한 줄 정의와 4명의 역할 분할</a></li>
-        <li><a href="#ch2">데이터 파이프라인 — 4개의 크롤러가 하나의 DB 로 모이는 길</a></li>
-        <li><a href="#ch3">UI 구조 — Streamlit 4 페이지 + 사이드바 라우팅</a></li>
-        <li><a href="#ch4">시행착오 — 협업 충돌·동적 페이지·세션 캐싱</a></li>
-        <li><a href="#ch5">최종 결론 — 1주차의 도구들이 만나서 시스템이 된다</a></li>
+        <li><a href="#ch2">DB 스키마 — regions FK 중심의 5 테이블 + SQLAlchemy</a></li>
+        <li><a href="#ch3">3 개의 크롤러, 3 가지 방식 — Excel · CSV · HTML 파싱</a></li>
+        <li><a href="#ch4">UI 구조 — 단일 app.py + APScheduler 이중 스케줄</a></li>
+        <li><a href="#ch5">시행착오 — asyncio 충돌 · 봇 챌린지 · 시도명 정규화</a></li>
+        <li><a href="#ch6">최종 결론 — 한 주의 도구들이 만나서 시스템이 된다</a></li>
       </ol>
     </nav>
   </div>
@@ -109,18 +111,18 @@
     <span class="day-badge">DAY6</span>기획 — "물로간다" 의 한 줄 정의와 4명의 역할 분할<a href="#ch1" class="anchor-link">#</a>
   </h2>
 
-  <h3 class="step">학습 — 주제 선정과 페르소나</h3>
+  <h3 class="step">학습 — 주제 선정과 역할</h3>
   <p>
-    "물로간다" 프로젝트의 한 줄 정의: <em>수소차 구매를 망설이는 사람이 보급 추이·충전소 분포·정책 FAQ 를 한 화면에서 비교할 수 있게 한다</em>.
-    데이터 출처는 ① 국토부 통계누리(보급) ② 공공데이터포털(충전소) ③ 무공해차 통합누리집(EV/수소 FAQ) ④ 직접 작성 FAQ.
+    "물로간다" 프로젝트의 한 줄 정의: <em>수소차 구매를 망설이는 사람이 등록 추이·충전소 분포·FAQ 를 한 화면에서 확인할 수 있게 한다</em>.
+    데이터 출처는 ① 국토교통부 통계누리 ② 공공데이터포털 수소충전소 현황 ③ EV 무공해차 통합누리집 FAQ ④ 현대자동차 수소차 구매 FAQ.
   </p>
   <table>
     <thead><tr><th>역할</th><th>담당자</th><th>핵심 산출물</th></tr></thead>
     <tbody>
-      <tr><td>GUI / 시각화</td><td>최연우</td><td>Streamlit 페이지 4개 + Folium 지도 + Plotly 그래프</td></tr>
-      <tr><td>데이터베이스</td><td>권소라</td><td>ERD · MySQL 스키마 · INSERT 모듈</td></tr>
-      <tr><td>크롤링</td><td>김지혜</td><td>BeautifulSoup + Playwright 4 종 크롤러</td></tr>
-      <tr><td>연동 / 운영</td><td>박회종</td><td>크롤러 ↔ DB ↔ UI 의 결합·테스트·발표</td></tr>
+      <tr><td>👑 팀장 / GUI</td><td>최연우</td><td>Streamlit app.py + Altair 그래프 + Folium 지도 + 발표</td></tr>
+      <tr><td>🗄️ DB 설계</td><td>권소라</td><td>ERD · dbscript_table.sql · SQLAlchemy get_engine() · PPT</td></tr>
+      <tr><td>🕷️ 크롤링</td><td>김지혜</td><td>crawler_molit / crawler_station / crawler_faq (Playwright + bs4)</td></tr>
+      <tr><td>🔗 연동</td><td>박회종</td><td>data/db.py CRUD · Repository 패턴 · CrawlService + SchedulerService · 시연</td></tr>
     </tbody>
   </table>
 
@@ -128,18 +130,19 @@
   <div class="qbox">
     <span class="label">가설</span>
     역할을 ① GUI ② DB ③ 크롤링 ④ 연동의 4 축으로 자른 이유는 — 이 4 축이 동시에 평행 작업이 가능하기 때문이다.
-    ① 은 Mock 데이터로, ② 는 샘플 SQL 로, ③ 은 단독 스크립트로 작업할 수 있다. ④ 가 마지막에 연결하면 그 시점에
-    드러나는 인터페이스 문제 (스키마 vs UI vs 크롤러 결과 사이의 형식 차이) 가 집중적으로 처리될 것이다.
+    ① 은 Mock 데이터로, ② 는 스키마 SQL 만으로, ③ 은 단독 스크립트로 작업할 수 있다.
+    ④ 가 마지막에 연결하면 그 시점에서 드러나는 인터페이스 불일치 — 크롤러가 뱉는 시도명과 DB 컬럼명의 차이,
+    Streamlit asyncio 루프와 크롤러 이벤트 루프의 충돌 — 가 집중적으로 터진다.
   </div>
 
   <h3 class="step">결론(중간)</h3>
   <div class="keypoint">
     <span class="label">KEY POINT</span>
-    역할 분할의 기준은 "조각이 단독으로 돌아가는가" 여야 한다. 4 명이 서로의 결과를 기다리지 않고 평행 작업할 수 있어야
-    4 일이라는 짧은 일정 안에 결합 단계까지 도달한다.
+    역할 분할의 기준은 "조각이 단독으로 돌아가는가" 여야 한다.
+    4 명이 서로의 결과를 기다리지 않고 평행 작업할 수 있어야 4 일이라는 짧은 일정 안에 결합 단계까지 도달한다.
   </div>
   <div class="bridge">
-    <strong>다음 챕터로 가는 다리</strong> — 그럼 4 명이 만든 조각이 결합되는 지점, 즉 데이터 파이프라인부터 본다.
+    <strong>다음 챕터로 가는 다리</strong> — 그럼 데이터가 저장되는 그릇부터 본다. 스키마와 ORM 레이어.
   </div>
 </section>
 
@@ -147,61 +150,84 @@
 <section id="ch2">
   <h2 class="chap">
     <span class="num">CH 02</span>
-    <span class="day-badge">DAY7</span>데이터 파이프라인 — 4개의 크롤러가 하나의 DB 로 모이는 길<a href="#ch2" class="anchor-link">#</a>
+    <span class="day-badge">DAY7</span>DB 스키마 — regions FK 중심의 5 테이블 + SQLAlchemy<a href="#ch2" class="anchor-link">#</a>
   </h2>
 
-  <h3 class="step">학습 — 4개의 크롤러 → 4개의 MySQL 테이블</h3>
-  <pre><code class="language-python"># 파일 구조
-SKN32-1st-3Team/
-├── crawler_molit.py       # 국토부 통계누리 → tbl_molit_yearly
-├── crawler_station.py     # 공공데이터포털 → tbl_station
-├── crawler_faq_ev.py      # 무공해차 통합누리집 → tbl_faq_ev
-├── faq.py                 # 직접 작성 → tbl_faq_custom
-└── app.py                 # Streamlit 메인</code></pre>
-  <pre><code class="language-sql">-- 핵심 4 테이블 (요약)
-CREATE TABLE tbl_molit_yearly (
-    year       INT          PRIMARY KEY,
-    h2_count   INT          NOT NULL,
-    ev_count   INT          NOT NULL
-) ENGINE=InnoDB;
+  <h3 class="step">학습 — 5 테이블 스키마 (실제 dbscript_table.sql)</h3>
+  <pre><code class="language-sql">-- crawler_db : utf8mb4_unicode_ci
+CREATE TABLE regions (
+    region_id   SMALLINT    PRIMARY KEY AUTO_INCREMENT,
+    region_name VARCHAR(20) NOT NULL UNIQUE   -- '서울', '경기' ... 17 시도
+);
 
-CREATE TABLE tbl_station (
-    station_id   INT          PRIMARY KEY AUTO_INCREMENT,
-    name         VARCHAR(100) NOT NULL,
-    lat          DECIMAL(10,7),
-    lng          DECIMAL(10,7),
+CREATE TABLE car_registrations (
+    id          BIGINT    PRIMARY KEY AUTO_INCREMENT,
+    region_id   SMALLINT  NOT NULL,
+    stat_year   SMALLINT  NOT NULL,
+    count       INT       DEFAULT 0,
+    FOREIGN KEY (region_id) REFERENCES regions(region_id),
+    UNIQUE KEY uq_stat (region_id, stat_year)   -- 연도×지역 중복 방지
+);
+
+CREATE TABLE hydrogen_charging_station (
+    id           INT         PRIMARY KEY AUTO_INCREMENT,
+    region_id    SMALLINT    NOT NULL,
+    station_name VARCHAR(100) NOT NULL,
     address      VARCHAR(255),
-    status       VARCHAR(20)
-) ENGINE=InnoDB;</code></pre>
+    lat          DECIMAL(10,7),
+    lon          DECIMAL(10,7),
+    FOREIGN KEY (region_id) REFERENCES regions(region_id)
+);
+
+CREATE TABLE faq (
+    faq_id   INT  PRIMARY KEY AUTO_INCREMENT,
+    question TEXT NOT NULL,
+    answer   TEXT
+);
+
+CREATE TABLE crawl_stat (                  -- 크롤링 이력
+    crawl_id      INT         PRIMARY KEY AUTO_INCREMENT,
+    target_type   VARCHAR(30) NOT NULL,
+    last_crawled_at DATETIME,
+    CHECK (target_type IN ('car_registration','station','faq'))
+);</code></pre>
+
+  <h3 class="step">학습 — SQLAlchemy + PyMySQL 연결 레이어</h3>
+  <pre><code class="language-python"># data/db.py — .env 에서만 읽고, 하드코딩 없음
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
+from dotenv import load_dotenv
+
+def get_engine():
+    db_url = URL.create(
+        "mysql+pymysql",
+        username=_require_env("DB_USER"),
+        password=_require_env("DB_PASSWORD"),
+        host=_require_env("DB_HOST"),
+        port=int(_require_env("DB_PORT")),
+        database=_require_env("DB_NAME"),
+        query={"charset": "utf8mb4"},
+    )
+    return create_engine(db_url, pool_pre_ping=True)</code></pre>
+  <blockquote class="cite">
+    pool_pre_ping: When set to True, will enable the "pre-ping" feature that tests connections for liveness upon each checkout.
+    <span class="src">— <a href="https://docs.sqlalchemy.org/en/20/core/engines.html" target="_blank" rel="noopener">SQLAlchemy — Engine Configuration</a></span>
+  </blockquote>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
     <span class="label">가설</span>
-    4 개 테이블이 서로 외래키로 묶이지 않은 이유는 — 데이터 출처가 다르기 때문이다. 보급 통계의 "연도" 와 충전소의
-    "위치" 는 사실 같은 도메인에 있지만, 매칭할 공통 키가 없다. <strong>그래서 결합은 SQL 이 아니라 UI 레벨에서 한다</strong> —
-    같은 페이지에서 두 그래프를 나란히 보여주는 것으로 결합이 완성된다.
+    <code>regions</code> 테이블을 별도로 두고 FK 로 연결하는 이유는 — "서울특별시"/"서울시"/"서울" 같이
+    출처마다 달라지는 시도명을 정규화된 하나의 형태로 모아두기 위해서다.
+    크롤러가 뭐라고 불러와도 <code>regions.region_name</code> 에 정규화한 뒤 그 <code>region_id</code>를 저장하면,
+    UI 의 지역 필터는 어느 테이블에서 조회하든 같은 <code>region_id</code> 로 작동한다.
   </div>
-
-  <h3 class="step">테스트 — Playwright 로 동적 페이지 처리</h3>
-  <pre><code class="language-python"># crawler_station.py — 공공데이터포털은 JS 렌더링 페이지
-from playwright.sync_api import sync_playwright
-
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.goto('https://www.data.go.kr/data/.../...')
-    page.wait_for_selector('.station-list-item')
-    items = page.query_selector_all('.station-list-item')
-    for it in items:
-        name = it.query_selector('.station-name').inner_text()
-        addr = it.query_selector('.station-address').inner_text()
-        ...</code></pre>
 
   <h3 class="step">결론(중간)</h3>
   <div class="keypoint">
     <span class="label">KEY POINT</span>
-    파이프라인 설계의 첫 결정은 "어디서 조인할 것인가" — DB 레벨에서 못 묶는 데이터는 UI 레벨에서 묶는 것이 정직한 답이다.
-    출처가 다른 데이터를 억지로 FK 로 묶으면 무결성 위반과 데이터 손실만 발생한다.
+    차원 테이블(<code>regions</code>) + 팩트 테이블(<code>car_registrations</code>, <code>hydrogen_charging_station</code>) 의 스타 스키마 구조 — 시도명 정규화를 DB 레벨에서 강제하기 때문에, UI 와 크롤러가 서로 다른 이름을 써도 쿼리는 같은 결과를 돌려준다.
+    <code>pool_pre_ping=True</code> 는 장시간 연결 후 재조회 시 오래된 커넥션이 끊겨있는 문제를 사전 차단한다.
   </div>
 </section>
 
@@ -209,43 +235,84 @@ with sync_playwright() as p:
 <section id="ch3">
   <h2 class="chap">
     <span class="num">CH 03</span>
-    <span class="day-badge">DAY8</span>UI 구조 — Streamlit 4 페이지 + 사이드바 라우팅<a href="#ch3" class="anchor-link">#</a>
+    <span class="day-badge">DAY7~8</span>3 개의 크롤러, 3 가지 방식 — Excel · CSV · HTML 파싱<a href="#ch3" class="anchor-link">#</a>
   </h2>
 
-  <h3 class="step">학습</h3>
-  <pre><code class="language-python"># app.py
-import streamlit as st
+  <h3 class="step">학습 — 크롤러별 방식 비교</h3>
+  <table>
+    <thead><tr><th>크롤러</th><th>출처</th><th>수집 방식</th><th>파싱 도구</th></tr></thead>
+    <tbody>
+      <tr><td><code>crawler_molit.py</code></td><td>국토교통부 통계누리<br>(stat.molit.go.kr)</td><td>Playwright → <strong>Excel(.xlsx) 다운로드</strong></td><td>openpyxl</td></tr>
+      <tr><td><code>crawler_station.py</code></td><td>공공데이터포털<br>(data.go.kr)</td><td>Playwright → <strong>CSV 다운로드</strong></td><td>pandas</td></tr>
+      <tr><td><code>crawler_faq.py</code></td><td>ev.or.kr<br>hyundai.com</td><td>Playwright + <strong>HTML 파싱</strong></td><td>BeautifulSoup4</td></tr>
+    </tbody>
+  </table>
 
-PAGES = {
-    '홈': 'pages.home',
-    '등록현황': 'pages.molit',
-    '충전소': 'pages.station',
-    'FAQ': 'pages.faq',
-}
-choice = st.sidebar.radio('메뉴', list(PAGES.keys()))
-__import__(PAGES[choice]).render()</code></pre>
-  <pre><code class="language-python"># pages/station.py — Folium 지도 + 슬라이더 필터
-import folium
-from streamlit_folium import st_folium
+  <h3 class="step">국토부 크롤러 — Excel 내려받아 openpyxl 로 시트 파싱</h3>
+  <pre><code class="language-python"># crawler_molit.py (요약)
+# MolitCarCrawler — 연말 스냅샷(12월)만 수집해 속도 최적화
+class MolitCarCrawler:
+    TARGET_FUELS = {"수소", "수소전기"}   # 10.연료별_등록현황 시트
 
-rows = MySQLTemplate.fetch_all('select * from tbl_station where status=%s', ('운영',))
-m = folium.Map(location=[36.5, 127.8], zoom_start=7)
-for r in rows:
-    folium.Marker([r['lat'], r['lng']], popup=r['name']).add_to(m)
-st_folium(m, width=720, height=520)</code></pre>
+    def crawl(self, years_back=8) -> list[CarRegistrationItem]:
+        html    = self._get_html()            # Playwright 로 목록 페이지 가져오기
+        links   = self._parse_links(html)     # onclick 에서 다운로드 링크 추출
+
+        all_items = []
+        # 현재 연도: 최신 월부터 역순 탐색 (공표 시차 대응)
+        for m in range(datetime.now().month, 0, -1):
+            link = self._find_link(links, now.year, m)
+            xlsx_bytes = self._get_file(link["onclick"])
+            items = self._parse(xlsx_bytes, now.year, fuel_filter)
+            if items: break   # 현재 연도 1개 월만
+
+        # 과거 years_back년 → 12월(연말 스냅샷)만
+        for i in range(1, years_back + 1):
+            link = self._find_link(links, now.year - i, 12)
+            items = self._parse(self._get_file(link["onclick"]), ...)
+            all_items.extend(items)
+
+        return all_items</code></pre>
+
+  <h3 class="step">FAQ 크롤러 — pnp4web.js 봇 챌린지 우회</h3>
+  <pre><code class="language-python"># crawler_faq.py — ev.or.kr 의 봇 보안 챌린지 우회
+class EvFaqCrawler:
+    def _fetch_all_pages(self) -> list[str]:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+            )
+            ctx = browser.new_context(
+                user_agent=USER_AGENT,
+                viewport={"width":1280, "height":800},
+                locale="ko-KR",   # 챌린지 통과 조건
+            )
+            page = ctx.new_page()
+            page.goto(self.url, wait_until="domcontentloaded", timeout=60_000)
+
+            # pnp4web.js 봇 챌린지 흐름:
+            #   1) 챌린지 페이지 → 첫 번째 networkidle
+            #   2) 챌린지 JS 실행 → 실제 FAQ 페이지로 리다이렉트
+            #   3) FAQ 페이지 → 두 번째 networkidle
+            page.wait_for_load_state("networkidle", timeout=30_000)  # 챌린지
+            page.wait_for_timeout(3_000)                              # 리다이렉트 대기
+            page.wait_for_load_state("networkidle", timeout=30_000)  # FAQ 안정화</code></pre>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
     <span class="label">가설</span>
-    Streamlit 의 페이지 전환은 "스크립트 전체를 다시 실행" 한다 — 그래서 페이지마다 SQL 을 다시 던지면 응답이 느리다.
-    <code>@st.cache_data</code> 로 DB 결과를 캐싱하면 첫 조회만 느리고, 이후 페이지 전환은 즉시 일어난다.
+    세 크롤러 모두 Playwright 를 쓰는 이유는 — 세 출처가 모두 JS 렌더링 또는 다운로드 버튼 클릭이 필요한 동적 페이지이기 때문이다.
+    정적 크롤링(urllib+bs4)이 아닌 Playwright 를 선택한 것은 "HTML 응답에 데이터가 없다" 는 같은 문제를 다른 형태로 마주쳤기 때문.
+    단, 세 크롤러의 최종 파싱 도구는 다르다 — Excel = openpyxl, CSV = pandas, HTML = bs4.
   </div>
 
   <h3 class="step">결론(중간)</h3>
   <div class="keypoint">
     <span class="label">KEY POINT</span>
-    Streamlit + DB 조합에서 캐싱은 선택이 아니라 필수다. 그러나 캐시는 TTL 과 키 설계가 잘못되면 "이미 갱신된
-    데이터를 못 보는 사용자" 를 만든다. <code>ttl=60</code> 정도의 짧은 캐시가 균형점.
+    "크롤러를 어떻게 짜야 하는가" 의 답은 출처마다 다르다 — 브라우저가 필요한 이유는 같더라도, 받아온 결과물이
+    Excel/CSV/HTML 중 무엇인지에 따라 파싱 코드가 완전히 달라진다.
+    세 크롤러를 같은 <code>crawl()</code> 인터페이스 뒤에 숨기는 <code>CrawlService</code> 가 그 차이를 흡수한다.
   </div>
 </section>
 
@@ -253,61 +320,158 @@ st_folium(m, width=720, height=520)</code></pre>
 <section id="ch4">
   <h2 class="chap">
     <span class="num">CH 04</span>
-    <span class="day-badge">DAY9</span>시행착오 — 협업 충돌·동적 페이지·세션 캐싱<a href="#ch4" class="anchor-link">#</a>
+    <span class="day-badge">DAY8</span>UI 구조 — 단일 app.py + APScheduler 이중 스케줄<a href="#ch4" class="anchor-link">#</a>
   </h2>
 
-  <h3 class="step">발생한 5개의 진짜 문제</h3>
+  <h3 class="step">학습 — 4개의 뷰가 하나의 app.py 에</h3>
+  <p>
+    실제 구조는 멀티 페이지 파일이 아니다 — 단일 <code>app.py</code> 에 모든 섹션(홈·등록현황·충전소·FAQ)이 들어있고,
+    사이드바 선택으로 해당 섹션을 렌더링한다.
+  </p>
   <table>
-    <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
+    <thead><tr><th>뷰</th><th>설명</th><th>시각화 도구</th></tr></thead>
     <tbody>
-      <tr><td>git push 시 conflict 폭주</td><td>app.py 를 4명이 동시 편집</td><td>페이지 파일 분리(<code>pages/*.py</code>) + 사이드바 라우터만 공동 편집</td></tr>
-      <tr><td>충전소 페이지 빈 지도</td><td>JS 렌더링 페이지를 urllib 로 시도</td><td>Playwright 로 교체(0515 학습 적용)</td></tr>
-      <tr><td>지도 1000+ 마커 시 멈춤</td><td>folium 의 개별 Marker 렌더링 한계</td><td>MarkerCluster 사용</td></tr>
-      <tr><td>FAQ 검색 한국어 깨짐</td><td>DB charset = utf8mb3</td><td>utf8mb4 로 ALTER + 코드 재삽입</td></tr>
-      <tr><td>새로고침 시 필터 초기화</td><td>session_state 미사용</td><td><code>st.session_state['filter']</code> 도입</td></tr>
+      <tr><td>🏠 홈</td><td>전국 수소차 누적 수·충전소 수·최신 기준 연도 요약 메트릭</td><td>st.metric</td></tr>
+      <tr><td>📈 수소차 등록현황</td><td>연도별 누적·신규·증가율 선형, 지역별 바/원형 차트, 연도별 테이블</td><td><strong>Altair</strong></td></tr>
+      <tr><td>🗺️ 수소차 충전소</td><td>Folium 인터랙티브 지도, 충전소 목록 (행 클릭 → 지도 강조)</td><td>Folium + streamlit_folium</td></tr>
+      <tr><td>💬 FAQ</td><td>ev.or.kr + 현대차 FAQ, 키워드 검색</td><td>st.dataframe</td></tr>
     </tbody>
   </table>
+
+  <h3 class="step">학습 — 이중 스케줄러 (충전소 5분 / FAQ 24시간)</h3>
+  <pre><code class="language-python"># app.py — APScheduler 를 @st.cache_resource 로 단일 인스턴스 보장
+@st.cache_resource
+def _get_station_scheduler() -> SchedulerService:
+    class _StationCrawler:
+        def crawl(self):
+            return StationCrawler().crawl()  # crawl()이 int 반환 → DB 저장 직접 처리
+
+    _svc = CrawlService(_StationCrawler())
+    _sch = SchedulerService(_svc)
+    _sch.add_interval_job(minutes=5)    # 5분마다 수소충전소 갱신
+    _sch.start()
+    _sch.pause()   # 초기엔 정지 상태 — 사이드바에서 사용자가 켠다
+    return _sch
+
+@st.cache_resource
+def _get_faq_scheduler() -> SchedulerService:
+    class _AllFaqCrawler:
+        def crawl(self):
+            return crawl_all_and_save()     # ev.or.kr + hyundai.com 동시 수집
+    _sch = SchedulerService(CrawlService(_AllFaqCrawler()))
+    _sch.add_interval_job(minutes=1440) # 24시간 주기
+    _sch.start()
+    _sch.pause()
+    return _sch</code></pre>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
     <span class="label">가설</span>
-    5 개 증상의 공통점은 — 모두 "혼자 짤 때는 안 만나는 문제" 다. 협업 도구(git), 동적 페이지, 대용량, 인코딩,
-    세션은 모두 "사람이 여럿이고 데이터가 많고 사용자가 실제로 쓸 때" 비로소 드러난다. 그래서 진짜 학습은 첫 단위
-    프로젝트에서 시작된다.
+    <code>@st.cache_resource</code> 를 스케줄러에 쓰는 이유는 — Streamlit 은 버튼 클릭·페이지 이동마다 <code>app.py</code> 전체를 재실행한다.
+    그때마다 새 스케줄러가 만들어지면 같은 잡이 중복으로 돌아간다. <code>cache_resource</code> 는 서버가 살아있는 동안 단 하나의 인스턴스를 반환해 이 문제를 막는다.
   </div>
 
   <h3 class="step">결론(중간)</h3>
   <div class="keypoint">
     <span class="label">KEY POINT</span>
-    혼자 짠 코드가 잘 돈다는 사실은 그 코드가 시스템에 통합 가능하다는 증거가 아니다 — 두 사람 이상이 짠 코드가
-    충돌 없이 합쳐지는 것이 진짜 증명이다. 그래서 단위 프로젝트의 가장 큰 학습은 코드보다 git, 모듈 경계, 캐싱,
-    인코딩 같은 운영 지식이다.
+    Streamlit 의 "리런 모델" — 인터랙션마다 스크립트 재실행 — 은 스케줄러·DB 엔진 같은 "한 번만 만들어야 하는 객체" 와 충돌한다.
+    <code>@st.cache_resource</code> 가 그 충돌을 막는 표준 패턴이다. 초기 pause 상태로 생성하는 것은 "앱 시작 즉시 크롤링" 의 의도치 않은 부하를 막기 위함이다.
   </div>
 </section>
 
 
 <section id="ch5">
   <h2 class="chap">
-    <span class="num">CH 05</span>최종 결론 — 1주차의 도구들이 만나서 시스템이 된다<a href="#ch5" class="anchor-link">#</a>
+    <span class="num">CH 05</span>
+    <span class="day-badge">DAY8~9</span>시행착오 — asyncio 충돌 · 봇 챌린지 · 시도명 정규화<a href="#ch5" class="anchor-link">#</a>
   </h2>
 
-  <h3 class="step">5 일치 도구가 한 화면에서 만나는 지도</h3>
+  <h3 class="step">발생한 실제 문제와 해결</h3>
   <table>
-    <thead><tr><th>도구</th><th>학습일</th><th>프로젝트에서의 역할</th></tr></thead>
+    <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
     <tbody>
-      <tr><td>MySQL 자료형/DDL</td><td>0511</td><td>4 테이블 스키마 정의</td></tr>
-      <tr><td>제약조건</td><td>0512</td><td>PK, NOT NULL, CHECK 로 데이터 신뢰성 보장</td></tr>
-      <tr><td>SELECT/JOIN</td><td>0513</td><td>UI 의 모든 조회 쿼리</td></tr>
-      <tr><td>정적 크롤링(bs4)</td><td>0514</td><td>국토부 통계 페이지, FAQ 페이지</td></tr>
-      <tr><td>동적 크롤링(Selenium/Playwright)</td><td>0515</td><td>공공데이터포털 충전소 목록</td></tr>
+      <tr><td>Streamlit 에서 Playwright 호출 시 <code>NotImplementedError</code></td><td>Streamlit/tornado 의 <code>SelectorEventLoop</code> 와 Playwright 의 <code>asyncio</code> 루프 충돌</td><td><code>ThreadPoolExecutor</code> 별도 스레드 + <code>asyncio.ProactorEventLoop()</code> 명시적 생성</td></tr>
+      <tr><td>ev.or.kr FAQ 크롤링 실패 — 빈 페이지</td><td>pnp4web.js 봇 보안 챌린지가 통과되지 않음</td><td>실제 브라우저 locale(<code>ko-KR</code>)+viewport 설정, 이중 <code>networkidle</code> 대기</td></tr>
+      <tr><td>충전소 지역 필터 0건</td><td>CSV 의 "서울특별시" vs DB 의 "서울" 불일치</td><td><code>ADDRESS_REGION_ALIASES</code> 정규화 테이블로 통일</td></tr>
+      <tr><td>오래된 DB 연결 끊김 오류</td><td>장시간 idle 후 MySQL 측 타임아웃</td><td><code>pool_pre_ping=True</code> — 체크아웃 전 연결 생존 확인</td></tr>
+      <tr><td>국토부 당월 파일 없음</td><td>통계 공표 시차 (당월 데이터는 수주 후 공개)</td><td>현재 월부터 역순 탐색, 데이터 있는 최근 월 사용</td></tr>
+      <tr><td>앱 리런 시 스케줄러 중복 등록</td><td>Streamlit 리런마다 새 스케줄러 생성</td><td><code>@st.cache_resource</code> + 초기 <code>pause()</code> 상태로 생성</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">asyncio 충돌 해결 코드 — ThreadPoolExecutor + ProactorEventLoop</h3>
+  <pre><code class="language-python"># crawler_station.py — Streamlit 환경에서 Playwright 안전 실행
+from concurrent.futures import ThreadPoolExecutor
+
+def _get_csv(self) -> tuple[bytes, str]:
+    # Streamlit/tornado 의 SelectorEventLoop 와 충돌 → 별도 스레드에서 실행
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(self._run_playwright)
+        return future.result()
+
+def _run_playwright(self) -> tuple[bytes, str]:
+    # Windows 에서 subprocess 를 지원하는 ProactorEventLoop 명시 생성
+    loop = asyncio.ProactorEventLoop()
+    return loop.run_until_complete(self._async_download())</code></pre>
+
+  <h3 class="step">시도명 정규화 — ADDRESS_REGION_ALIASES</h3>
+  <pre><code class="language-python"># crawler_station.py — 출처별 시도명 → 2글자 표준형으로 정규화
+ADDRESS_REGION_ALIASES = (
+    ("서울특별시", "서울"), ("부산광역시", "부산"), ("세종특별자치시", "세종"),
+    ("강원특별자치도", "강원"), ("전북특별자치도", "전북"),
+    ("제주특별자치도", "제주"), ("경기도", "경기"), ...
+)
+# CSV 주소의 앞 글자를 긴 키 우선으로 매칭 → regions.region_name 에 저장</code></pre>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    6개 문제의 공통점 — "혼자 짤 때는 안 만나는 문제" 다. asyncio 충돌은 Streamlit 과의 결합에서, 봇 챌린지는 실제 운영 사이트에서, 시도명 불일치는 출처가 여러 개일 때 비로소 발생한다. 그래서 진짜 학습은 단독 스크립트가 아니라 시스템 통합 시점에 집중된다.
+  </div>
+</section>
+
+
+<section id="ch6">
+  <h2 class="chap">
+    <span class="num">CH 06</span>최종 결론 — 한 주의 도구들이 만나서 시스템이 된다<a href="#ch6" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">실제 기술 스택 전체 지도</h3>
+  <table>
+    <thead><tr><th>도구</th><th>버전</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td>Playwright</td><td>1.59.0</td><td>3개 크롤러 모두 — Excel/CSV 다운로드 + HTML 파싱</td></tr>
+      <tr><td>BeautifulSoup4</td><td>4.14.3</td><td>FAQ HTML 파싱</td></tr>
+      <tr><td>openpyxl</td><td>3.1.5</td><td>국토부 Excel 시트 파싱</td></tr>
+      <tr><td>pandas</td><td>3.0.3</td><td>충전소 CSV 파싱</td></tr>
+      <tr><td>SQLAlchemy</td><td>2.0.49</td><td>DB 엔진 + .env 기반 접속 관리</td></tr>
+      <tr><td>PyMySQL</td><td>1.1.3</td><td>MySQL 드라이버</td></tr>
+      <tr><td>APScheduler</td><td>—</td><td>충전소 5분 / FAQ 24시간 자동 갱신</td></tr>
+      <tr><td>Streamlit</td><td>1.57.0</td><td>단일 app.py, 사이드바 필터, @cache_resource</td></tr>
+      <tr><td>Altair</td><td>5.x</td><td>연도별 선형 / 지역별 바 / 원형 차트</td></tr>
+      <tr><td>Folium</td><td>0.x</td><td>충전소 인터랙티브 지도</td></tr>
+      <tr><td>python-dotenv</td><td>1.2.2</td><td>.env 보안 자격증명 관리</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">한 주 학습이 시스템에서 하는 역할</h3>
+  <table>
+    <thead><tr><th>학습일</th><th>도구</th><th>"물로간다" 에서의 역할</th></tr></thead>
+    <tbody>
+      <tr><td>0511</td><td>MySQL 자료형/DDL</td><td>crawler_db 5 테이블 스키마 정의</td></tr>
+      <tr><td>0512</td><td>제약조건</td><td>PK · UNIQUE(uq_stat) · FK(regions) · CHECK(target_type)</td></tr>
+      <tr><td>0513</td><td>SELECT 6절/JOIN</td><td>등록현황 연도별 조회 · 지역 필터 · 충전소 목록 쿼리</td></tr>
+      <tr><td>0514</td><td>정적 크롤링(bs4)</td><td>FAQ HTML 파싱 (BeautifulSoup4 부분)</td></tr>
+      <tr><td>0515</td><td>동적 크롤링(Playwright)</td><td>모든 크롤러의 브라우저 자동화 기반</td></tr>
     </tbody>
   </table>
   <div class="keypoint">
     <span class="label">FINAL CONCLUSION</span>
-    "물로간다" 의 진짜 성과는 수소차 보급 추이를 그래프로 그린 것이 아니다 — <strong>월요일에 배운 자료형이 금요일에는 충전소 위도/경도 컬럼이 되었고,
-    화요일의 제약조건이 데이터 무결성을 지켰으며, 수요일의 SELECT 6 절이 사용자 필터의 SQL 이 되었고, 목요일의 bs4 와 금요일의 Selenium 이
-    실제 데이터를 길어 올렸다</strong> 는 사실이다. 한 주의 단편적 학습이 한 화면에서 만나 시스템이 되는 경험 — 이것이 단위 프로젝트의 본질.
-    그리고 이 모든 데이터를 분석 가능한 형태로 다듬는 것이 다음 단계 — 0520 의 numpy 다.
+    "물로간다" 의 진짜 성과는 대시보드 화면이 아니다 — <strong>월요일에 배운 DDL 이 금요일엔 regions FK 였고,
+    화요일의 제약조건이 uq_stat 으로 중복 등록을 막았으며, 수요일의 SELECT 가 Altair 그래프의 쿼리였고,
+    목요일의 bs4 가 FAQ 를 뽑아냈으며, 금요일의 Playwright 가 Excel·CSV·HTML 세 경로를 모두 열었다</strong>.
+    asyncio 충돌, 봇 챌린지, 시도명 불일치 — 이 세 문제는 강의실에서는 만나지 못했다.
+    시스템이 됐을 때 비로소 나타났다. 그것이 단위 프로젝트가 강의를 대체할 수 없는 이유이자, 강의보다 더 많은 것을 가르치는 이유다.
   </div>
 </section>
 
@@ -318,14 +482,21 @@ st_folium(m, width=720, height=520)</code></pre>
   <div class="page">
     <p><strong>참고 링크</strong></p>
     <ul class="refs">
-      <li><a href="https://docs.streamlit.io/" target="_blank" rel="noopener">Streamlit Documentation</a></li>
-      <li><a href="https://playwright.dev/python/" target="_blank" rel="noopener">Playwright for Python</a></li>
+      <li><a href="https://docs.streamlit.io/develop/api-reference/caching-and-state/st.cache_resource" target="_blank" rel="noopener">Streamlit — st.cache_resource</a></li>
+      <li><a href="https://playwright.dev/python/docs/api/class-browsercontext" target="_blank" rel="noopener">Playwright for Python — BrowserContext</a></li>
+      <li><a href="https://docs.sqlalchemy.org/en/20/core/engines.html" target="_blank" rel="noopener">SQLAlchemy — Engine Configuration</a></li>
+      <li><a href="https://altair-viz.github.io/" target="_blank" rel="noopener">Altair — Declarative Visualization in Python</a></li>
       <li><a href="https://python-visualization.github.io/folium/" target="_blank" rel="noopener">Folium Documentation</a></li>
+      <li><a href="https://apscheduler.readthedocs.io/" target="_blank" rel="noopener">APScheduler Documentation</a></li>
     </ul>
     <p style="margin-top:18px"><strong>참고 코드</strong></p>
     <ul class="refs">
-      <li><code>../crawling_project/SKN32-1st-3Team/</code> — 팀 카데이터 프로젝트 전체</li>
-      <li><code>../crawling_project/SKN32-1st-3Team/README.md</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/crawling/crawler_molit.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/crawling/crawler_station.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/crawling/crawler_faq.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/data/db.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/data/service.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/dbscript/dbscript_table.sql</code></li>
     </ul>
     <p style="margin-top:18px"><strong>소스 코드</strong></p>
     <ul class="refs" style="margin-top:4px">
