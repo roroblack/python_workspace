@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>0512 학습 노트: MySQL 제약조건과 DML — 자료형보다 한 층 더 강한 차단막</title>
+  <meta name="description" content="3주차 2일차 — DAY1에서 'INSERT 시점에 자료형이 차단된다'고 봤다. 그런데 같은 키를 두 번 넣으면? 다른 테이블 키를 잘못 참조하면? 자료형 위에 한 층 더 쌓인 제약조건(PK/UK/FK/CHECK/NN)을 DAY2_constraint_alter.sql 실행 결과로 추적." />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+    :root { color-scheme: light; --ink:#1f2933; --muted:#667085; --line:#d7dee8; --paper:#ffffff; --surface:#ffffff;
+      --accent:#52A97E; --accent-2:#E8875A; --accent-3:#5B9BD5; --accent-4:#9178C4;
+      --accent-soft:#EBF7F1; --warn-soft:#FFF1E8; --code-bg:#1e1e1e; --code-ink:#e5e7eb; --shadow:none; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:"Nanum Gothic Coding","Segoe UI",Arial,sans-serif; line-height:1.78; font-size:16px; }
+    a { color:var(--accent-3); text-underline-offset:3px; }
+    .page { width:min(880px, calc(100% - 32px)); margin:0 auto; }
+    header.cover { background:#fff; border-bottom:3px solid var(--ink); padding:64px 0 40px; }
+    .cover .eyebrow { border-top:4px solid var(--accent); padding-top:10px; display:inline-block; color:var(--accent); font-weight:800; font-size:0.78rem; letter-spacing:0.12em; text-transform:uppercase; margin:0 0 14px; }
+    .cover h1 { margin:0; font-size:clamp(1.9rem,4.2vw,3.1rem); line-height:1.18; letter-spacing:-0.01em; }
+    .cover .deck { margin:18px 0 0; color:var(--muted); font-size:1.05rem; }
+    .meta-row { display:flex; flex-wrap:wrap; gap:18px 28px; margin-top:30px; padding-top:18px; border-top:2px solid var(--ink); color:var(--muted); font-size:0.92rem; }
+    .meta-row strong { color:var(--ink); margin-right:6px; }
+    main { padding:36px 0 60px; }
+    h2.chap { border-top:3px solid var(--ink); padding-top:16px; margin:56px 0 8px; font-size:1.55rem; letter-spacing:-0.01em; line-height:1.25; }
+    h2.chap .num { display:inline-block; color:var(--accent); font-size:0.85rem; font-weight:800; letter-spacing:0.12em; margin-right:10px; padding:2px 8px; border:2px solid var(--accent); vertical-align:middle; }
+    h3.step { margin:26px 0 8px; font-size:1.08rem; color:var(--ink); }
+    h3.step::before { content:""; display:inline-block; width:4px; height:1.1em; background:var(--accent); margin-right:8px; vertical-align:text-bottom; }
+    p { margin:0 0 12px; } ul,ol { padding-left:22px; margin:6px 0 14px; } li { margin-bottom:6px; }
+    code { font-family:"Cascadia Code","Consolas","D2Coding",monospace; font-size:0.92em; }
+    :not(pre) > code { background:#EEF0F6; border:1px solid #d8e0ea; padding:1px 6px; color:#1f2933; }
+    pre { margin:12px 0 18px; overflow-x:auto; background:var(--code-bg); color:var(--code-ink); padding:18px 20px; font-size:0.9rem; line-height:1.6; tab-size:4; }
+    pre code.language-sql, pre code.language-python { background:transparent; border:none; padding:0; color:inherit; font-size:1em; }
+    .anchor-link { display:inline-block; margin-left:8px; color:var(--accent); text-decoration:none; opacity:0; font-size:0.75em; vertical-align:middle; font-weight:400; transition:opacity 0.15s; }
+    h2.chap:hover .anchor-link { opacity:1; }
+    .qbox,.keypoint,.callout { padding:16px 18px; margin:14px 0 18px; border:1px solid var(--line); background:var(--surface); }
+    .qbox { border-left:4px solid var(--accent-3); background:#EBF4FF; }
+    .qbox .label { display:block; color:var(--accent-3); font-weight:800; font-size:0.84rem; letter-spacing:0.06em; margin-bottom:4px; }
+    .keypoint { border-left:4px solid var(--accent); background:var(--accent-soft); }
+    .keypoint .label { display:block; color:var(--accent); font-weight:800; font-size:0.84rem; letter-spacing:0.06em; margin-bottom:4px; }
+    .callout { border-left:4px solid var(--accent-2); background:var(--warn-soft); }
+    .callout .label { display:block; color:var(--accent-2); font-weight:800; font-size:0.84rem; letter-spacing:0.06em; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:12px 0 18px; background:var(--surface); border:1px solid var(--line); font-size:0.95rem; }
+    th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); }
+    th { background:#EEF0F5; color:#1f2933; font-weight:800; }
+    .toc { background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--ink); padding:18px 22px; margin:24px 0 0; }
+    .toc h4 { margin:0 0 8px; font-size:0.9rem; letter-spacing:0.08em; color:var(--muted); text-transform:uppercase; }
+    .toc ol { margin:0; padding-left:20px; } .toc ol li { margin-bottom:4px; }
+    .toc a { color:var(--ink); text-decoration:none; } .toc a:hover { color:var(--accent-3); }
+    blockquote.cite { border:1px solid #d8d0f0; border-left:4px solid var(--accent-4); background:#F7F5FD; padding:12px 16px; margin:12px 0; font-size:0.95rem; line-height:1.65; }
+    blockquote.cite .src { display:block; color:var(--muted); font-size:0.85em; margin-top:8px; }
+    .bridge { border-left:4px solid var(--muted); background:#F4F6F8; padding:12px 16px; margin:18px 0 8px; font-size:0.92rem; line-height:1.65; color:#3a4250; }
+    .bridge strong { color:var(--ink); }
+    footer { border-top:2px solid var(--ink); color:var(--muted); padding:26px 0 40px; font-size:0.9rem; }
+    footer .refs { padding-left:20px; margin:8px 0 0; } footer .refs li { margin-bottom:6px; }
+    .day-badge { display:inline-block; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:800; letter-spacing:0.1em; padding:2px 8px; margin-right:8px; vertical-align:middle; }
+    .terminal { margin:14px 0 22px; overflow:hidden; border:1px solid #30363d; font-family:"Cascadia Code","Consolas","D2Coding",monospace; }
+    .terminal-header { background:#161b22; border-bottom:1px solid #30363d; padding:9px 16px; font-size:0.8rem; color:#8b949e; display:flex; align-items:center; gap:8px; }
+    .terminal-header::before { content:'mysql>'; color:#4ec9b0; font-weight:700; font-size:0.78rem; letter-spacing:0.02em; flex-shrink:0; }
+    .terminal-header .t-label { flex:1; color:#8b949e; }
+    pre.terminal-body { background:#0d1117; color:#e6edf3; margin:0; padding:16px 20px; font-size:0.86rem; line-height:1.6; white-space:pre; overflow-x:auto; }
+    .t-err { color:#f85149; } .t-ok { color:#3fb950; } .t-hdr { color:#6e7681; } .t-sec { color:#58a6ff; }
+  </style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">MySQL · 3주차 · DAY2 · 제약조건 / DML</p>
+    <h1>0512 학습 노트: MySQL 제약조건과 DML — 자료형보다 한 층 더 강한 차단막</h1>
+    <p class="deck">
+      0511 의 결론은 "INSERT 시점에 자료형이 차단된다" 였다. 그런데 같은 키를 두 번 넣으면? 다른 테이블의 키를
+      잘못 참조하면? 자료형 위에 한 층 더 쌓인 다섯 가지 제약조건 — PRIMARY KEY · UNIQUE · FOREIGN KEY ·
+      CHECK · NOT NULL — 을 DAY2_constraint_alter.sql 의 실행 결과로 추적한다.
+    </p>
+    <div class="meta-row">
+      <span><strong>작성일자</strong> 2026/05/12</span>
+      <span><strong>과정</strong> SK Networks AI Family 32기 · DAY2</span>
+      <span><strong>HW</strong> Asrock x600 · Ryzen 8600G · 24GB · RTX 4070 Super 12GB</span>
+      <span><strong>SW</strong> Windows 11 Pro · MySQL 8.x · InnoDB</span>
+    </div>
+    <nav class="toc">
+      <h4>목차</h4>
+      <ol>
+        <li><a href="#ch1">NOT NULL — 비울 수 없다는 가장 단순한 차단</a></li>
+        <li><a href="#ch2">UNIQUE — "중복" 의 의미를 단일키와 복합키가 다르게 정의한다</a></li>
+        <li><a href="#ch3">PRIMARY KEY — NOT NULL + UNIQUE 의 결합, 그리고 식별의 책임</a></li>
+        <li><a href="#ch4">CHECK — InnoDB 위에서만 살아있는 도메인 규칙</a></li>
+        <li><a href="#ch5">FOREIGN KEY — 두 테이블을 묶는 관계, ON DELETE / ON UPDATE</a></li>
+        <li><a href="#ch6">최종 결론 — 다섯 제약조건은 "잘못된 행" 의 다섯 정의다</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="page">
+
+<div class="bridge" style="margin-top:18px">
+  <strong>이 노트가 추적하는 한 줄 의문</strong> —
+  0511 의 자료형 강제는 "BUY 컬럼에 'one hundred' 라는 문자열은 못 들어간다" 같은 <em>값의 종류</em> 차원의 차단이었다.
+  그런데 같은 사번을 두 번 넣는 것은 자료형 차원에서는 막을 방법이 없다 — 둘 다 INT 다.
+  그렇다면 자료형보다 한 층 위에 "행의 의미" 를 지키는 별도의 막이 필요하다. 그것이 제약조건이다.
+  CH01 ~ CH05 에서 다섯 제약조건을 한 조각씩 본 뒤 CH06 에서 회수한다.
+</div>
+
+<section id="ch1">
+  <h2 class="chap">
+    <span class="num">CH 01</span>
+    <span class="day-badge">DAY2</span>NOT NULL — 비울 수 없다는 가장 단순한 차단<a href="#ch1" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    제일 단순한 제약조건이다. "이 컬럼은 NULL 이 들어오면 거부한다." 그러나 단순한 만큼 두 가지 함정이 따른다 —
+    NOT NULL 은 <strong>컬럼 레벨에서만</strong> 정의 가능하고, 0511 의 "빈 값" 자동 NULL 매커니즘과 정면 충돌한다.
+  </p>
+  <pre><code class="language-sql">create table tbl_notnull (
+    nid     char(3)     not null,   -- 컬럼 레벨에서만 가능
+    sname   varchar(20)
+);
+
+insert into tbl_notnull (nid, sname) values ('100', 'mysql');   -- ok
+insert into tbl_notnull values (null, 'mysql');                  -- error
+insert into tbl_notnull values ('200', null);                    -- sname 은 NN 아님 ok
+
+-- 테이블 레벨 작성 시도 → 즉시 문법 에러
+create table tbl_notnull2 (
+    nid     char(3),
+    sname   varchar(20),
+    constraint nn_tn2_nid not null (nid)   -- error
+);</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    NOT NULL 이 컬럼 레벨로만 제한된 이유는 — "이 컬럼이 NULL 인가" 는 <strong>다른 컬럼을 볼 필요 없이 한 셀로
+    판정 가능</strong> 한 조건이기 때문이다. 즉 NN 은 본질적으로 컬럼의 속성이고, 테이블 레벨로 끌어올릴 의미가 없다.
+  </div>
+
+  <h3 class="step">테스트 — NN 위반 / 정상 INSERT</h3>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY2 § NOT NULL</span></div>
+    <pre class="terminal-body">Query OK, 1 row affected (0.00 sec)
+
+<span class="t-err">ERROR 1048 (23000): Column 'nid' cannot be null</span>
+
+Query OK, 1 row affected (0.00 sec)
+
++-----+-------+
+| nid | sname |
++-----+-------+
+| 100 | mysql |
+| 200 | NULL  |
++-----+-------+
+2 rows in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    NOT NULL = "값이 반드시 존재해야 한다" 는 가장 단순한 1셀 규칙. <code>ERROR 1048 (23000)</code> 이 그것의 코드명.
+    가설 통과 — 다른 컬럼을 참조할 필요가 없기에 테이블 레벨 정의가 의미를 가지지 못한다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — "값이 존재해야 한다" 는 충족되었지만, 두 번 들어오는 같은 값을 막지는 못한다.
+    그래서 두 번째 제약조건이 등장한다 — UNIQUE.
+  </div>
+</section>
+
+
+<section id="ch2">
+  <h2 class="chap">
+    <span class="num">CH 02</span>
+    <span class="day-badge">DAY2</span>UNIQUE — "중복" 의 의미를 단일키와 복합키가 다르게 정의한다<a href="#ch2" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    UNIQUE 는 컬럼 레벨/테이블 레벨 둘 다 정의 가능하며, 복합키(여러 컬럼 묶음) 도 지원한다.
+    여기서 "두 행이 같다" 는 정의 자체가 단일키와 복합키에서 달라진다.
+  </p>
+  <pre><code class="language-sql">create table tbl_unique2 (
+    uid     char(3)     unique,          -- 단일 unique (컬럼 레벨)
+    sname   varchar(20),
+    scode   char(2),
+    constraint uq_tun2_comp unique (uid, sname)   -- 복합 unique (테이블 레벨)
+);
+
+insert into tbl_unique2 values ('100', 'mysql', '01');  -- ok
+insert into tbl_unique2 values ('200', 'mysql', '01');  -- ok (uid 다름, 복합 다름)
+insert into tbl_unique2 values ('100', 'mysql', '04');  -- error (둘 다 중복)
+insert into tbl_unique2 values ('100', 'web',   '03');  -- error (uid 단일이 중복)
+insert into tbl_unique2 values (null,  'mysql', '01');  -- ok (NULL 은 허용)</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    같은 행에 단일 UNIQUE 와 복합 UNIQUE 가 동시에 걸려 있다면 — INSERT 한 줄을 평가할 때 두 검사가 <strong>독립적으로
+    작동</strong> 하고, 둘 중 어느 하나라도 위반되면 거부된다. 또한 UNIQUE 는 NN 과 달리 NULL 을 "값 없음" 으로 보아
+    중복 판정에서 제외할 것이다.
+  </div>
+
+  <h3 class="step">테스트 — 단일 vs 복합 UNIQUE</h3>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY2 § UNIQUE 복합키</span></div>
+    <pre class="terminal-body">Query OK, 1 row affected (0.01 sec)
+Query OK, 1 row affected (0.00 sec)
+<span class="t-err">ERROR 1062 (23000): Duplicate entry '100-mysql' for key 'tbl_unique2.uq_tun2_comp'</span>
+<span class="t-err">ERROR 1062 (23000): Duplicate entry '100' for key 'tbl_unique2.uid'</span>
+Query OK, 1 row affected (0.00 sec)
+
++------+-------+-------+
+| uid  | sname | scode |
++------+-------+-------+
+| 100  | mysql | 01    |
+| 200  | mysql | 01    |
+| NULL | mysql | 01    |
++------+-------+-------+
+3 rows in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    같은 <code>ERROR 1062</code> 라도 충돌한 키 이름이 다르게 출력된다 — <code>tbl_unique2.uid</code> 는 단일 UNIQUE,
+    <code>tbl_unique2.uq_tun2_comp</code> 는 복합 UNIQUE 위반. UNIQUE 는 NULL 을 무시한다.
+    즉 "중복" 의 정의가 키마다 다르고, MySQL 은 그 정의를 키 이름과 함께 정확히 알려준다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — NN("비어선 안 됨") 과 UNIQUE("두 번 안 됨") 을 묶으면 "한 행을 식별하는 단 하나의
+    값" 이 된다. 그것이 PRIMARY KEY 다.
+  </div>
+</section>
+
+
+<section id="ch3">
+  <h2 class="chap">
+    <span class="num">CH 03</span>
+    <span class="day-badge">DAY2</span>PRIMARY KEY — NOT NULL + UNIQUE 의 결합, 그리고 식별의 책임<a href="#ch3" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    PRIMARY KEY 는 NOT NULL 과 UNIQUE 가 자동으로 따라붙는 결합형 제약조건이다.
+    그러나 결합 그 자체보다 더 중요한 제약이 따라온다 — <strong>한 테이블당 PK 는 단 한 개</strong> 만 허용된다.
+  </p>
+  <pre><code class="language-sql">create table tbl_pk (
+    pid     char(3)     primary key,
+    sname   varchar(20)
+);
+
+insert into tbl_pk values ('100', 'mysql');         -- ok
+insert into tbl_pk values ('100', 'python');        -- error 1062 (UK 부분)
+insert into tbl_pk values (null,  'python2');       -- error 1048 (NN 부분)
+
+-- PK 두 개 시도 → 테이블 자체가 만들어지지 않음
+create table tbl_pk2 (
+    pid char(3) primary key,
+    sname varchar(20) primary key   -- error 1068
+);
+
+-- 복합 PK 는 가능 (테이블 레벨)
+create table tbl_pk2 (
+    pid char(3), sname varchar(20), scode char(2),
+    constraint pk_tpk2_comp primary key (pid, sname)
+);</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "한 테이블당 PK 하나" 라는 제한은 자의적 규칙이 아니라 <strong>식별의 정의 자체</strong> 다 —
+    "이 한 값(또는 한 묶음)을 보면 그 행을 정확히 한 개만 찾을 수 있다" 가 식별이라면, 식별자가 둘이면 모순이 생긴다.
+    그러므로 PK 위반은 두 가지 코드로 갈라져야 한다 — 1062(같은 값 두 번) 와 1048(값 비움).
+  </div>
+
+  <h3 class="step">테스트 — PK 위반 시나리오</h3>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY2 § PRIMARY KEY</span></div>
+    <pre class="terminal-body">Query OK, 1 row affected (0.01 sec)
+<span class="t-err">ERROR 1062 (23000): Duplicate entry '100' for key 'tbl_pk.PRIMARY'</span>
+<span class="t-err">ERROR 1048 (23000): Column 'pid' cannot be null</span>
+<span class="t-err">ERROR 1068 (42000): Multiple primary key defined</span>
+
+Query OK, 0 rows affected (0.02 sec)
+
++-----+-------+-------+
+| pid | sname | scode |
++-----+-------+-------+
+| 100 | mysql | 01    |
+| 200 | mysql | 01    |
++-----+-------+-------+
+2 rows in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    PK = NN + UK 의 결합이라는 것이 <code>ERROR 1062</code> 와 <code>ERROR 1048</code> 양쪽 코드로 입증되었다.
+    <code>tbl_pk.PRIMARY</code> 라는 키 이름은 PK 가 내부적으로 <code>PRIMARY</code> 라는 예약 키 이름으로 관리됨을 의미한다.
+    "한 테이블 한 PK" 는 RDB 의 식별 모델 그 자체다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — NN/UK/PK 는 모두 "값의 존재 여부와 중복 여부" 를 다뤘다.
+    그런데 "급여는 양수여야 한다" 처럼 <em>값의 범위</em> 를 강제하려면 새로운 종류의 제약이 필요하다 — CHECK.
+  </div>
+</section>
+
+
+<section id="ch4">
+  <h2 class="chap">
+    <span class="num">CH 04</span>
+    <span class="day-badge">DAY2</span>CHECK — InnoDB 위에서만 살아있는 도메인 규칙<a href="#ch4" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    CHECK 는 MySQL 8.0 + InnoDB 조합에서만 정상 작동한다. 그 위에서 "어떤 식이 참인 값만 통과" 라는 자유로운 도메인 제한을 건다.
+  </p>
+  <pre><code class="language-sql">create table tbl_check (
+    emp_id   char(3)  primary key,
+    salary   int      check (salary > 0),
+    marriage char(1),
+    constraint ck_tbchk_marriage check (marriage in ('Y','N'))
+) ENGINE=InnoDB;
+
+insert into tbl_check values ('100',  350, 'Y');   -- ok
+insert into tbl_check values ('120', -450, 'Y');   -- error 3819 (salary > 0 위반)
+insert into tbl_check values ('100',  350, 'K');   -- error 3819 (marriage IN 위반)
+
+-- 변동값(NOW 등) 사용 시도 → 정의 자체가 거부됨
+create table tbl_check2 (
+    emp_id char(3) primary key,
+    hiredate datetime check (hiredate &lt; current_timestamp)
+) ENGINE=InnoDB;   -- error</code></pre>
+  <blockquote class="cite">
+    The <code>CHECK</code> constraint feature is implemented for all storage engines. … For each row checked,
+    if the expression evaluates to <code>FALSE</code>, a violation occurs. NULL values are treated as not violating.
+    Non-deterministic functions such as <code>NOW()</code> are not permitted.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-check-constraints.html" target="_blank" rel="noopener">MySQL Reference Manual § CHECK Constraints</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    CHECK 가 변동값을 거부하는 이유는 — 제약은 <strong>"언제 검사해도 같은 결과" 가 보장</strong> 되어야 하기 때문이다.
+    <code>NOW()</code> 를 허용하면 "어제 통과한 행이 오늘 위반" 일 수 있다. 즉 CHECK 는 행 단위·INSERT 시점에 결정론적으로
+    평가 가능한 식만 허용한다.
+  </div>
+
+  <h3 class="step">테스트 — CHECK 위반</h3>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY2 § CHECK</span></div>
+    <pre class="terminal-body">Query OK, 1 row affected (0.01 sec)
+<span class="t-err">ERROR 3819 (HY000): Check constraint 'tbl_check_chk_1' is violated.</span>
+<span class="t-err">ERROR 3819 (HY000): Check constraint 'ck_tbchk_marriage' is violated.</span>
+
+<span class="t-err">ERROR 3814 (HY000): An expression of a check constraint contains disallowed function.</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    이름 없이 정의한 CHECK 는 <code>테이블명_chk_숫자</code> 로 자동 명명되고, <code>constraint 이름</code> 으로 명시한 것은
+    그 이름이 그대로 에러에 등장한다 → <strong>제약 이름 짓기는 디버깅의 직접적 도구</strong>다.
+    변동값 금지(<code>ERROR 3814</code>) 는 "제약은 결정론적이어야 한다" 는 가설을 그대로 입증한다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 지금까지 모든 제약은 "한 테이블 안" 에서 끝났다. 두 테이블을 묶는 관계는
+    어떻게 강제하는가? FOREIGN KEY 다.
+  </div>
+</section>
+
+
+<section id="ch5">
+  <h2 class="chap">
+    <span class="num">CH 05</span>
+    <span class="day-badge">DAY2</span>FOREIGN KEY — 두 테이블을 묶는 관계, ON DELETE / ON UPDATE<a href="#ch5" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    FK 는 자식 테이블의 컬럼이 부모 테이블의 PK 또는 UNIQUE 컬럼만 참조하도록 강제한다.
+    실습은 <code>location</code> 부모 테이블을 만들고 <code>tbl_fk*</code> 자식 테이블에서 FK 를 거는 흐름이었다.
+    핵심 함정 세 가지 — ① 엔진이 MyISAM 이면 FK 가 조용히 무시된다 ② 컬럼 레벨 FK 는 종종 무시되니 테이블 레벨 권장
+    ③ 부모키는 PK / UNIQUE 만 가능.
+  </p>
+  <pre><code class="language-sql">-- 잘못된 예 1: 엔진 미지정 + 컬럼 레벨 FK
+create table tbl_fk (
+    fid char(3),
+    sname varchar(20),
+    loc_id char(2) references location(location_id)   -- ★ 무시될 수 있음
+);
+
+-- 권장 형식: 테이블 레벨 + ENGINE=InnoDB
+create table tbl_fk3 (
+    fid char(3),
+    sname varchar(20),
+    loc_id char(2),
+    constraint fk_tblfk3_lid foreign key (loc_id)
+        references location(location_id)
+) ENGINE=InnoDB;
+
+insert into tbl_fk3 values ('333','web','B2');     -- error 1452 (부모키 없음)
+
+-- 복합 PK 부모 + ON DELETE / ON UPDATE 옵션
+create table tbl_fk5 (
+    fid char(3), fname varchar(20), fcode char(2),
+    constraint fk_tfk5_comp foreign key (fid, fname)
+        references tbl_pk2 (pid, sname)
+        on delete set null
+        on update cascade
+) ENGINE=InnoDB;</code></pre>
+  <blockquote class="cite">
+    <code>InnoDB</code> permits a foreign key to reference any column or group of columns. However, in the referenced table,
+    there must be an index where the referenced columns are the first columns in the same order. … Hidden columns and the
+    storage engine do not have to be specified.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html" target="_blank" rel="noopener">MySQL Reference Manual § 13.1.20.5 FOREIGN KEY Constraints</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    FK 는 두 테이블의 데이터 일관성을 행 단위로 묶는다. 그렇다면 부모 행이 사라질 때 자식이 어떻게 반응해야 하는가가
+    설계 결정의 핵심이 된다 — ON DELETE 옵션이 그것을 표현한다. <code>set null</code> 은 "관계만 끊는다",
+    <code>cascade</code> 는 "함께 따라간다", 생략하면(기본) "삭제 자체를 거부한다".
+  </div>
+
+  <h3 class="step">테스트 — FK 위반 / cascade 동작</h3>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY2 § FOREIGN KEY</span></div>
+    <pre class="terminal-body"><span class="t-err">ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails
+(`mydb`.`tbl_fk3`, CONSTRAINT `fk_tblfk3_lid` FOREIGN KEY (`loc_id`) REFERENCES `location` (`location_id`))</span>
+
+Query OK, 1 row affected (0.01 sec)
+<span class="t-hdr">-- 부모 tbl_pk2 의 ('100','mysql') 을 ('100','MySQL') 로 update 하면</span>
+<span class="t-hdr">-- 자식 tbl_fk5 도 cascade 로 따라서 변경됨</span>
++-----+-------+-------+
+| fid | fname | fcode |
++-----+-------+-------+
+| 100 | MySQL | 33    |
++-----+-------+-------+
+1 row in set (0.00 sec)</pre>
+  </div>
+  <div class="callout">
+    <span class="label">CAUTION</span>
+    엔진이 InnoDB 가 아니면 FK 정의가 받아들여져도 <strong>조용히 무시</strong> 된다 — 에러 없이 자식이 부모 없는 값을 가질 수 있다.
+    실습 중 가장 위험한 버그였다. 해결책: 모든 테이블 생성에 <code>ENGINE=InnoDB</code> 명시.
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    FK 는 부모-자식 관계를 행 단위로 강제하고, ON DELETE/UPDATE 옵션이 부모의 변경이 자식에 어떻게 전파되는지를 결정한다.
+    "관계" 라는 개념이 RDB 의 R(Relational) 을 정의한다.
+  </div>
+</section>
+
+
+<section id="ch6">
+  <h2 class="chap">
+    <span class="num">CH 06</span>최종 결론 — 다섯 제약조건은 "잘못된 행" 의 다섯 정의다<a href="#ch6" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">최종 정리</h3>
+  <p>
+    출발 의문은 — "자료형 위에 또 한 층의 차단이 왜 필요한가" 였다. 다섯 제약을 한 줄씩 다시 쓰면 각각이 다른 종류의
+    "잘못된 행" 을 정의한다.
+  </p>
+  <table>
+    <thead><tr><th>제약</th><th>잘못된 행의 정의</th><th>대표 에러</th><th>레벨</th></tr></thead>
+    <tbody>
+      <tr><td><code>NOT NULL</code></td><td>값이 비어있는 행</td><td><code>1048</code></td><td>컬럼만</td></tr>
+      <tr><td><code>UNIQUE</code></td><td>(단일/복합) 같은 키를 두 번 가진 행</td><td><code>1062</code></td><td>컬럼/테이블</td></tr>
+      <tr><td><code>PRIMARY KEY</code></td><td>식별자가 비었거나 중복된 행</td><td><code>1062</code> / <code>1048</code></td><td>컬럼/테이블 (단 1개)</td></tr>
+      <tr><td><code>CHECK</code></td><td>식이 FALSE 인 행</td><td><code>3819</code></td><td>컬럼/테이블 (결정론식만)</td></tr>
+      <tr><td><code>FOREIGN KEY</code></td><td>부모가 제공하지 않는 값을 가진 행</td><td><code>1452</code></td><td>테이블 권장 (InnoDB 필수)</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">최종 결론</h3>
+  <div class="keypoint">
+    <span class="label">FINAL CONCLUSION</span>
+    0511 의 자료형은 "셀 단위 차단" 이었다. 0512 의 다섯 제약은 "행 단위 차단" 이다.
+    각각이 한 가지 종류의 "잘못된 행" 정의를 가지고 INSERT/UPDATE 시점에 작동한다.
+    파이썬으로 비유하면 — 자료형은 <code>isinstance</code> 검사 같은 것이고, 제약조건은 ABC 의 <code>__init_subclass__</code>
+    훅으로 객체 생성 자체를 차단하는 패턴에 가깝다.
+    "잘못된 데이터가 시스템 안으로 들어오지 못하게 한다" 는 한 목적이 자료형 → 제약 → (다음 단계 인덱스/트랜잭션) 으로
+    층층이 쌓인다.
+  </div>
+  <p style="margin-top:18px">
+    다음 의문은 — 행이 들어왔으면 이제 꺼내야 한다. 22 행짜리 직원 테이블에서 "급여가 300만원 이상이면서 90 번 부서"
+    같은 조건을 만족하는 행만 어떻게 골라내는가? 그것이 DAY3(0513) 의 SELECT · WHERE · JOIN 의 출발 의문이 된다.
+  </p>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <p><strong>참고 링크</strong></p>
+    <ul class="refs">
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html" target="_blank" rel="noopener">MySQL Reference — FOREIGN KEY Constraints</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-check-constraints.html" target="_blank" rel="noopener">MySQL Reference — CHECK Constraints</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/constraint-primary-key.html" target="_blank" rel="noopener">MySQL Reference — PRIMARY KEY</a></li>
+    </ul>
+    <p style="margin-top:18px"><strong>참고 코드</strong></p>
+    <ul class="refs">
+      <li><code>../db_workspace/db_수업결과물/DAY2_constraint_alter.sql</code></li>
+    </ul>
+    <p style="margin-top:18px"><strong>소스 코드</strong></p>
+    <ul class="refs" style="margin-top:4px">
+      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub — roroblack/python_workspace</a></li>
+      <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages — 블로그 목록</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>
