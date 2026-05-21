@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>0511 학습 노트: MySQL DBMS 입문 — 계정·스키마·자료형이 분리된 이유</title>
-  <meta name="description" content="SK Networks AI Family 32기 3주차 첫날(0511) MySQL 학습 노트. 1·2주차 파이썬이 '모든 것을 런타임 객체로' 표현했던 것과 정반대로, MySQL은 왜 계정을 OS와 분리하고 자료형을 컬럼마다 강제하는가 — DAY1.sql / DAY1_student.sql 의 실제 실행 결과로 추적." />
+  <meta name="description" content="SK Networks AI Family 32기 3주차 첫날(0511) MySQL 학습 노트. 계정·스키마·자료형 강제부터 INT AUTO_INCREMENT와 B+Tree Clustered Index의 관계, GAP 현상, PK 책임 분리까지 — notes에서 파고든 의문들을 DAY1.sql 실제 실행 결과와 함께 추적." />
   <meta property="og:title" content="0511 학습 노트: MySQL DBMS 입문" />
   <meta property="og:description" content="파이썬의 '런타임 객체 모델'과 정반대 방향을 택한 SQL — 계정·스키마·자료형 분리의 이유를 DAY1.sql 실행 결과로 추적." />
   <meta property="og:type" content="article" />
@@ -375,9 +375,10 @@
         <li><a href="#ch1">root 와 일반 사용자 — 왜 DBMS 는 OS 와 분리된 계정 체계를 갖는가</a></li>
         <li><a href="#ch2">DATABASE / SCHEMA — 한 서버 안의 격리 단위</a></li>
         <li><a href="#ch3">CREATE TABLE — 컬럼마다 자료형을 강제하는 이유</a></li>
-        <li><a href="#ch4">ALTER / DROP — 정적 스키마는 정말 굳어 있는가</a></li>
-        <li><a href="#ch5">INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미</a></li>
-        <li><a href="#ch6">최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적</a></li>
+        <li><a href="#ch4">PRIMARY KEY · B+Tree — INT AUTO_INCREMENT 가 기본 설계인 이유</a></li>
+        <li><a href="#ch5">ALTER / DROP — 정적 스키마는 정말 굳어 있는가</a></li>
+        <li><a href="#ch6">INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미</a></li>
+        <li><a href="#ch7">최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적</a></li>
       </ol>
     </nav>
   </div>
@@ -393,7 +394,7 @@
   그것이 1·2주차의 결론이었다.
   그런데 DAY1.sql 첫 줄 — <code>CREATE USER homework IDENTIFIED BY 'Homework80*'</code> — 부터 모든 것이
   반대다. 계정도, 데이터베이스도, 컬럼 자료형도 <strong>미리 선언</strong>해야 한다.
-  왜 데이터베이스는 정반대 방향을 택했는가? CH01 ~ CH05 에서 한 조각씩 답을 모은 뒤 CH06 에서 회수한다.
+  왜 데이터베이스는 정반대 방향을 택했는가? CH01 ~ CH06 에서 한 조각씩 답을 모은 뒤 CH07 에서 회수한다.
 </div>
 
 <!-- ============================================================ CH01 -->
@@ -641,8 +642,9 @@ Query OK, 1 row affected (0.01 sec)
     강제한다 — 검출 시점만 다를 뿐 "잘못된 데이터를 시스템 안에 들이지 않는다" 는 정신은 같다.
   </div>
   <div class="bridge">
-    <strong>다음 챕터로 가는 다리</strong> — 스키마가 그렇게 단단하다면 한 번 정의한 테이블은 영원히 그 모습 그대로인가?
-    DAY1_student.sql 후반의 <code>ALTER TABLE … RENAME</code>, <code>DROP TABLE IF EXISTS</code> 가 그 답을 가지고 있다.
+    <strong>다음 챕터로 가는 다리</strong> — 자료형이 강제되는 이유는 이해했다. 그런데 MANAGE 테이블에는 빠진 것이
+    하나 있다 — 각 행을 유일하게 식별하는 <code>PRIMARY KEY</code>. PK 를 <code>INT AUTO_INCREMENT</code> 로
+    두는 것이 왜 단순 관례가 아닌 <strong>B+Tree 성능 설계</strong> 인지 다음 챕터에서 파고든다.
   </div>
 </section>
 
@@ -651,7 +653,167 @@ Query OK, 1 row affected (0.01 sec)
 <section id="ch4">
   <h2 class="chap">
     <span class="num">CH 04</span>
-    <span class="day-badge">DAY1</span>ALTER / DROP — 정적 스키마는 정말 굳어 있는가<a href="#ch4" class="anchor-link">#</a>
+    <span class="day-badge">DAY1</span>PRIMARY KEY · B+Tree — INT AUTO_INCREMENT 가 기본 설계인 이유<a href="#ch4" class="anchor-link">#</a>
+  </h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    DAY1_student.sql 의 ACCOUNT 테이블에는 <code>PRIMARY KEY</code> 가 없었다.
+    그런데 실습을 진행하며 두 가지 의문이 생겼다 — PK 는 왜 존재하며, 왜 <code>INT AUTO_INCREMENT</code>
+    가 사실상 관례인가. 그리고 PK 를 굳이 숫자로 줘야 하는가 —
+    <code>'20240511-001'</code> 처럼 날짜+순번 문자열도 고유 식별자로 동작하지 않는가.
+  </p>
+  <pre><code class="language-sql">-- DAY1 ACCOUNT: PK 없음 — 행을 구별할 수단이 없다
+CREATE TABLE ACCOUNT (
+    LIST   VARCHAR(40),
+    TYPE   VARCHAR(5),
+    AMOUNT INT,
+    DAY    VARCHAR(30)
+);
+
+-- PK + AUTO_INCREMENT 를 추가한 버전
+CREATE TABLE ACCOUNT2 (
+    ID     INT AUTO_INCREMENT PRIMARY KEY,  -- 행 식별자 자동 부여
+    LIST   VARCHAR(40),
+    TYPE   VARCHAR(5),
+    AMOUNT INT,
+    DAY    VARCHAR(30)
+);
+
+INSERT INTO ACCOUNT2 (LIST, TYPE, AMOUNT, DAY)
+VALUES ('보험료', '지출', 20, '05-01'),
+       ('급여',   '수입', 450, '05-08'),
+       ('통신비', '지출',  10, '05-11');
+
+SELECT * FROM ACCOUNT2;
+SELECT LAST_INSERT_ID();   -- 마지막 삽입된 AUTO_INCREMENT 값</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DAY1 § ACCOUNT2 — AUTO_INCREMENT · LAST_INSERT_ID()</span></div>
+    <pre class="terminal-body">Query OK, 3 rows affected (0.01 sec)
+
++----+--------+-------+--------+-------+
+| ID | LIST   | TYPE  | AMOUNT | DAY   |
++----+--------+-------+--------+-------+
+|  1 | 보험료 | 지출  |     20 | 05-01 |
+|  2 | 급여   | 수입  |    450 | 05-08 |
+|  3 | 통신비 | 지출  |     10 | 05-11 |
++----+--------+-------+--------+-------+
+3 rows in set (0.00 sec)
+
++------------------+
+| LAST_INSERT_ID() |
++------------------+
+|                3 |
++------------------+
+1 row in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    MySQL InnoDB 는 PK 인덱스를 <strong>B+Tree</strong> 로 관리하며, 행 데이터를 PK 순서로 물리 배치한다
+    (Clustered Index). 문자열 PK 는 삽입 순서와 정렬 순서가 달라 기존 페이지 중간에 끼워야 하는 상황이
+    반복되고 — 16 KB 페이지가 꽉 차면 <strong>페이지 분열(Page Split)</strong> 이 일어나 삽입 성능이
+    저하된다. INT AUTO_INCREMENT 는 항상 단조증가 → 새 행이 항상 마지막 리프 노드 끝에 붙음
+    → Page Split 없음. 이 가설이 사실이라면 PK 타입 선택은 취향이 아니라 <strong>B+Tree 성능 설계</strong>다.
+  </div>
+
+  <h3 class="step">테스트 — B+Tree 구조 추적</h3>
+  <p>
+    InnoDB 는 PK 인덱스를 <strong>B+Tree</strong> 구조로 저장한다.
+    루트(Root) → 브랜치(Branch) → 리프(Leaf) 3층 구조이며,
+    <strong>실제 행 데이터는 리프 노드에만 있다</strong> — 이것이 Clustered Index 다.
+    리프 노드끼리는 이중 연결 리스트로 이어져 있어 범위 검색이 루트로 다시 올라갈 필요 없이
+    수평 이동만으로 끝난다.
+  </p>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">B+Tree Clustered Index — InnoDB 내부 개념도</span></div>
+    <pre class="terminal-body"><span class="t-sec">[ Root Node ]</span>  "1~400 → A 페이지 / 401~800 → B 페이지"
+               ↓ O(log n) 수직 탐색
+    <span class="t-sec">[ Branch Node ]</span>  "401~600 → C 페이지 / 601~800 → D 페이지"
+                      ↓
+<span class="t-sec">[ Leaf Node ]</span> ←→ <span class="t-sec">[ Leaf Node ]</span> ←→ <span class="t-sec">[ Leaf Node ]</span>    (이중 연결 리스트)
+  행401 전체           행501 전체          행601 전체
+  행402 전체           행502 전체          …  (1 노드 = 16 KB 페이지, 최소 2 행 이상)
+
+<span class="t-hdr">-- WHERE id BETWEEN 500 AND 510</span>
+<span class="t-hdr">-- 500 을 찾기 위해 한 번만 수직 하강 → 이후 리프 노드 수평 이동만으로 완료</span>
+<span class="t-hdr">-- 탐색 O(log n)  Fan-out 이 크므로 실제 높이 3~4 단계 — O(1) 처럼 느껴짐</span>
+
+<span class="t-hdr">-- INT AUTO_INCREMENT PK: 항상 단조증가 → 새 행이 항상 마지막 리프 끝에 붙음</span>
+<span class="t-hdr">--   → Page Split 없음, 인덱스 단편화 없음 (삽입 최적)</span>
+<span class="t-hdr">-- VARCHAR PK ('2026-05-01', '2025-12-31', ...): 정렬 기준 불규칙</span>
+<span class="t-hdr">--   → 삽입마다 기존 리프 중간에 끼워야 함 → Page Split 빈발 → 삽입 성능 저하</span></pre>
+  </div>
+
+  <blockquote class="cite">
+    The clustered index is not a separate kind of index. Rather, it is the way of storage for the data.
+    When you define a <code>PRIMARY KEY</code> on your table, InnoDB uses it as the clustered index.
+    If a table has no <code>PRIMARY KEY</code> or suitable unique index, InnoDB generates a hidden clustered
+    index named <code>GEN_CLUST_INDEX</code> on a synthetic column containing row ID values.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html" target="_blank" rel="noopener">MySQL Reference Manual § 15.6.2.1 Clustered and Secondary Indexes</a></span>
+  </blockquote>
+
+  <h3 class="step">AUTO_INCREMENT vs SEQUENCE — DBMS 별 비교</h3>
+  <p>
+    DBMS 마다 자동 증가 번호를 구현하는 방식이 다르다.
+    MySQL 은 <strong>테이블 속성</strong> 으로 묶었고, Oracle · PostgreSQL 은 테이블과 독립된
+    <strong>시퀀스(SEQUENCE) 객체</strong> 로 분리했다.
+  </p>
+  <pre><code class="language-sql">-- MySQL: 컬럼 속성 — 테이블에 종속, 해당 컬럼은 반드시 KEY 여야 함
+CREATE TABLE users (
+    id   INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50)
+);
+ALTER TABLE users AUTO_INCREMENT = 1000;  -- 시작값 변경
+
+-- PostgreSQL: 독립 시퀀스 객체 — 여러 테이블이 공유 가능
+CREATE SEQUENCE my_seq START 100;
+CREATE TABLE products (
+    id   INT DEFAULT nextval('my_seq') PRIMARY KEY,
+    name TEXT
+);</code></pre>
+  <table>
+    <thead><tr><th>구분</th><th>AUTO_INCREMENT (MySQL)</th><th>SEQUENCE (Oracle · PostgreSQL)</th></tr></thead>
+    <tbody>
+      <tr><td>소속</td><td>특정 테이블 컬럼에 종속</td><td>테이블과 독립된 DB 객체</td></tr>
+      <tr><td>유연성</td><td>간단, 테이블당 하나의 컬럼에만 가능</td><td>여러 테이블 공유 가능, 값 범위·증분 제어 용이</td></tr>
+      <tr><td>사용법</td><td>INSERT 시 값을 생략하면 자동 부여</td><td><code>nextval('seq')</code> 호출로 명시적 사용</td></tr>
+    </tbody>
+  </table>
+
+  <div class="keypoint" style="margin-top:12px">
+    <span class="label">GAP 현상 — 번호 소모</span>
+    트랜잭션이 롤백되어도 이미 할당된 AUTO_INCREMENT 번호는 <strong>돌아오지 않는다</strong>.
+    <code>1, 2, 3, 5, 6 …</code> 처럼 중간이 비어있어도 이것은 버그가 아니다 —
+    락 경합을 줄이기 위해 번호를 먼저 발급하고 커밋 실패 시 회수하지 않는 것이 의도적 설계다.
+    PK 는 "고유 식별자" 이지 "연속 일련번호" 가 아니다.
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    InnoDB 의 Clustered Index 는 PK 순서로 데이터를 물리 배치한다.
+    INT AUTO_INCREMENT 는 단조증가 → Page Split 없음 → 삽입 최적.
+    VARCHAR PK 는 정렬 기준 불규칙 → Page Split 빈발 → 삽입 성능 저하.
+    Secondary Index 리프 노드에 PK 값 자체가 기록되므로, VARCHAR PK 는 인덱스 크기도 함께 커진다.
+    "날짜+순번" 같은 문자열 식별자가 비즈니스적으로 필요하다면, DB 내부는 INT PK 로 두고
+    <strong>앱 레이어에서 문자열로 변환</strong>하는 책임 분리가 정석이다 —
+    PK 타입 변경이 필요해지더라도 서비스 레이어 코드를 건드리지 않아도 된다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — PK 설계까지 마쳤다.
+    이제 이 스키마를 나중에 변경할 수 있는가 — <code>ALTER TABLE … RENAME</code> 과
+    <code>DROP TABLE IF EXISTS</code> 로 "정적이지만 진화 가능한" 스키마의 두 번째 면을 본다.
+  </div>
+</section>
+
+
+<!-- ============================================================ CH05 -->
+<section id="ch5">
+  <h2 class="chap">
+    <span class="num">CH 05</span>
+    <span class="day-badge">DAY1</span>ALTER / DROP — 정적 스키마는 정말 굳어 있는가<a href="#ch5" class="anchor-link">#</a>
   </h2>
 
   <h3 class="step">학습</h3>
@@ -746,11 +908,11 @@ Query OK, 0 rows affected, 1 warning (0.00 sec)
 </section>
 
 
-<!-- ============================================================ CH05 -->
-<section id="ch5">
+<!-- ============================================================ CH06 -->
+<section id="ch6">
   <h2 class="chap">
-    <span class="num">CH 05</span>
-    <span class="day-badge">DAY1</span>INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미<a href="#ch5" class="anchor-link">#</a>
+    <span class="num">CH 06</span>
+    <span class="day-badge">DAY1</span>INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미<a href="#ch6" class="anchor-link">#</a>
   </h2>
 
   <h3 class="step">학습</h3>
@@ -846,22 +1008,22 @@ Empty set (0.00 sec)
     파이썬의 <code>None</code> 과는 의미가 다르다 — 파이썬 <code>None == None</code> 은 <code>True</code> 다.
   </div>
   <div class="bridge">
-    <strong>마지막 챕터로 가는 다리</strong> — 다섯 가지 사슬(계정·격리·자료형·진화·NULL) 을 모두 통과했다.
+    <strong>마지막 챕터로 가는 다리</strong> — 여섯 가지 사슬(계정·격리·자료형·PK설계·진화·NULL) 을 모두 통과했다.
     이제 출발 의문 — "왜 데이터베이스는 파이썬과 정반대 방향을 택했는가" — 으로 돌아간다.
   </div>
 </section>
 
 
-<!-- ============================================================ CH06 -->
-<section id="ch6">
+<!-- ============================================================ CH07 -->
+<section id="ch7">
   <h2 class="chap">
-    <span class="num">CH 06</span>최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적<a href="#ch6" class="anchor-link">#</a>
+    <span class="num">CH 07</span>최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적<a href="#ch7" class="anchor-link">#</a>
   </h2>
 
   <h3 class="step">학습</h3>
   <p>
     1·2주차 회고에서 정리한 한 줄 — "파이썬은 C 가 컴파일 타임에 결정하는 것을 모두 런타임 객체로 옮겼다."
-    그 결론을 그대로 들고 DAY1 의 다섯 챕터를 다시 본다면, MySQL 의 설계는 거의 모든 항목에서 파이썬과 반대 방향이다.
+    그 결론을 그대로 들고 DAY1 의 여섯 챕터를 다시 본다면, MySQL 의 설계는 거의 모든 항목에서 파이썬과 반대 방향이다.
   </p>
   <table>
     <thead><tr><th>층위</th><th>Python (1·2주차)</th><th>MySQL (DAY1 — 0511)</th></tr></thead>
@@ -870,6 +1032,7 @@ Empty set (0.00 sec)
       <tr><td>네임스페이스</td><td><code>sys.modules</code> 런타임 dict</td><td>디스크 상의 DATABASE 단위 디렉터리 + GRANT 권한 매트릭스</td></tr>
       <tr><td>타입</td><td>객체에 붙어 따라다님 (런타임 검사)</td><td>컬럼에 미리 박혀 있음 (INSERT 시점 검사)</td></tr>
       <tr><td>실패 시점</td><td>호출 시점 또는 ABC 의 객체 생성 시점</td><td>DDL/DML 실행 시점에 <code>ERROR 1366</code>/<code>1292</code></td></tr>
+      <tr><td>PK · 인덱스</td><td>리스트 O(1) 직접 접근, dict 해시 테이블 O(1)</td><td>B+Tree Clustered Index O(log n), INT AUTO_INCREMENT 로 Page Split 최소화</td></tr>
       <tr><td>"부재" 표현</td><td><code>None</code> — 평범한 객체</td><td><code>NULL</code> — 비교 결과조차 NULL 인 3치 논리 값</td></tr>
     </tbody>
   </table>
@@ -879,19 +1042,20 @@ Empty set (0.00 sec)
     <span class="label">가설(최종)</span>
     표면적으로 두 언어는 모든 것이 반대다. 그러나 두 언어 모두 "잘못된 데이터가 시스템 안으로 들어오지 못하게 막는다" 는
     같은 목표를 가지고 있다면 — 차이는 방향이 아니라 <strong>검사 시점</strong> 일 뿐이다.
-    이 가설이 맞다면 DAY1 다섯 챕터 모두를 "잘못된 무엇이 어디서 차단되었나" 의 한 줄로 다시 쓸 수 있어야 한다.
+    이 가설이 맞다면 DAY1 여섯 챕터 모두를 "잘못된 무엇이 어디서 차단되었나" 의 한 줄로 다시 쓸 수 있어야 한다.
   </div>
 
   <h3 class="step">최종 결론</h3>
   <div class="keypoint">
     <span class="label">FINAL CONCLUSION</span>
-    다섯 챕터를 그 한 줄로 다시 쓰면 —
+    여섯 챕터를 그 한 줄로 다시 쓰면 —
     <ol>
       <li><strong>CH01</strong> 권한 없는 사용자가 데이터에 접근하지 못하게 — <em>GRANT 시점에 차단</em></li>
       <li><strong>CH02</strong> 격리되지 않은 데이터가 다른 도메인에 섞이지 못하게 — <em>USE / db.table 표기로 차단</em></li>
       <li><strong>CH03</strong> 자료형이 맞지 않는 값이 컬럼에 들어가지 못하게 — <em>INSERT 시점에 차단</em></li>
-      <li><strong>CH04</strong> 존재하지 않는 테이블에 작업하지 못하게 — <em>DDL 실행 시점에 차단</em></li>
-      <li><strong>CH05</strong> "부재" 와 "값 0" 이 섞이지 못하게 — <em>3치 논리로 차단</em></li>
+      <li><strong>CH04</strong> 무작위 PK 가 B+Tree 삽입 성능을 깎지 못하게 — <em>INT AUTO_INCREMENT · Clustered Index 설계로 차단</em></li>
+      <li><strong>CH05</strong> 존재하지 않는 테이블에 작업하지 못하게 — <em>DDL 실행 시점에 차단</em></li>
+      <li><strong>CH06</strong> "부재" 와 "값 0" 이 섞이지 못하게 — <em>3치 논리로 차단</em></li>
     </ol>
     파이썬은 같은 일을 ABCMeta, sys.modules, AttributeError, TypeError, None 으로 했다. 두 시스템 모두
     <strong>"잘못된 데이터를 안으로 들이지 않는다"</strong> 는 한 목적을 — 정반대 방향의 도구로 달성한다.
@@ -899,7 +1063,7 @@ Empty set (0.00 sec)
   </div>
   <p style="margin-top:18px">
     다음 의문은 자연스럽게 따라온다 — 오늘 본 것은 "잘못된 한 행을 막는" 단위였다. 그렇다면 잘못된 행 자체를 만들지
-    않게 하는 <strong>제약조건(constraint)</strong> — <code>PRIMARY KEY</code>, <code>FOREIGN KEY</code>, <code>UNIQUE</code>,
+    않게 하는 <strong>제약조건(constraint)</strong> — <code>FOREIGN KEY</code>, <code>UNIQUE</code>,
     <code>NOT NULL</code>, <code>CHECK</code> — 은 어떻게 작동하는가. 그것이 DAY2(0512) 의 출발 의문이 된다.
   </p>
 </section>
@@ -917,6 +1081,7 @@ Empty set (0.00 sec)
       <li><a href="https://dev.mysql.com/doc/refman/8.0/en/data-types.html" target="_blank" rel="noopener">MySQL Reference Manual — Data Types</a></li>
       <li><a href="https://dev.mysql.com/doc/refman/8.0/en/alter-table.html" target="_blank" rel="noopener">MySQL Reference Manual — ALTER TABLE Statement</a></li>
       <li><a href="https://dev.mysql.com/doc/refman/8.0/en/working-with-null.html" target="_blank" rel="noopener">MySQL Reference Manual — Working with NULL Values</a></li>
+      <li><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html" target="_blank" rel="noopener">MySQL Reference Manual — InnoDB Clustered and Secondary Indexes</a></li>
     </ul>
 
     <p style="margin-top:18px"><strong>참고 코드</strong></p>
