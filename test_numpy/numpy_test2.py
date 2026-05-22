@@ -17,6 +17,7 @@ print(tar)
 print(len(tar), tar.size, np.size(tar))
 print(len(tar[0])) # 3 - 0행 안의 값(열) 갯수
 print(tar.size, np.size(tar)) # 6 : 총 값 갯수
+print("---------------------------------------")
 
 # 2차원배열의 각 값(요소)에 접근 (인덱싱) : 배열변수[행순번][열순번]
 # 행 (row, 제 2축) : 세로방향 순번
@@ -25,6 +26,7 @@ print(tar.size, np.size(tar)) # 6 : 총 값 갯수
 for r_index in range(0, len(tar)): # range(2) --> 1, 2 : 행 반복
     for c_index in range(len(tar[r_index])): # range(3) --> 1, 2, 3 : 열 반복
         print("tar[{}][{}] : {}".format(r_index, c_index, tar[r_index][c_index]))
+print("---------------------------------------")
 
 # 3차원배열
 # 값의 종류가 같고, 행과 열의 갯수가 같은 2차원 배열들의 묶음
@@ -36,6 +38,7 @@ print(thar)
 print(len(thar))        # 2 : 면의 갯수
 print(len(thar[1]))     # 3 : 행의 갯수 (1면의)
 print(len(thar[0][0]))  # 4 : 열의 갯수
+print("---------------------------------------")
 
 # 3차원 배열 안의 각 값(요소)를 다루려면 (인덱싱) : 배열 변수 [면순번][행순번][열순번]
 # 3중 for 문 사용
@@ -46,15 +49,18 @@ for d_index in range(len(thar)): # range(2) --> 1, 2 : 면 반복
                 d_index, r_index, c_index, 
                 thar[d_index][r_index][c_index]))
         print("---------------------------------------")
+print("---------------------------------------")
 
 # 배열의 차원(ndim)과 크기(shape) 알아내기
 # 배열변수.ndim, 배열변수.shape
 print(tar.ndim, tar.shape) # 2, (2, 3) : 2차원 배열, 2행 3열
 print(thar.ndim, thar.shape) # 3, (2, 3, 4) : 3차원 배열, 2면 3행 4열
+print("---------------------------------------")
 
 # 1차원 배열의 ndim, shape 확인
 ar = np.array([1,2,3]) # 1차원 배열
 print(ar.ndim, ar.shape) # 1, (3,) : 1차원 배열, 3개의 요소
+print("---------------------------------------")
 
 # 2차원 배열의 인덱싱 : 배열변수[행순번][열순번] == 배열변수[행순번, 열순번]
 # 콤마 (,)로 구분하여 이용 가능 => 축(axis) 라고 함 (거의 이 방식을 많이 씀)
@@ -78,3 +84,4 @@ print(arr)
 arr = np.empty((2, 3)) # 2행 3열의 모든 값이 쓰레기값. (최신버전에선 0으로)
 print(arr.ndim, arr.shape) # 2, (2, 3) : 2차원 배열, 2행 3열
 print(arr)
+print("---------------------------------------")
