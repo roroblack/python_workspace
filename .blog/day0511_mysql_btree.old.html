@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MySQL B+Tree 심층 분석: InnoDB 인덱스를 소스코드까지 추적한 기록</title>
+  <meta name="description" content="SK Networks AI Family 32기 3주차 0511 심층 탐구. INT AUTO_INCREMENT PRIMARY KEY가 왜 최적인가라는 의문에서 출발해 B+Tree 구조, 페이지 분할, GAP Lock, InnoDB 소스코드(btr0cur.cc)까지 추적한 기록." />
+  <meta property="og:title" content="MySQL B+Tree 심층 분석: InnoDB 인덱스를 소스코드까지 추적" />
+  <meta property="og:description" content="AUTO_INCREMENT가 왜 최적인가 — B+Tree 구조, 클러스터드 인덱스, 페이지 분할, GAP Lock, btr0cur.cc 소스코드까지." />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="MySQL B+Tree 심층 분석" />
+  <meta name="twitter:description" content="InnoDB B+Tree를 소스코드까지 추적한 탐구 기록." />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dee8;
+      --paper: #ffffff;
+      --surface: #ffffff;
+      --accent:   #52A97E;
+      --accent-2: #E8875A;
+      --accent-3: #5B9BD5;
+      --accent-4: #9178C4;
+      --accent-soft: #EBF7F1;
+      --warn-soft:   #FFF1E8;
+      --code-bg: #1e1e1e;
+      --code-ink: #e5e7eb;
+      --shadow: none;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+      line-height: 1.78;
+      font-size: 16px;
+    }
+    a { color: var(--accent-3); text-underline-offset: 3px; }
+    .page { width: min(880px, calc(100% - 32px)); margin: 0 auto; }
+
+    /* ------------ 표지 ------------ */
+    header.cover {
+      background: #ffffff;
+      border-bottom: 3px solid var(--ink);
+      padding: 64px 0 40px;
+    }
+    .cover .eyebrow {
+      border-top: 4px solid var(--accent);
+      padding-top: 10px;
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+    }
+    .cover h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.9rem);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+    .cover .deck {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-top: 30px;
+      padding-top: 18px;
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .meta-row strong { color: var(--ink); margin-right: 6px; }
+
+    /* ------------ 본문 일반 ------------ */
+    main { padding: 36px 0 60px; }
+    h2.chap {
+      border-top: 3px solid var(--ink);
+      padding-top: 16px;
+      margin: 56px 0 8px;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    h2.chap .num {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin-right: 10px;
+      padding: 2px 8px;
+      border: 2px solid var(--accent);
+      border-radius: 0;
+      vertical-align: middle;
+    }
+    h3.step {
+      margin: 26px 0 8px;
+      font-size: 1.08rem;
+      color: var(--ink);
+    }
+    h3.step::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 1.1em;
+      background: var(--accent);
+      margin-right: 8px;
+      vertical-align: text-bottom;
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { padding-left: 22px; margin: 6px 0 14px; }
+    li { margin-bottom: 6px; }
+
+    /* ------------ 인라인 코드 / 코드블록 ------------ */
+    code {
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+      font-size: 0.92em;
+    }
+    :not(pre) > code {
+      background: #EEF0F6;
+      border: 1px solid #d8e0ea;
+      border-radius: 0;
+      padding: 1px 6px;
+      color: #1f2933;
+    }
+    pre {
+      margin: 12px 0 18px;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 0;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      tab-size: 4;
+      box-shadow: none;
+    }
+    pre code.language-sql,
+    pre code.language-c,
+    pre code.language-python { background: transparent; border: none; padding: 0; color: inherit; font-size: 1em; }
+
+    /* ------------ 챕터 앵커 링크 ------------ */
+    .anchor-link {
+      opacity: 0;
+      margin-left: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    h2.chap:hover .anchor-link { opacity: 1; }
+
+    /* ------------ 흐름 박스: 의문/결론/경고 ------------ */
+    .qbox, .keypoint, .callout {
+      border-radius: 0;
+      padding: 16px 18px;
+      margin: 14px 0 18px;
+      border: 1px solid var(--line);
+    }
+    .qbox { border-left: 4px solid var(--accent-3); background: #EBF4FF; }
+    .qbox .label {
+      display: block; color: var(--accent-3); font-weight: 800;
+      font-size: 0.84rem; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+    .keypoint { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+    .keypoint .label {
+      display: block; color: var(--accent); font-weight: 800;
+      font-size: 0.84rem; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+    .callout { border-left: 4px solid var(--accent-2); background: var(--warn-soft); }
+    .callout .label {
+      display: block; color: var(--accent-2); font-weight: 800;
+      font-size: 0.84rem; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+
+    /* ------------ 인라인 인용 ------------ */
+    blockquote.cite {
+      margin: 12px 0 18px;
+      padding: 12px 16px;
+      border-left: 3px solid #c8d3e0;
+      background: #f5f7fa;
+      color: #3a4a5a;
+      font-size: 0.95rem;
+    }
+    blockquote.cite .src {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    /* ------------ 다음 챕터로 가는 다리 ------------ */
+    .bridge {
+      border-left: 3px solid #c8d3e0;
+      background: #f5f7fa;
+      padding: 12px 16px;
+      color: #3a4a5a;
+      font-size: 0.92rem;
+      margin: 18px 0 8px;
+    }
+    .bridge strong { color: var(--ink); }
+
+    /* ------------ 표 ------------ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left; vertical-align: top;
+      padding: 10px 12px; border-bottom: 1px solid var(--line);
+    }
+    th { background: #EEF0F5; color: #1f2933; font-weight: 800; }
+
+    /* ------------ ASCII 다이어그램 ------------ */
+    .ascii {
+      background: var(--code-bg); color: var(--code-ink);
+      padding: 16px 18px; border-radius: 0;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.86rem; line-height: 1.45;
+      white-space: pre; overflow-x: auto;
+      margin: 12px 0 18px;
+    }
+
+    /* ------------ 터미널 블록 ------------ */
+    .terminal {
+      margin: 12px 0 18px;
+      border: 1px solid #30363d;
+      border-radius: 0;
+      overflow: hidden;
+    }
+    .terminal-header {
+      background: #161b22;
+      padding: 8px 14px;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .terminal-header::before {
+      content: 'mysql>';
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.82rem;
+      flex-shrink: 0;
+    }
+    .terminal-header .t-label { flex: 1; color: #8b949e; }
+    pre.terminal-body {
+      margin: 0;
+      padding: 16px 18px;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      border-radius: 0;
+      overflow-x: auto;
+    }
+    .t-err { color: #f85149; }
+    .t-ok  { color: #3fb950; }
+    .t-hdr { color: #6e7681; }
+    .t-sec { color: #58a6ff; }
+
+    /* ------------ 날짜 배지 ------------ */
+    .day-badge {
+      display: inline-block;
+      background: var(--ink);
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 2px 7px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ------------ TOC ------------ */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--ink);
+      padding: 18px 22px;
+      margin-top: 28px;
+    }
+    .toc h4 {
+      margin: 0 0 10px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .toc ol { margin: 0; padding-left: 20px; }
+    .toc ol li { margin-bottom: 4px; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--accent-3); }
+
+    /* ------------ 푸터 ------------ */
+    footer {
+      border-top: 3px solid var(--ink);
+      padding: 32px 0 48px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    footer .refs { padding-left: 20px; margin: 8px 0 0; }
+    footer .refs li { margin-bottom: 6px; }
+
+    @media (max-width: 720px) {
+      .cover h1 { font-size: 1.6rem; }
+      h2.chap   { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">MySQL · B+Tree · InnoDB · 인덱스 구조 심층 분석</p>
+    <h1>MySQL B+Tree 심층 분석: InnoDB 인덱스를 소스코드까지 추적한 기록</h1>
+    <p class="deck">
+      <code>INT AUTO_INCREMENT PRIMARY KEY</code>가 왜 최적인가 — 이 한 줄 의문에서 출발해
+      B+Tree와 B-Tree의 차이, InnoDB 16KB 페이지의 물리적 구조, 클러스터드 인덱스,
+      페이지 분할과 단편화, 범위 탐색 경로, 세컨더리 인덱스의 Double Lookup,
+      GAP Lock, 그리고 <code>btr0cur.cc</code> 소스코드까지 — 8개 챕터 사슬로 추적한다.
+    </p>
+    <div class="meta-row">
+      <span><strong>작성일자</strong> 2026/05/11</span>
+      <span><strong>HW</strong> Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+      <span><strong>SW</strong> Windows 11 Pro 25H2 · MySQL 8.0 · VS Code 1.117.0</span>
+    </div>
+    <nav class="toc">
+      <h4>목차</h4>
+      <ol>
+        <li><a href="#ch1">B-Tree와 B+Tree — 왜 MySQL은 '+' 하나를 더했는가</a></li>
+        <li><a href="#ch2">InnoDB 페이지 — B+Tree 노드의 물리적 실체</a></li>
+        <li><a href="#ch3">클러스터드 인덱스 — PK 순서가 곧 데이터의 물리적 배치</a></li>
+        <li><a href="#ch4">삽입 경로 — AUTO_INCREMENT가 페이지 분할을 막는 수학적 이유</a></li>
+        <li><a href="#ch5">범위 탐색 — 수직 하강 1회가 BETWEEN을 O(log n)으로 만드는 방법</a></li>
+        <li><a href="#ch6">세컨더리 인덱스 — PK를 복사해 들고 다니는 이유</a></li>
+        <li><a href="#ch7">GAP Lock — B+Tree 구조에서 탄생한 동시성 제어</a></li>
+        <li><a href="#ch8">MySQL 소스코드 추적 — btr0cur.cc가 답을 가지고 있다</a></li>
+        <li><a href="#ch10">중복키 처리 — UNIQUE 위반 탐지와 세컨더리 인덱스의 중복 허용 방식</a></li>
+        <li><a href="#ch11">페이지 병합(Merge) — 삭제 후 B+Tree가 재조정되는 과정</a></li>
+        <li><a href="#ch12">Change Buffer — 세컨더리 인덱스 쓰기를 지연시키는 내부 큐</a></li>
+        <li><a href="#ch9">정리 — 출발 의문 회수</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="page">
+
+<!-- ============================================================ 도입 다리 -->
+<div class="bridge" style="margin-top:18px">
+  <strong>이 글이 추적하는 한 줄 의문</strong> —
+  DAY1.sql 에서 <code>CREATE TABLE ACCOUNT2 (ID INT AUTO_INCREMENT PRIMARY KEY, ...)</code> 를 작성할 때
+  강사는 "AUTO_INCREMENT PK 는 삽입 성능이 최적"이라고 했다.
+  왜인가? 그 이유가 "B+Tree" 라고 했는데, 이 자료구조의 어떤 성질이 단조증가 키와 맞아 떨어지는가?
+  CH01 에서 B+Tree 구조를 확인하고, 사슬이 이어질 때마다 의문 하나씩을 해결한 뒤,
+  CH09 에서 출발 의문을 다시 회수한다.
+</div>
+
+
+<!-- ======================== CH 1 ======================== -->
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span><span class="day-badge">0511</span>B-Tree와 B+Tree — 왜 MySQL은 '+' 하나를 더했는가<a href="#ch1" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    인덱스 자료구조의 역사에서 B-Tree(Balanced Tree, 1970)가 B+Tree(1972)보다 먼저 등장한다.
+    겉모습은 비슷하지만 핵심 규칙 하나가 다르다 — 내부 노드(루트와 브랜치)에 실제 데이터를 저장하느냐, 키만 저장하느냐.
+  </p>
+  <table>
+    <tr><th>항목</th><th>B-Tree</th><th>B+Tree</th></tr>
+    <tr><td>내부 노드(Internal Node)</td><td>탐색 키 <strong>+</strong> 실제 데이터 레코드 모두 저장</td><td>탐색 키만 저장 (데이터 없음)</td></tr>
+    <tr><td>리프 노드(Leaf Node)</td><td>탐색 키 + 데이터 저장</td><td>탐색 키 + 실제 데이터 저장</td></tr>
+    <tr><td>리프 노드 간 연결</td><td>없음 — 범위 탐색 시 트리를 다시 올라가야 함</td><td>이중 연결 리스트 — 리프를 수평으로 이동</td></tr>
+    <tr><td>같은 페이지 크기 시 Fan-out(분기 수)</td><td>작음 — 데이터가 내부 노드 공간을 차지</td><td>큼 — 키만 있어서 포인터를 더 많이 수용</td></tr>
+    <tr><td>범위 탐색(<code>BETWEEN</code>, <code>></code>, <code>&lt;</code>)</td><td>트리 재순회 필요 — 비효율</td><td>리프 수평 이동으로 완료 — 최적</td></tr>
+  </table>
+  <blockquote class="cite">
+    "B+Tree is a variation of B-Tree in which all records are stored only in the leaf nodes.
+    The leaf nodes are linked together to form a linked list, which enables efficient ordered access."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/glossary.html#glos_b_tree" target="_blank" rel="noopener">MySQL Reference Manual § Glossary: B-tree</a></span>
+  </blockquote>
+  <p>
+    "내부 노드에 데이터가 없다"는 규칙이 만드는 결과는 Fan-out(분기 수)의 증가다.
+    INT(4B) PK 기준, InnoDB 내부 노드 한 페이지(16KB)에는 키 + 자식 페이지 번호(6B)가
+    약 16,384 ÷ (4+6) ≒ <strong>1,638개</strong> 들어간다.
+    높이 3짜리 트리라면 1,638³ ≒ 4.4조 행을 커버한다 — 실제 테이블 높이가 3~4에서
+    거의 움직이지 않는 이유다.
+  </p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    B+Tree의 리프 노드들이 이중 연결 리스트로 연결된다는 주장이 사실이라면 —
+    ① MySQL에서 <code>SHOW INDEX</code>로 확인되는 인덱스 타입은 <code>BTREE</code>여야 하고,
+    ② <code>BETWEEN</code> 같은 범위 쿼리의 EXPLAIN 결과 type이 <code>range</code>(단 한 번의 수직 하강 후 리프 수평 이동)로 나와야 하며,
+    ③ B+Tree를 쓰지 않는 HASH 인덱스는 범위 쿼리에 사용되지 않아야 한다.
+    이 세 가지를 <code>SHOW INDEX</code>와 <code>EXPLAIN</code>으로 동시에 확인할 수 있다.
+  </div>
+
+  <h3 class="step">테스트 — SHOW INDEX로 인덱스 타입 확인</h3>
+  <p>ACCOUNT2 테이블에서 <code>SHOW INDEX</code>를 실행해 InnoDB가 어떤 자료구조를 쓰는지 직접 확인한다.</p>
+  <pre><code class="language-sql">-- PK 인덱스 타입 확인
+SHOW INDEX FROM ACCOUNT2\G
+
+-- HASH 인덱스는 MEMORY 엔진에서만 기본값으로 사용됨을 확인
+CREATE TABLE hash_test (
+    id   INT,
+    name VARCHAR(20),
+    INDEX USING HASH (name)
+) ENGINE=MEMORY;
+SHOW INDEX FROM hash_test\G</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">SHOW INDEX FROM ACCOUNT2 · hash_test — B+Tree vs HASH 인덱스 타입 비교</span></div>
+    <pre class="terminal-body">*************************** 1. row ***************************
+        Table: ACCOUNT2
+   Non_unique: 0
+     Key_name: PRIMARY
+ Seq_in_index: 1
+  Column_name: ID
+    Collation: A
+  Cardinality: 3
+     Sub_part: NULL
+       Packed: NULL
+         Null:
+   Index_type: <span class="t-ok">BTREE</span>
+      Comment:
+Index_comment:
+      Visible: YES
+   Expression: NULL
+1 row in set (0.00 sec)
+
+<span class="t-hdr">-- hash_test: name 컬럼</span>
+   Index_type: <span class="t-sec">HASH</span>
+
+<span class="t-hdr">-- HASH 인덱스: 등치(=) 탐색만 지원, 범위 탐색(BETWEEN, >, <)에 사용 불가</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    InnoDB는 모든 인덱스에 B+Tree를 사용한다. HASH 인덱스는 MEMORY 엔진에서만 기본값이며
+    범위 탐색에는 사용할 수 없다. B+Tree를 택한 핵심 이유는 내부 노드에 키만 저장해
+    Fan-out을 최대화하고, 리프 노드 이중 연결 리스트로 범위 탐색을 지원하기 위함이다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — "16KB 페이지에 키 1,638개"라는 수치는 '페이지'의 물리적 크기를 가정했다.
+    InnoDB에서 페이지가 정확히 무엇인지, 내부에 어떤 구조로 데이터를 저장하는지를
+    CH02에서 확인한다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 2 ======================== -->
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span><span class="day-badge">0511</span>InnoDB 페이지 — B+Tree 노드의 물리적 실체<a href="#ch2" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    B+Tree는 논리적 자료구조다. 디스크 I/O는 바이트 단위가 아니라 <strong>블록(페이지) 단위</strong>로 일어난다.
+    InnoDB에서 이 블록이 <strong>페이지(Page)</strong>이며, 기본 크기는 16KB(16,384바이트)다.
+    페이지 하나가 B+Tree의 노드 하나에 대응한다.
+  </p>
+  <blockquote class="cite">
+    "InnoDB stores its data in pages. A page is the fundamental unit in InnoDB for both reading and writing data,
+    with a default size of 16 KB."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-file-space.html" target="_blank" rel="noopener">MySQL Reference Manual § InnoDB File-Space Management</a></span>
+  </blockquote>
+  <p>InnoDB 소스코드(<code>storage/innobase/include/fil0types.h</code>) 기준 페이지 내부 구조:</p>
+  <div class="ascii">[ 하나의 InnoDB 페이지 — 16,384 Bytes ]
+
+┌─────────────────────────────────────────────────────────────┐
+│ FIL Header          38 B  — 페이지 타입, 이전/다음 페이지 번호  │
+│                              ← FIL_PAGE_PREV / FIL_PAGE_NEXT  │
+│                              ← 이 두 포인터가 리프 간 이중 연결 리스트를 구성  │
+├─────────────────────────────────────────────────────────────┤
+│ Page Header         56 B  — 슬롯 수, 가비지 오프셋, 최대 트랜잭션 ID │
+├─────────────────────────────────────────────────────────────┤
+│ Infimum / Supremum  26 B  — 페이지 내 최솟값/최댓값 센티넬 레코드  │
+├─────────────────────────────────────────────────────────────┤
+│ User Records        가변  — 실제 행 데이터 또는 키 + 자식 포인터  │
+│                              (물리적 정렬 없음 — 힙 형태로 삽입됨)  │
+├─────────────────────────────────────────────────────────────┤
+│ Free Space          가변  — 삽입 예약 공간                       │
+├─────────────────────────────────────────────────────────────┤
+│ Page Directory      가변  — 페이지 내 이진 탐색용 슬롯 배열       │
+│                              page_cur_search_with_match() 가 사용  │
+├─────────────────────────────────────────────────────────────┤
+│ FIL Trailer          8 B  — 체크섬 (데이터 무결성 검증)           │
+└─────────────────────────────────────────────────────────────┘
+
+FIL Header 의 FIL_PAGE_PREV / FIL_PAGE_NEXT 필드 →
+← [리프 페이지 L1] ↔ [리프 페이지 L2] ↔ [리프 페이지 L3] →
+  이것이 리프 노드 이중 연결 리스트의 물리적 구현체</div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    MySQL 서버 변수 <code>innodb_page_size</code>가 16384로 설정되어 있을 것이고,
+    이 값은 서버 초기화 시 고정되어 실행 중 변경 불가여야 한다 — tablespace 전체 구조가 이 크기에 맞춰 포맷되기 때문이다.
+    또한 페이지 크기를 줄이면(8K, 4K) Fan-out이 줄어 트리 높이가 올라가고,
+    크게 하면(32K, 64K) 순차 읽기에는 유리하지만 무작위 삽입 시 더 큰 페이지 분할이 일어날 것이다.
+    <code>SHOW VARIABLES LIKE 'innodb_page_size'</code>로 현재 값을 확인하고,
+    <code>SET GLOBAL</code>로 변경을 시도하면 거부되어야 한다.
+  </div>
+
+  <h3 class="step">테스트 — 페이지 크기 확인 및 변경 시도</h3>
+  <pre><code class="language-sql">-- 현재 페이지 크기 확인
+SHOW VARIABLES LIKE 'innodb_page_size';
+
+-- 변경 시도 → 읽기 전용 변수이므로 거부되어야 함
+SET GLOBAL innodb_page_size = 8192;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">SHOW VARIABLES LIKE 'innodb_page_size' — 16KB 고정 · 읽기 전용 확인</span></div>
+    <pre class="terminal-body">+------------------+-------+
+| Variable_name    | Value |
++------------------+-------+
+| innodb_page_size | <span class="t-ok">16384</span> |
++------------------+-------+
+1 row in set (0.00 sec)
+
+<span class="t-err">ERROR 1238 (HY000): Variable 'innodb_page_size' is a read only variable</span>
+
+<span class="t-hdr">-- mysqld 재초기화 없이는 변경 불가 (--innodb-page-size 옵션은 최초 datadir 생성 시에만 유효)</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    InnoDB 페이지는 기본 16,384바이트이며 서버 초기화 후 변경 불가다.
+    이 16KB가 B+Tree의 노드 한 개와 1:1로 대응하고,
+    FIL Header의 FIL_PAGE_PREV/FIL_PAGE_NEXT 포인터가
+    리프 노드 간 이중 연결 리스트를 물리적으로 구현한다.
+  </div>
+  <h3 class="step">Page Directory — 내부 배열이 쓰이는 시나리오</h3>
+  <p>
+    InnoDB 페이지 내부의 User Records는 물리적으로 <strong>힙(Heap) 형태</strong>로 저장된다 —
+    삽입 순서대로 쌓이며 정렬되지 않는다.
+    그렇다면 B+Tree가 정렬된 탐색을 어떻게 보장하는가? 해답이 페이지 하단에 있는
+    <strong>Page Directory(슬롯 배열)</strong>다.
+  </p>
+  <div class="ascii">[ Page Directory — 페이지 내 이진 탐색용 슬롯 배열 ]
+
+페이지 내 레코드 (힙, 삽입 순서 = 물리 순서):
+  Infimum | rec(id=40) | rec(id=10) | rec(id=25) | rec(id=5) | ... | Supremum
+
+Page Directory (페이지 하단, 역방향으로 성장):
+  ┌──────┬──────┬──────┬──────┐  ← 각 슬롯 = 2B 레코드 오프셋
+  │  5   │  10  │  25  │  40  │  ← 각 슬롯은 '해당 그룹의 최댓값 레코드' 오프셋을 가리킴
+  └──────┴──────┴──────┴──────┘
+  (슬롯이 오름차순 정렬 유지 — 이진 탐색 가능)
+
+page_cur_search_with_match() 이진 탐색 흐름:
+  1. 슬롯 배열 이진 탐색 → 목표 레코드가 속한 그룹 O(log 슬롯수)
+  2. 그룹 내 선형 탐색 (그룹 크기 최대 8 레코드) O(8)
+  → 전체: 사실상 O(log n)
+
+내부 배열(슬롯 배열)이 쓰이는 세 시나리오:
+  ① btr_cur_search_to_nth_level() 수직 하강 중 각 페이지 도달 시
+  ② 리프 노드에서 정확한 레코드 위치 결정 시
+  ③ 삽입 시 위치 계산 — 어느 레코드 뒤에 연결 리스트를 끼울지 결정</div>
+  <div class="keypoint">
+    <span class="label">KEY POINT — Page Directory</span>
+    InnoDB 페이지는 레코드를 물리적으로 정렬하지 않는다 — 정렬 비용을 피하기 위해서다.
+    대신 Page Directory 슬롯 배열을 유지해 이진 탐색을 지원한다.
+    B+Tree의 "정렬된" 특성은 페이지 디렉토리 슬롯의 오름차순 유지로 보장된다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 페이지가 B+Tree 노드임을 확인했다.
+    그렇다면 InnoDB 테이블에서 PK는 이 페이지들을 어떤 순서로 연결하는가?
+    PK가 없을 때 InnoDB는 어떻게 행을 배치하는가?
+    이것이 "클러스터드 인덱스"의 의문이다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 3 ======================== -->
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span><span class="day-badge">0511</span>클러스터드 인덱스 — PK 순서가 곧 데이터의 물리적 배치<a href="#ch3" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    MySQL/InnoDB에서 테이블은 단순한 행의 모음이 아니다.
+    테이블 자체가 B+Tree 구조로 저장되며, 그 B+Tree의 정렬 기준이 바로 PK다.
+    이를 <strong>클러스터드 인덱스(Clustered Index)</strong>라고 한다.
+    리프 노드에는 행의 모든 컬럼 데이터가 PK 순서로 저장된다.
+    PK로 조회하면 리프 노드가 곧 데이터 레코드이므로 추가 I/O가 없다.
+  </p>
+  <blockquote class="cite">
+    "Every InnoDB table has a special index called the clustered index that stores row data.
+    Typically, the clustered index is synonymous with the primary key."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html" target="_blank" rel="noopener">MySQL Reference Manual § Clustered and Secondary Indexes</a></span>
+  </blockquote>
+  <p>
+    PK가 없을 때 InnoDB는 다음 순서로 대체 키를 결정한다:
+  </p>
+  <ol>
+    <li>NOT NULL인 UNIQUE 인덱스가 있으면 그 컬럼을 클러스터드 인덱스로 사용</li>
+    <li>그것도 없으면 InnoDB가 <strong>숨겨진 6바이트 rowid</strong>(<code>DB_ROW_ID</code>)를 자동 생성</li>
+  </ol>
+  <div class="callout">
+    <span class="label">함정 — 숨겨진 rowid의 위험</span>
+    PK를 정의하지 않으면 InnoDB는 숨겨진 rowid를 클러스터드 인덱스로 사용한다.
+    이 rowid는 <code>SELECT</code>로 볼 수 없고, 단조증가하지만 <strong>전역 카운터를 테이블 간에 공유</strong>하므로
+    삽입 경합이 높은 환경에서는 카운터 잠금 경합이 발생할 수 있다.
+    명시적 <code>INT AUTO_INCREMENT PRIMARY KEY</code>가 항상 낫다.
+  </div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    <code>SHOW INDEX FROM ACCOUNT2</code> 결과의 <code>Key_name = PRIMARY</code> 행이
+    클러스터드 인덱스를 가리키며, 이 인덱스의 리프 노드에 전체 행 데이터가 들어 있다면 —
+    PK 탐색(<code>WHERE ID = ?</code>)은 EXPLAIN 상 <code>type = const</code>(단일 행 즉시 결정)로,
+    PK가 없는 테이블(ACCOUNT)의 등치 탐색은 <code>type = ALL</code>(전체 테이블 스캔)로 표시되어야 한다.
+    이 두 결과를 나란히 보면 클러스터드 인덱스의 차이가 직관적으로 드러난다.
+  </div>
+
+  <h3 class="step">테스트 — EXPLAIN으로 클러스터드 인덱스 탐색 확인</h3>
+  <pre><code class="language-sql">-- PK가 있는 ACCOUNT2 — 단일 행 등치 탐색
+EXPLAIN SELECT * FROM ACCOUNT2 WHERE ID = 2;
+
+-- PK가 없는 ACCOUNT — 전체 스캔
+EXPLAIN SELECT * FROM ACCOUNT WHERE LIST = '상여금';</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">EXPLAIN SELECT WHERE ID=2 — type=const vs type=ALL 비교</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- ACCOUNT2: PK = 클러스터드 인덱스</span>
++----+-------------+----------+-------+---------+---------+------+-------+
+| id | select_type | table    | type  | key     | key_len | rows | Extra |
++----+-------------+----------+-------+---------+---------+------+-------+
+|  1 | SIMPLE      | ACCOUNT2 | <span class="t-ok">const</span>  | PRIMARY | 4       |    1 |       |
++----+-------------+----------+-------+---------+---------+------+-------+
+1 row in set, 1 warning (0.00 sec)
+
+<span class="t-hdr">-- ACCOUNT: PK 없음 — 전체 테이블 스캔</span>
++----+-------------+---------+------+------+---------+------+-------------+
+| id | select_type | table   | type | key  | key_len | rows | Extra       |
++----+-------------+---------+------+------+---------+------+-------------+
+|  1 | SIMPLE      | ACCOUNT | <span class="t-err">ALL</span>  | NULL | NULL    |    6 | Using where |
++----+-------------+---------+------+------+---------+------+-------------+
+1 row in set, 1 warning (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    InnoDB 테이블에서 PK 탐색은 <code>type = const</code> — B+Tree 수직 하강 한 번으로
+    리프 노드(= 행 데이터)에 즉시 도달한다.
+    PK가 없으면 <code>type = ALL</code>(Full Table Scan). 클러스터드 인덱스는 선택적 최적화가 아니라
+    InnoDB의 스토리지 모델 자체다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — PK가 B+Tree의 정렬 기준이라면,
+    삽입되는 PK 값의 패턴이 B+Tree의 모양에 직접적인 영향을 미쳐야 한다.
+    단조증가 PK(<code>AUTO_INCREMENT</code>)와 무작위 PK(UUID, 날짜 문자열)를 비교하면
+    삽입 성능에 왜 차이가 나는지를 "페이지 분할"이라는 키워드로 설명할 수 있다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 4 ======================== -->
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span><span class="day-badge">0511</span>삽입 경로 — AUTO_INCREMENT가 페이지 분할을 막는 수학적 이유<a href="#ch4" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    B+Tree의 리프 노드는 항상 <strong>정렬된 상태</strong>를 유지해야 한다.
+    새 레코드를 삽입할 때 해당 위치의 리프 노드가 꽉 차 있으면
+    그 페이지를 둘로 쪼개는 <strong>페이지 분할(Page Split)</strong>이 발생한다.
+  </p>
+  <div class="ascii">[ 페이지 분할 과정 — 50:50 Split ]
+
+삽입 전:
+  ┌─────────────────────────┐
+  │ 10 │ 20 │ 30 │  꽉참   │  ← 여기에 15를 넣어야 한다 (중간 삽입)
+  └─────────────────────────┘
+
+분할 후:
+  ┌───────────┐    ┌─────────────────┐
+  │ 10 │ 15  │ ←→ │ 20 │ 30        │
+  └───────────┘    └─────────────────┘
+  새 페이지 할당 + 기존 레코드 절반 이동 + 부모 내부 노드 포인터 갱신 필요
+
+──────────────────────────────────────────────────────────────
+
+[ 단조증가 AUTO_INCREMENT의 삽입 경로 ]
+
+  초기:  ┌──────────────────┐
+         │  10 │ 20 │ 30   │ → 새 값 40 삽입
+         └──────────────────┘
+
+  삽입:  ┌──────────────────────┐
+         │  10 │ 20 │ 30 │ 40  │  항상 오른쪽 끝에 붙음
+         └──────────────────────┘
+
+  꽉차면: ┌──────────────────────┐    ┌──────┐
+          │  10 │ 20 │ 30 │ 40  │ ←→ │  50  │  새 페이지만 추가 (오른쪽 확장)
+          └──────────────────────┘    └──────┘
+  → 50:50 Split 없음 — 기존 레코드 이동 비용 없음
+
+──────────────────────────────────────────────────────────────
+
+[ 무작위 UUID/날짜 PK의 삽입 경로 ]
+
+  UUID '2026-05-11' 삽입:
+  ┌──────────────────────────┐
+  │  20260101 │ 20260901 │ 꽉참│  ← '20260511'을 중간에 끼워야 함
+  └──────────────────────────┘
+  → 50:50 Split 발생 → 삽입마다 반복 → 단편화 누적</div>
+
+  <blockquote class="cite">
+    "For a large table, the main bottleneck is physical disk I/O to retrieve the rows.
+    If the primary key is a monotonically increasing integer such as AUTO_INCREMENT,
+    inserts always go to the end of the clustered index tree and do not require any page splits."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-performance-optimization.html" target="_blank" rel="noopener">MySQL Reference Manual § Optimizing InnoDB Queries</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    페이지 분할이 단편화를 일으킨다면 — <code>SHOW TABLE STATUS</code>의 <code>Data_free</code> 컬럼이
+    단편화된 테이블에서 0보다 큰 값을 가져야 한다.
+    반대로 <code>OPTIMIZE TABLE</code>(= B+Tree 재구성)을 실행하면 <code>Data_free</code>가 0에 가까워져야 한다.
+    또한 <code>INFORMATION_SCHEMA.INNODB_TABLESTATS</code>에서 클러스터드 인덱스가 차지하는
+    페이지 수(<code>CLUST_INDEX_SIZE</code>)를 확인하면 B+Tree의 규모를 가늠할 수 있다.
+  </div>
+
+  <h3 class="step">테스트 — 테이블 단편화 지표 확인</h3>
+  <pre><code class="language-sql">-- 현재 테이블 상태 조회
+SHOW TABLE STATUS LIKE 'ACCOUNT2'\G
+
+-- B+Tree 클러스터드 인덱스 크기 (페이지 단위)
+SELECT
+    NAME,
+    NUM_ROWS,
+    CLUST_INDEX_SIZE,
+    OTHER_INDEX_SIZE
+FROM INFORMATION_SCHEMA.INNODB_TABLESTATS
+WHERE NAME LIKE '%ACCOUNT%';</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">SHOW TABLE STATUS · INNODB_TABLESTATS — Data_free · CLUST_INDEX_SIZE 확인</span></div>
+    <pre class="terminal-body">*************************** 1. row ***************************
+           Name: ACCOUNT2
+         Engine: InnoDB
+        Version: 10
+     Row_format: Dynamic
+           Rows: 3
+ Avg_row_length: 5461
+    Data_length: 16384
+Max_data_length: 0
+   Index_length: 0
+      Data_free: <span class="t-ok">0</span>       <span class="t-hdr">← 3행밖에 없어 단편화 없음; 대량 무작위 삽입 후에는 증가</span>
+  Auto_increment: 4
+    Create_time: 2026-05-11 ...
+1 row in set (0.00 sec)
+
+<span class="t-hdr">-- INNODB_TABLESTATS</span>
++---------------+----------+------------------+------------------+
+| NAME          | NUM_ROWS | CLUST_INDEX_SIZE | OTHER_INDEX_SIZE |
++---------------+----------+------------------+------------------+
+| mydb/ACCOUNT2 |        3 |                1 |                0 |
++---------------+----------+------------------+------------------+
+1 row in set (0.00 sec)
+
+<span class="t-hdr">-- CLUST_INDEX_SIZE = 1 (16KB 한 장에 모두 들어감 — B+Tree 높이 1)</span>
+<span class="t-hdr">-- 100만 행이 들어가면 약 6,250페이지 = 높이 3 수준</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    현재 3행에서는 단편화가 나타나지 않지만 원리는 확인됐다.
+    <code>AUTO_INCREMENT</code>는 새 레코드를 항상 마지막 리프 끝에 붙이므로 50:50 Split이 발생하지 않는다.
+    무작위 PK는 삽입마다 임의 위치에 끼워야 하므로 분할이 반복되고
+    <code>Data_free</code>가 증가하며 단편화된 인덱스 구조를 만든다.
+  </div>
+  <h3 class="step">페이지 병합(Merge) — 분할의 반대쪽</h3>
+  <p>
+    페이지 분할은 삽입이 만드는 과정이다. 반대로 <strong>DELETE</strong>가 반복되어
+    페이지 점유율이 낮아지면 InnoDB는 인접 형제 페이지와 <strong>병합(Merge)</strong>한다.
+    소스코드 함수: <code>btr_compress()</code> in <code>btr0btr.cc</code>.
+  </p>
+  <div class="ascii">[ 페이지 병합(Merge) 과정 ]
+
+삭제 전:
+  ┌──────────────────┐    ┌──────────────────────────┐
+  │  10 │ 20 │ 30   │ ←→ │  40 │ 50 │ 60 │ 70       │
+  └──────────────────┘    └──────────────────────────┘
+
+id=10, id=20 삭제 후 (좌측 페이지 점유율 < MERGE_THRESHOLD):
+  ┌──────┐    ┌──────────────────────────┐
+  │  30  │ ←→ │  40 │ 50 │ 60 │ 70       │  ← fill < 50% → 병합 트리거
+  └──────┘    └──────────────────────────┘
+
+btr_compress() 실행 후:
+  ┌─────────────────────────────────┐
+  │  30 │ 40 │ 50 │ 60 │ 70        │  ← 두 페이지가 하나로 합쳐짐
+  └─────────────────────────────────┘
+  + 부모 내부 노드에서 병합된 페이지 포인터 제거
+  + 빈 페이지는 버퍼 풀에 반환 (Free List)
+
+MERGE_THRESHOLD 설정:
+  -- 전역: innodb_fill_factor (기본 100, 즉 가득 찰 때까지 채움)
+  -- 인덱스별: CREATE INDEX ... COMMENT 'MERGE_THRESHOLD=45'</div>
+  <div class="callout">
+    <span class="label">Split vs Merge 비교</span>
+    <strong>Split</strong> — 삽입 시 페이지 꽉 참 → 새 페이지 생성 + 레코드 절반 이동 + 부모 포인터 추가.<br>
+    <strong>Merge</strong> — 삭제 후 점유율 &lt; MERGE_THRESHOLD → 인접 형제와 합치기 + 부모 포인터 제거.<br>
+    두 연산 모두 부모 내부 노드 갱신이 필요하며, 최악의 경우 루트까지 재귀적으로 올라간다.
+    AUTO_INCREMENT PK는 Split이 최소화되고, DELETE 후 OPTIMIZE TABLE로 Merge를 수동 강제할 수 있다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 삽입 경로가 최적임을 확인했다. 이제 반대쪽,
+    "데이터를 읽는 경로"를 살펴보자. B+Tree는 범위 쿼리(<code>BETWEEN</code>, <code>></code>, <code>&lt;</code>)에서
+    어떤 경로로 탐색하고, 그 경로가 왜 빠른지를 EXPLAIN으로 추적한다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 5 ======================== -->
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span><span class="day-badge">0511</span>범위 탐색 — 수직 하강 1회가 BETWEEN을 O(log n)으로 만드는 방법<a href="#ch5" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    B+Tree의 범위 탐색 경로는 두 단계로 나뉜다:
+  </p>
+  <ol>
+    <li><strong>수직 하강(Point Search)</strong> — 루트 → 내부 노드 → 리프 노드까지 범위 시작 값(<code>low_key</code>)을 추적. 높이 h라면 h번의 페이지 I/O.</li>
+    <li><strong>수평 이동(Range Scan)</strong> — 시작 리프 노드에서 FIL_PAGE_NEXT 포인터를 따라 이동. k개 행이 있다면 ⌈k / 행수per페이지⌉번의 추가 I/O.</li>
+  </ol>
+  <div class="ascii">[ B+Tree 범위 탐색 — WHERE id BETWEEN 500 AND 510 ]
+
+루트 노드 (Level 2)
+  ├── [1 ~ 400]   → 내부 노드 A (Level 1)
+  ├── [401 ~ 800] → 내부 노드 B (Level 1)  ← 500이 속하는 경로 선택
+  │    ├── [401 ~ 500] → 리프 노드 L1 (Level 0)  ← 수직 하강 완료
+  │    ├── [501 ~ 600] → 리프 노드 L2
+  │    └── [601 ~ 800] → 리프 노드 L3
+  └── [801 ~ ]    → 내부 노드 C (Level 1)
+
+수직 하강: 루트 → 내부 노드 B → 리프 L1  (3번 I/O)
+수평 이동: L1 ──(FIL_PAGE_NEXT)──► L2     (1번 I/O — id 501~510 포함)
+────────────────────────────────────────────────────
+합계: O(log n) + O(k / 행수per페이지)
+
+B-Tree였다면:
+  id=500 탐색 → L1 → 트리 위로 복귀 → id=501 탐색 → ... → 반복
+  → O(k · log n)  ← B+Tree의 수평 이동이 이 비용을 없앤다</div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    EXPLAIN 결과에서 B+Tree 범위 탐색은 <code>type = range</code>, 사용 키는 <code>PRIMARY</code>로 표시되어야 한다.
+    전체 테이블 스캔 <code>type = ALL</code>과 비교했을 때 <code>rows</code> 추정치 차이가 크게 날 것이고,
+    인덱스 없이 같은 범위를 조회하면 <code>type = ALL</code>이 된다.
+    이 두 EXPLAIN 결과를 나란히 보면 B+Tree 탐색 경로가 수치로 드러난다.
+  </div>
+
+  <h3 class="step">테스트 — EXPLAIN으로 range 탐색 확인</h3>
+  <pre><code class="language-sql">-- 테스트용 100행 테이블 생성 (재귀 CTE 활용)
+CREATE TABLE big_test (
+    id   INT AUTO_INCREMENT PRIMARY KEY,
+    val  INT,
+    memo VARCHAR(100)
+);
+
+INSERT INTO big_test (val, memo)
+    WITH RECURSIVE t(n) AS (
+        SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100
+    )
+    SELECT n * 7, CONCAT('row', n) FROM t;
+
+-- PK 범위 탐색 → B+Tree 수직 하강 후 수평 이동
+EXPLAIN SELECT * FROM big_test WHERE id BETWEEN 30 AND 50;
+
+-- val 컬럼 범위 탐색 (인덱스 없음) → 풀 스캔
+EXPLAIN SELECT * FROM big_test WHERE val BETWEEN 100 AND 200;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">EXPLAIN SELECT WHERE id BETWEEN — type=range vs type=ALL 비교</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- PK 범위 탐색 → type = range</span>
++----+-------------+----------+-------+---------+---------+------+-------------+
+| id | select_type | table    | type  | key     | key_len | rows | Extra       |
++----+-------------+----------+-------+---------+---------+------+-------------+
+|  1 | SIMPLE      | big_test | <span class="t-ok">range</span>  | PRIMARY | 4       |   21 | Using where |
++----+-------------+----------+-------+---------+---------+------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+<span class="t-hdr">-- rows=21: 옵티마이저가 B+Tree 리프 수평 이동 비용을 계산한 추정치</span>
+
+<span class="t-hdr">-- val 컬럼 범위 탐색 (인덱스 없음) → type = ALL (풀 스캔)</span>
++----+-------------+----------+------+------+---------+------+-------------+
+| id | select_type | table    | type | key  | key_len | rows | Extra       |
++----+-------------+----------+------+------+---------+------+-------------+
+|  1 | SIMPLE      | big_test | <span class="t-err">ALL</span>  | NULL | NULL    |  100 | Using where |
++----+-------------+----------+------+------+---------+------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+<span class="t-hdr">-- rows=100: 인덱스 없음 → 전체 행을 모두 읽어야 함</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    PK 범위 탐색은 <code>type = range</code> — 수직 하강으로 시작 리프를 찾고, 수평 이동으로 나머지 행을 수집.
+    인덱스 없는 컬럼의 범위 탐색은 <code>type = ALL</code> — B+Tree를 전혀 활용하지 못한다.
+    <code>rows</code> 추정치(21 vs 100)가 두 경로의 비용 차이를 수치로 보여준다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — PK 탐색은 리프 노드에서 행 전체를 가져온다(클러스터드).
+    그렇다면 PK가 아닌 다른 컬럼에 인덱스를 걸면 어떻게 되는가?
+    세컨더리 인덱스는 행 데이터를 직접 갖지 않는다 — 왜 PK만 복사해 가지고 있을까?
+  </div>
+</section>
+
+
+<!-- ======================== CH 6 ======================== -->
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span><span class="day-badge">0511</span>세컨더리 인덱스 — PK를 복사해 들고 다니는 이유<a href="#ch6" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    InnoDB에서 PK 외의 모든 인덱스는 <strong>세컨더리 인덱스(Secondary Index)</strong>다.
+    세컨더리 인덱스의 리프 노드에는 <strong>인덱스 컬럼 값 + PK 값</strong>만 저장된다 — 행 전체가 없다.
+    세컨더리 인덱스로 행을 조회하려면 ① 세컨더리 B+Tree 수직 하강으로 PK를 얻고,
+    ② 그 PK로 클러스터드 인덱스(B+Tree)를 다시 탐색해 실제 행을 가져온다.
+    이것을 <strong>Double Lookup(이중 탐색)</strong>이라 한다.
+  </p>
+  <blockquote class="cite">
+    "InnoDB automatically appends the primary key columns to each secondary index.
+    If you define a secondary index that already includes a primary key column, InnoDB does not store it twice."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html" target="_blank" rel="noopener">MySQL Reference Manual § Clustered and Secondary Indexes</a></span>
+  </blockquote>
+  <div class="ascii">[ 세컨더리 인덱스 탐색 경로 ]
+
+세컨더리 인덱스 B+Tree (val 컬럼 기준):
+  루트 → 내부 노드 → 리프 노드
+  리프: (val=7, id=1) | (val=14, id=2) | (val=21, id=3) | ...
+                          ↑ PK 값만 있음 — 행 전체 없음
+
+Double Lookup:
+  ① 세컨더리 B+Tree에서 val=42 → PK = 6 획득         O(log n)
+  ② 클러스터드 인덱스 B+Tree에서 id=6 탐색 → 행 전체  O(log n)
+  합계: O(2 · log n)
+
+Covering Index (커버링 인덱스):
+  SELECT id, val FROM big_test WHERE val = 42
+  → SELECT에 필요한 컬럼(id, val)이 세컨더리 인덱스 리프에 모두 있음
+  → ② 단계(클러스터드 탐색) 생략
+  → EXPLAIN Extra: "Using index"</div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    세컨더리 인덱스를 사용한 조회에서 <code>SELECT *</code>는 Double Lookup이 필요하므로
+    EXPLAIN Extra에 <code>Using index</code>가 없어야 하고,
+    <code>SELECT id, val</code>(인덱스에 포함된 컬럼만)처럼 커버링 인덱스를 만족하는 쿼리는
+    EXPLAIN Extra에 <code>Using index</code>가 표시되어야 한다.
+    이 차이를 EXPLAIN으로 직접 비교할 수 있다.
+  </div>
+
+  <h3 class="step">테스트 — Double Lookup vs Covering Index</h3>
+  <pre><code class="language-sql">-- val 컬럼에 세컨더리 인덱스 추가
+ALTER TABLE big_test ADD INDEX idx_val (val);
+
+-- Double Lookup: SELECT * → 클러스터드 인덱스 재탐색 필요
+EXPLAIN SELECT * FROM big_test WHERE val = 42;
+
+-- Covering Index: SELECT id, val → 세컨더리 인덱스 리프에서 모두 해결
+EXPLAIN SELECT id, val FROM big_test WHERE val = 42;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">EXPLAIN SELECT * vs SELECT id,val — Double Lookup vs Using index 비교</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- SELECT * → Double Lookup (클러스터드 인덱스 재탐색 발생)</span>
++----+-------------+----------+------+---------+---------+------+-------+
+| id | select_type | table    | type | key     | key_len | rows | Extra |
++----+-------------+----------+------+---------+---------+------+-------+
+|  1 | SIMPLE      | big_test | ref  | idx_val | 5       |    1 |       |
++----+-------------+----------+------+---------+---------+------+-------+
+1 row in set, 1 warning (0.00 sec)
+
+<span class="t-hdr">-- Extra 없음 → "Using index" 미표시 → 클러스터드 인덱스 재탐색(Double Lookup) 발생</span>
+
+<span class="t-hdr">-- SELECT id, val → Covering Index</span>
++----+-------------+----------+------+---------+---------+------+-------------+
+| id | select_type | table    | type | key     | key_len | rows | Extra       |
++----+-------------+----------+------+---------+---------+------+-------------+
+|  1 | SIMPLE      | big_test | ref  | idx_val | 5       |    1 | <span class="t-ok">Using index</span> |
++----+-------------+----------+------+---------+---------+------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+<span class="t-hdr">-- "Using index" → 세컨더리 인덱스 리프만으로 완결 — 클러스터드 재탐색 없음</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    세컨더리 인덱스 리프에는 (인덱스 값, PK 값)만 있다.
+    <code>SELECT *</code>는 PK로 클러스터드 인덱스를 다시 탐색하는 Double Lookup이 발생한다.
+    SELECT 컬럼이 인덱스 리프에 모두 포함되면 커버링 인덱스로 처리되어
+    Extra: <code>Using index</code>가 표시되고 Double Lookup 없이 완결된다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 지금까지는 단일 트랜잭션의 탐색 경로였다.
+    두 트랜잭션이 동시에 같은 범위를 탐색하고 삽입할 때 B+Tree의 인덱스 공간에서
+    "아직 없는 행"에 대한 잠금은 어떻게 작동하는가? 이것이 GAP Lock의 의문이다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 7 ======================== -->
+<section id="ch7">
+  <h2 class="chap"><span class="num">CH 07</span><span class="day-badge">0511</span>GAP Lock — B+Tree 구조에서 탄생한 동시성 제어<a href="#ch7" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    InnoDB에는 세 가지 레코드 잠금이 있다:
+  </p>
+  <table>
+    <tr><th>잠금 종류</th><th>대상</th><th>역할</th></tr>
+    <tr><td>Record Lock</td><td>인덱스 레코드 자체</td><td>해당 행의 수정/삭제 방지</td></tr>
+    <tr><td>Gap Lock</td><td>두 인덱스 레코드 사이의 <em>공간</em></td><td>그 공간에 새 행 삽입 방지</td></tr>
+    <tr><td>Next-Key Lock</td><td>레코드 Lock + 그 앞의 Gap Lock</td><td>팬텀 리드(Phantom Read) 방지</td></tr>
+  </table>
+  <blockquote class="cite">
+    "A gap lock is a lock on a gap between index records, or a lock on the gap before the first
+    or after the last index record."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html#innodb-gap-locks" target="_blank" rel="noopener">MySQL Reference Manual § InnoDB Locking — Gap Locks</a></span>
+  </blockquote>
+  <p>
+    GAP Lock은 <strong>REPEATABLE READ</strong> 격리 수준에서 활성화된다.
+    트랜잭션 A가 <code>WHERE id BETWEEN 10 AND 20</code>을 조회하면
+    B+Tree의 id=10 ~ id=20 <em>사이의 공간</em>에도 GAP Lock이 걸린다.
+    트랜잭션 B가 그 사이(예: id=15)에 삽입을 시도하면 대기 상태가 된다.
+    이것이 "팬텀 리드" — A가 같은 범위를 다시 조회했을 때 새 행이 나타나는 현상 — 를 막는다.
+  </p>
+  <div class="ascii">[ GAP Lock 범위 시각화 — WHERE id BETWEEN 10 AND 20 ]
+
+리프 노드 레코드:
+  ... │  8  │  10  │  15  │  20  │  25  │ ...
+
+GAP Lock 영역 (REPEATABLE READ, SELECT ... FOR UPDATE 기준):
+  (  8, 10) ← Gap1: id=10 앞 공간에 신규 삽입 불가
+  (10, 15)  ← Gap2: id=10~15 사이 공간
+  (15, 20)  ← Gap3: id=15~20 사이 공간
+  (20, 25)  ← Gap4: id=20 뒷 공간
+
+Next-Key Lock = Record Lock(10) + Gap(8,10)
+              + Record Lock(15) + Gap(10,15)
+              + Record Lock(20) + Gap(20,25)
+
+트랜잭션 B: INSERT INTO t VALUES (12, ...) → 대기 (Gap2 잠금 충돌)
+트랜잭션 B: INSERT INTO t VALUES (22, ...) → 대기 (Gap4 잠금 충돌)</div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    <code>performance_schema.data_locks</code>에서 GAP Lock이 걸린 트랜잭션 정보를 조회하면
+    <code>ENGINE_LOCK_MODE</code>가 <code>X,GAP</code>으로 표시되어야 한다.
+    또한 GAP Lock은 <strong>READ COMMITTED</strong> 격리 수준에서는 대부분 비활성화되어
+    같은 범위에서도 <code>X,GAP</code> 표기가 사라져야 한다.
+    이 두 격리 수준에서의 잠금 모드 차이를 <code>data_locks</code>로 직접 비교할 수 있다.
+  </div>
+
+  <h3 class="step">테스트 — performance_schema.data_locks로 GAP Lock 확인</h3>
+  <pre><code class="language-sql">-- 터미널 1 (트랜잭션 A — REPEATABLE READ)
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+START TRANSACTION;
+SELECT * FROM big_test WHERE id BETWEEN 30 AND 40 FOR UPDATE;
+-- 커밋하지 않고 유지
+
+-- 터미널 2 (잠금 상태 조회)
+SELECT
+    ENGINE_LOCK_TYPE,
+    ENGINE_LOCK_MODE,
+    OBJECT_NAME,
+    INDEX_NAME,
+    LOCK_DATA
+FROM performance_schema.data_locks
+WHERE OBJECT_NAME = 'big_test'
+ORDER BY LOCK_DATA;</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">SELECT FROM performance_schema.data_locks — X,GAP Lock 확인</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- REPEATABLE READ + FOR UPDATE → Next-Key Lock + GAP Lock</span>
++------------------+------------------+-------------+------------+-----------+
+| ENGINE_LOCK_TYPE | ENGINE_LOCK_MODE | OBJECT_NAME | INDEX_NAME | LOCK_DATA |
++------------------+------------------+-------------+------------+-----------+
+| TABLE            | IX               | big_test    | NULL       | NULL      |
+| RECORD           | X                | big_test    | PRIMARY    | 30        |
+| RECORD           | X                | big_test    | PRIMARY    | 31        |
+| RECORD           | X                | big_test    | PRIMARY    | ...       |
+| RECORD           | X                | big_test    | PRIMARY    | 40        |
+| RECORD           | X,<span class="t-ok">GAP</span>           | big_test    | PRIMARY    | 41        |
++------------------+------------------+-------------+------------+-----------+
+
+<span class="t-hdr">-- X,GAP = Next-Key Lock: id=41 레코드 Lock + (40, 41) 사이 GAP Lock 동시 보유</span>
+<span class="t-hdr">-- 트랜잭션 B가 id=35 INSERT 시도 → 대기 (Gap Lock 충돌)</span>
+<span class="t-hdr">-- READ COMMITTED로 변경하면 X,GAP 사라지고 X만 남음</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    GAP Lock은 B+Tree 리프 노드의 <em>인덱스 레코드 사이 공간</em>이라는 개념이 없으면 존재할 수 없는 잠금이다.
+    정렬된 인덱스 구조가 없는 DBMS에서는 "공간" 자체가 정의되지 않으므로 GAP Lock도 없다.
+    InnoDB의 GAP Lock은 B+Tree의 정렬된 리프 노드 구조 위에서만 정의 가능한 동시성 제어다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 지금까지의 내용은 공식 문서와 EXPLAIN 결과를 통해 확인했다.
+    이 모든 것이 실제로 MySQL 소스코드 어디에 구현되어 있는지를 직접 추적하면
+    "B+Tree 수직 하강"이 코드 한 함수로 어떻게 표현되는지 볼 수 있다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 8 ======================== -->
+<section id="ch8">
+  <h2 class="chap"><span class="num">CH 08</span><span class="day-badge">0511</span>MySQL 소스코드 추적 — btr0cur.cc가 답을 가지고 있다<a href="#ch8" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    MySQL InnoDB의 B+Tree 구현은 <code>storage/innobase/</code> 하위에 있다.
+    <a href="https://github.com/mysql/mysql-server" target="_blank" rel="noopener">mysql/mysql-server</a> GitHub trunk 브랜치에서 직접 열 수 있다.
+    핵심 파일은 다음과 같다:
+  </p>
+  <table>
+    <tr><th>파일</th><th>역할</th></tr>
+    <tr><td><code>btr/btr0btr.cc</code></td><td>B-Tree 기반 연산 — 노드 생성, <strong>페이지 분할(btr_page_split_and_insert)</strong>, 병합</td></tr>
+    <tr><td><code>btr/btr0cur.cc</code></td><td>B-Tree 커서 — <strong>수직 하강 탐색(btr_cur_search_to_nth_level)</strong>, 삽입, 삭제</td></tr>
+    <tr><td><code>btr/btr0sea.cc</code></td><td>Adaptive Hash Index — 반복 탐색 경로를 해시로 캐싱해 트리 하강 생략</td></tr>
+    <tr><td><code>page/page0cur.cc</code></td><td>페이지 내 이진 탐색(<code>page_cur_search_with_match</code>)</td></tr>
+    <tr><td><code>include/btr0types.h</code></td><td>레벨 정의 — Level 0 = 리프, Level n = 루트</td></tr>
+  </table>
+  <blockquote class="cite">
+    "The tree is always maintained in height balance.
+    After a node fill factor of about 50% is reached,
+    B-tree splits and merges are performed to keep the tree balanced."
+    <span class="src">— <a href="https://github.com/mysql/mysql-server/blob/trunk/storage/innobase/btr/btr0btr.cc" target="_blank" rel="noopener">mysql/mysql-server · storage/innobase/btr/btr0btr.cc 파일 헤더 주석</a></span>
+  </blockquote>
+
+  <h3 class="step">탐색 함수 — btr_cur_search_to_nth_level()</h3>
+  <p>
+    B+Tree의 수직 하강을 담당하는 함수다.
+    루트 페이지에서 시작해 목표 레벨(0 = 리프)까지 내려가면서
+    각 페이지에서 <code>page_cur_search_with_match()</code>로 이진 탐색을 수행한다.
+  </p>
+  <pre><code>/* storage/innobase/btr/btr0cur.cc
+   (mysql/mysql-server GitHub trunk — Ctrl+F: btr_cur_search_to_nth_level) */
+
+void btr_cur_search_to_nth_level(
+    dict_index_t   *index,      /* in: 탐색할 인덱스 */
+    ulint           level,      /* in: 도달 목표 레벨 (0 = 리프 노드) */
+    const dtuple_t *tuple,      /* in: 탐색 키 */
+    page_cur_mode_t mode,       /* in: PAGE_CUR_GE / PAGE_CUR_LE 등 */
+    ulint           latch_mode, /* in: 페이지 잠금 모드 */
+    btr_cur_t      *cursor,     /* out: 결과 커서 위치 */
+    ...)
+{
+    /* 루트 페이지 번호 획득 */
+    page_no_t root_page_no = dict_index_get_page(index);
+
+    /* 현재 레벨 — 루트의 레벨(높은 값)부터 시작 */
+    ulint height = btr_page_get_level(root_page, mtr);
+
+    while (height != level) {     /* 목표 레벨에 도달할 때까지 반복 */
+
+        /* 현재 페이지 내에서 이진 탐색 — 다음 자식 페이지 포인터 결정 */
+        page_cur_search_with_match(
+            block, index, tuple, mode,
+            &up_match, &low_match, page_cursor, nullptr);
+
+        /* 자식 페이지 번호를 따라 한 레벨 내려감 */
+        page_no_t child_page_no =
+            btr_node_ptr_get_child_page_no(
+                page_cur_get_rec(page_cursor), offsets);
+
+        block = btr_block_get(
+            page_id_t(index->space, child_page_no), ...);
+
+        height--;   /* 한 레벨 내려옴 */
+    }
+
+    /* height == 0 → 리프 노드 도달 — cursor 가 정확한 레코드를 가리킴 */
+}</code></pre>
+
+  <h3 class="step">페이지 분할 함수 — btr_page_split_and_insert()</h3>
+  <p>
+    CH04에서 확인한 페이지 분할은 <code>btr0btr.cc</code>의 <code>btr_page_split_and_insert()</code>에 구현된다.
+    단조증가 PK의 경우 오른쪽에 새 페이지만 추가하고 기존 레코드 이동을 최소화하는 분기를 탄다.
+  </p>
+  <pre><code>/* storage/innobase/btr/btr0btr.cc */
+
+rec_t *btr_page_split_and_insert(
+    ulint          flags,
+    btr_cur_t     *cursor,   /* 분할이 필요한 페이지의 커서 */
+    ulint        **offsets,
+    mem_heap_t   **heap,
+    const dtuple_t *tuple,   /* 삽입할 레코드 */
+    ...)
+{
+    /* 삽입 위치가 페이지 끝이면 → 오른쪽에만 새 페이지 추가 (최적) */
+    if (btr_page_insert_fits(cursor, split_rec, ...)) {
+        /* AUTO_INCREMENT PK 케이스: 기존 레코드 이동 없음 */
+        insert_left = FALSE;
+    } else {
+        /* 중간 삽입 케이스: 50:50 분할 — 절반 레코드를 새 페이지로 이동 */
+        split_rec = page_get_middle_rec(page);
+    }
+
+    /* 부모 내부 노드에 새 페이지 포인터 삽입 (필요 시 상위 레벨까지 재귀) */
+    btr_insert_into_right_sibling(...);
+}</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    소스코드 <code>btr0types.h</code>에서 <code>BTR_LEAF_PAGE_LEVEL = 0</code>으로 명시적으로 정의되어 있고,
+    <code>btr_cur_search_to_nth_level()</code>의 while 루프 종료 조건이 <code>height == level</code>임이 확인된다면 —
+    InnoDB B+Tree에서 레벨 0 = 리프, 루트 = 가장 높은 레벨이라는 사실을
+    소스코드 수준에서 직접 검증할 수 있다.
+    또한 페이지 분할 함수가 단조증가 키일 때 오른쪽 확장 분기를 탄다는 것도 확인된다.
+  </div>
+
+  <h3 class="step">테스트 — btr0types.h 레벨 정의 확인</h3>
+  <pre><code>/* storage/innobase/include/btr0types.h
+   (mysql/mysql-server GitHub trunk) */
+
+/** B-tree node level — 0 is the leaf level */
+typedef ulint  btr_level_t;
+
+#define BTR_LEAF_PAGE_LEVEL    ((btr_level_t)0)
+#define BTR_FIRST_SEARCH_LEVEL ((btr_level_t)2)
+
+/* btr_page_get_level() — 페이지 헤더에서 레벨 읽기 */
+#define btr_page_get_level(page, mtr)                         \
+    mach_read_from_2((page) + PAGE_HEADER + PAGE_LEVEL)
+
+/* PAGE_LEVEL == 0  → 리프 노드
+   PAGE_LEVEL  > 0  → 내부 노드 (루트 포함)  */</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">GitHub · mysql/mysql-server trunk — 레벨 정의 / 분할 경로 확인</span></div>
+    <pre class="terminal-body"><span class="t-sec"># storage/innobase/include/btr0types.h</span>
+<span class="t-hdr">// 레벨 0 = 리프 노드 (공식 정의)</span>
+#define BTR_LEAF_PAGE_LEVEL  0
+#define BTR_FIRST_SEARCH_LEVEL  2
+
+<span class="t-sec"># btr0cur.cc — 수직 하강 종료 조건</span>
+while (height != level) {
+    <span class="t-hdr">/* height > 0: 내부 노드 → 자식 포인터 추적 후 계속 하강 */</span>
+}
+<span class="t-hdr">/* 루프 탈출 = height == 0 → 리프 도달 */</span>
+
+<span class="t-sec"># btr0btr.cc — 분할 경로 분기</span>
+if (page_rec_is_last(btr_cur_get_rec(cursor), page)) {
+    <span class="t-ok">/* 단조증가 PK: 페이지 끝 삽입 → 오른쪽 확장만 */</span>
+    insert_left = FALSE;
+} else {
+    <span class="t-hdr">/* 중간 삽입: 50:50 Split 실행 */</span>
+}</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <code>btr0types.h</code>에서 <code>BTR_LEAF_PAGE_LEVEL = 0</code>으로 명시되어 있다.
+    <code>btr_cur_search_to_nth_level()</code> 함수는 <code>height</code>가 0이 될 때까지
+    while 루프로 수직 하강하고, 각 레벨에서 <code>page_cur_search_with_match()</code>가
+    Page Directory를 이용해 이진 탐색으로 다음 자식 포인터를 결정한다.
+    <code>btr_page_split_and_insert()</code>는 단조증가 키일 때 오른쪽 확장만 수행해 기존 레코드 이동 비용을 없앤다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 소스코드로 Split과 수직 하강을 확인했다.
+    아직 두 가지가 남아 있다 — 중복 키가 삽입될 때 B+Tree가 어떻게 거부하는가,
+    그리고 세컨더리 인덱스 쓰기를 지연시키는 내부 큐(Change Buffer)는 어떻게 동작하는가.
+  </div>
+</section>
+
+
+<!-- ======================== CH 10 ======================== -->
+<section id="ch10">
+  <h2 class="chap"><span class="num">CH 10</span><span class="day-badge">0511</span>중복키 처리 — UNIQUE 위반 탐지와 세컨더리 인덱스의 중복 허용 방식<a href="#ch10" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    B+Tree는 탐색 경로 자체가 중복 여부를 판단한다.
+    InnoDB가 중복키를 처리하는 방식은 인덱스 종류에 따라 다르다.
+  </p>
+  <table>
+    <tr><th>인덱스 종류</th><th>중복 허용</th><th>처리 방식</th></tr>
+    <tr><td>PRIMARY KEY</td><td>불가</td><td>삽입 경로에서 동일 키 발견 → <code>ERROR 1062</code> 즉시 반환</td></tr>
+    <tr><td>UNIQUE INDEX</td><td>불가 (NULL 제외)</td><td>삽입 경로에서 동일 키 발견 → <code>ERROR 1062</code> 즉시 반환</td></tr>
+    <tr><td>일반 INDEX (비UNIQUE)</td><td>허용</td><td>세컨더리 인덱스 리프에 <code>(인덱스 값, PK)</code> 저장 → PK가 달라 다른 레코드로 취급</td></tr>
+  </table>
+
+  <h3 class="step">UNIQUE 위반 탐지 경로</h3>
+  <div class="ascii">[ UNIQUE 위반 탐지 — B+Tree 수직 하강 중 발생 ]
+
+삽입: INSERT INTO ACCOUNT2 VALUES (1, '중복', 0, '2026-01-01')  ← id=1 이미 존재
+
+btr_cur_search_to_nth_level() 수직 하강:
+  루트 → 내부 노드 → 리프 노드
+  리프에서 page_cur_search_with_match() 실행:
+    키 탐색 결과: id=1 레코드 발견
+      ↓
+  dict_index_is_unique(index) == TRUE
+      ↓
+  HA_ERR_FOUND_DUPL_KEY 반환
+      ↓
+  ERROR 1062 (23000): Duplicate entry '1' for key 'ACCOUNT2.PRIMARY'
+
+──────────────────────────────────────────────────────
+
+[ 비UNIQUE 세컨더리 인덱스 — 중복 허용 방식 ]
+
+CREATE INDEX idx_memo ON big_test(memo(20));
+INSERT INTO big_test (val, memo) VALUES (999, 'row1');  -- 'row1' 이미 존재
+
+세컨더리 인덱스 리프 (idx_memo 기준 정렬):
+  ('row1', PK=1)   ← 첫 번째 row1
+  ('row1', PK=101) ← 두 번째 row1  ← PK가 달라 B+Tree 입장에서 다른 키
+
+→ dict_index_is_unique() == FALSE → 중복 검사 없이 삽입 성공
+→ (memo, PK) 복합키 기준으로 정렬되어 두 항목 공존</div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    UNIQUE(PK) 위반은 레코드가 실제로 삽입되기 전, B+Tree 탐색 시점에 감지되므로
+    <code>ERROR 1062</code>가 반환되어도 기존 레코드에 영향이 없어야 한다.
+    비UNIQUE 인덱스에서 같은 컬럼 값을 두 번 삽입하면 두 행이 모두 조회되어야 한다.
+  </div>
+
+  <h3 class="step">테스트 — UNIQUE 위반 / 비UNIQUE 중복 허용 확인</h3>
+  <pre><code class="language-sql">-- UNIQUE(PK) 위반: id=1 중복 삽입 시도
+INSERT INTO ACCOUNT2 VALUES (1, '중복테스트', 0, '2026-01-01');
+
+-- 기존 데이터 영향 없음 확인
+SELECT ID, NAME FROM ACCOUNT2 WHERE ID = 1;
+
+-- 비UNIQUE 인덱스 중복 허용 확인
+ALTER TABLE big_test ADD INDEX idx_memo (memo(20));
+INSERT INTO big_test (val, memo) VALUES (999, 'row1');  -- row1 이미 있음
+SELECT id, val, memo FROM big_test WHERE memo = 'row1';</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">INSERT PK 중복 · 비UNIQUE INDEX 중복 — ERROR 1062 vs 중복 허용 확인</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- UNIQUE(PK) 위반: B+Tree 탐색 시점에 즉시 감지</span>
+<span class="t-err">ERROR 1062 (23000): Duplicate entry '1' for key 'ACCOUNT2.PRIMARY'</span>
+
+<span class="t-hdr">-- 기존 id=1 레코드 영향 없음</span>
++----+------+
+| ID | NAME |
++----+------+
+|  1 | 홍길동 |
++----+------+
+1 row in set (0.00 sec)
+
+<span class="t-hdr">-- 비UNIQUE idx_memo: memo='row1' 두 번째 삽입 성공</span>
+Query OK, 1 row affected (0.00 sec)
+
+<span class="t-hdr">-- 두 행 모두 조회됨 (PK 달라 세컨더리 인덱스에서 다른 키로 취급)</span>
++-----+-----+------+
+| id  | val | memo |
++-----+-----+------+
+|   1 |   7 | row1 |
+| 101 | 999 | row1 |
++-----+-----+------+
+2 rows in set (0.00 sec)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    UNIQUE/PK 위반은 B+Tree 수직 하강 탐색이 동일 키를 리프에서 발견하는 순간 차단된다 — 실제 삽입 이전이다.
+    비UNIQUE 세컨더리 인덱스는 <code>(인덱스 값, PK)</code> 복합키로 정렬되므로
+    같은 인덱스 값이라도 PK가 다르면 B+Tree 내에서 서로 다른 키로 취급해 중복을 허용한다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — UNIQUE 검증은 즉시 처리해야 하므로 디스크 I/O를 피할 수 없다.
+    그러나 비UNIQUE 세컨더리 인덱스는 어떤가? 쓸 때마다 즉시 디스크를 업데이트하면
+    무작위 I/O가 빈번해진다. InnoDB는 이 비용을 줄이기 위해 내부 큐를 사용한다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 11 ======================== -->
+<section id="ch11">
+  <h2 class="chap"><span class="num">CH 11</span><span class="day-badge">0511</span>페이지 병합(Merge) 검증 — btr_compress()가 실행되는 조건<a href="#ch11" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습 — Merge 실행 조건</h3>
+  <p>
+    CH04에서 분할은 <code>btr_page_split_and_insert()</code>가 담당함을 확인했다.
+    병합은 <code>btr_compress()</code> (<code>btr0btr.cc</code>)가 담당한다.
+    DELETE 또는 UPDATE(논리적 삭제 → 재삽입)로 페이지 점유율이
+    <code>MERGE_THRESHOLD</code>(기본 50%) 미만이 되면 트리거된다.
+  </p>
+  <blockquote class="cite">
+    "InnoDB uses a fill factor to define whether a page should be merged with its sibling.
+    The merge threshold can be configured per index using the MERGE_THRESHOLD option."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/index-page-merge-threshold.html" target="_blank" rel="noopener">MySQL Reference Manual § Index Page Merge Threshold</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    <code>INNODB_TABLESTATS.CLUST_INDEX_SIZE</code>는 B+Tree가 차지하는 총 페이지 수를 나타낸다.
+    대량 삭제 후 <code>OPTIMIZE TABLE</code>(내부적으로 B+Tree 재구성)을 실행하면
+    <code>CLUST_INDEX_SIZE</code>가 줄어들어야 한다 — Merge + 빈 페이지 반환이 일어났기 때문이다.
+    또한 <code>SHOW TABLE STATUS</code>의 <code>Data_free</code>도 감소해야 한다.
+  </div>
+
+  <h3 class="step">테스트 — 대량 삭제 후 OPTIMIZE TABLE로 Merge 유도</h3>
+  <pre><code class="language-sql">-- big_test에 1,000행 추가 삽입 (Merge 효과 관찰용)
+INSERT INTO big_test (val, memo)
+    WITH RECURSIVE t(n) AS (
+        SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n &lt; 1000
+    )
+    SELECT n, CONCAT('bulk', n) FROM t;
+
+-- 현재 클러스터드 인덱스 크기 확인
+SELECT NAME, NUM_ROWS, CLUST_INDEX_SIZE
+FROM INFORMATION_SCHEMA.INNODB_TABLESTATS
+WHERE NAME LIKE '%big_test%';
+
+-- 절반 삭제 (짝수 id)
+DELETE FROM big_test WHERE id % 2 = 0;
+
+-- 삭제 후 단편화 확인
+SHOW TABLE STATUS LIKE 'big_test'\G
+
+-- OPTIMIZE TABLE: B+Tree 재구성 (Merge + 빈 페이지 반환)
+OPTIMIZE TABLE big_test;
+
+-- 재구성 후 크기 재확인
+SELECT NAME, NUM_ROWS, CLUST_INDEX_SIZE
+FROM INFORMATION_SCHEMA.INNODB_TABLESTATS
+WHERE NAME LIKE '%big_test%';</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">DELETE + OPTIMIZE TABLE big_test — CLUST_INDEX_SIZE · Data_free 변화 확인</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- 1,000행 삽입 후 클러스터드 인덱스 크기</span>
++----------------+----------+------------------+
+| NAME           | NUM_ROWS | CLUST_INDEX_SIZE |
++----------------+----------+------------------+
+| mydb/big_test  |     1101 |                9 |  <span class="t-hdr">← 9 페이지 = 약 144KB</span>
++----------------+----------+------------------+
+
+<span class="t-hdr">-- 절반 삭제 후 단편화 확인</span>
+Data_free: <span class="t-err">4194304</span>  <span class="t-hdr">← 4MB 단편화 공간 발생</span>
+
+<span class="t-hdr">-- OPTIMIZE TABLE: 내부적으로 ALTER TABLE ... ENGINE=InnoDB 실행 → B+Tree 재구성</span>
+Table    Op       Msg_type  Msg_text
+big_test optimize status    <span class="t-ok">OK</span>
+
+<span class="t-hdr">-- 재구성 후: 페이지 수 감소 + Data_free = 0</span>
++----------------+----------+------------------+
+| NAME           | NUM_ROWS | CLUST_INDEX_SIZE |
++----------------+----------+------------------+
+| mydb/big_test  |      551 |                5 |  <span class="t-hdr">← 페이지 9 → 5 (Merge 완료)</span>
++----------------+----------+------------------+</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <code>btr_compress()</code>는 페이지 점유율이 MERGE_THRESHOLD(기본 50%) 미만이 되면
+    인접 형제 페이지와 합쳐 빈 페이지를 반환한다.
+    <code>OPTIMIZE TABLE</code>은 B+Tree를 처음부터 재구성해 모든 분산된 Merge를 한 번에 수행하며
+    <code>Data_free</code>를 0으로 되돌린다.
+  </div>
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 쓰기 작업(삽입/수정/삭제)이 발생할 때마다
+    클러스터드 인덱스뿐 아니라 모든 세컨더리 인덱스도 업데이트해야 한다.
+    이 무작위 I/O를 줄이는 것이 Change Buffer — InnoDB 내부의 큐 자료구조다.
+  </div>
+</section>
+
+
+<!-- ======================== CH 12 ======================== -->
+<section id="ch12">
+  <h2 class="chap"><span class="num">CH 12</span><span class="day-badge">0511</span>Change Buffer — 세컨더리 인덱스 쓰기를 지연시키는 내부 큐<a href="#ch12" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>
+    InnoDB가 행을 삽입·수정·삭제할 때 클러스터드 인덱스(PK)는 즉시 업데이트된다.
+    그러나 <strong>비UNIQUE 세컨더리 인덱스</strong> 페이지가 현재 버퍼 풀(메모리)에 없으면
+    디스크 I/O를 바로 하는 대신, 변경 내용을 <strong>Change Buffer</strong>에 먼저 쌓는다.
+    Change Buffer는 <code>ibdata1</code>(InnoDB 시스템 테이블스페이스) 내부의 B+Tree다 — 큐처럼 동작한다.
+  </p>
+  <blockquote class="cite">
+    "The change buffer is a special data structure that caches changes to secondary index pages
+    when those pages are not in the buffer pool. The buffered changes may result from INSERT,
+    UPDATE, or DELETE operations, and are merged later when the pages are loaded into the buffer pool."
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-change-buffer.html" target="_blank" rel="noopener">MySQL Reference Manual § InnoDB Change Buffer</a></span>
+  </blockquote>
+  <div class="ascii">[ Change Buffer 동작 흐름 ]
+
+DML 발생 (INSERT INTO t VALUES (...)):
+  ① 클러스터드 인덱스 (PK) — 항상 즉시 업데이트 (버퍼 풀 → 필요 시 디스크)
+
+  ② 비UNIQUE 세컨더리 인덱스:
+       ┌─────────────────────────────────────────┐
+       │ 해당 인덱스 페이지가 버퍼 풀에 있는가?   │
+       └───────────────┬─────────────────────────┘
+                YES ↓                   NO ↓
+          즉시 업데이트              Change Buffer에 enqueue
+          (메모리 직접 수정)          ┌──────────────────────────────┐
+                                      │ (space_id, page_no, 변경내용) │
+                                      │ (space_id, page_no, 변경내용) │
+                                      └──────────────────────────────┘
+                                              ↓ (나중에 — 해당 페이지 로드 시)
+                                      ibuf_merge() 자동 실행
+                                      → 변경 내용 일괄 반영 (배치 I/O)
+
+Change Buffer 내부 구조:
+  실체: ibdata1 내의 B+Tree (space_id + page_no 기준 정렬)
+  → 같은 페이지의 변경이 모여 배치 처리 → 무작위 I/O → 순차 I/O로 변환
+  크기: innodb_change_buffer_max_size (기본 25% of buffer pool)
+
+비UNIQUE 세컨더리 인덱스에만 적용되는 이유:
+  UNIQUE 인덱스: 중복 여부 즉시 확인 필요 → 디스크 I/O 불가피 → 버퍼링 불가
+  PK (클러스터드): 행 전체를 즉시 써야 함 → 버퍼링 불가</div>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    <code>SHOW ENGINE INNODB STATUS</code>의 <em>INSERT BUFFER AND ADAPTIVE HASH INDEX</em> 섹션에서
+    Change Buffer 크기 및 누적 merge 횟수를 확인할 수 있어야 한다.
+    <code>innodb_change_buffering = none</code>으로 비활성화하면
+    세컨더리 인덱스 쓰기가 즉시 처리되어 삽입 성능이 낮아지지만
+    비정상 종료 후 복구 시 Change Buffer merge 과정이 생략된다.
+  </div>
+
+  <h3 class="step">테스트 — Change Buffer 상태 확인</h3>
+  <pre><code class="language-sql">-- Change Buffer 현재 설정 확인
+SHOW VARIABLES LIKE 'innodb_change_buffer%';
+
+-- INNODB STATUS에서 Change Buffer 병합 통계
+SHOW ENGINE INNODB STATUS\G
+-- 'INSERT BUFFER AND ADAPTIVE HASH INDEX' 섹션 확인</code></pre>
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">SHOW VARIABLES innodb_change_buffer · ENGINE INNODB STATUS — Change Buffer 상태 확인</span></div>
+    <pre class="terminal-body"><span class="t-hdr">-- innodb_change_buffer 관련 변수</span>
++------------------------------+-------+
+| Variable_name                | Value |
++------------------------------+-------+
+| innodb_change_buffer_max_size| <span class="t-ok">25</span>    |  <span class="t-hdr">← 버퍼 풀 최대 25% 사용</span>
+| innodb_change_buffering      | <span class="t-ok">all</span>   |  <span class="t-hdr">← INSERT/UPDATE/DELETE 모두 버퍼링</span>
++------------------------------+-------+
+2 rows in set (0.00 sec)
+
+<span class="t-hdr">-- SHOW ENGINE INNODB STATUS — INSERT BUFFER AND ADAPTIVE HASH INDEX 섹션</span>
+-------------------------------------
+INSERT BUFFER AND ADAPTIVE HASH INDEX
+-------------------------------------
+Ibuf: size 1, free list len 0, seg size 2, <span class="t-ok">0 merges</span>
+merged operations:
+ insert 0, delete mark 0, delete 0
+discarded operations:
+ insert 0, delete mark 0, delete 0
+<span class="t-hdr">-- 0 merges: 테스트 환경에서 세컨더리 인덱스 페이지가 모두 버퍼 풀에 상주</span>
+<span class="t-hdr">-- 대량 삽입 후에는 merges 수치 증가 확인 가능</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    Change Buffer는 <code>ibdata1</code> 내부에 있는 또 하나의 B+Tree다.
+    비UNIQUE 세컨더리 인덱스 쓰기를 해당 페이지가 버퍼 풀에 올라올 때까지 지연시켜
+    무작위 I/O를 배치 순차 I/O로 변환한다.
+    UNIQUE 인덱스와 PK는 즉시 검증이 필요하므로 Change Buffer 대상에서 제외된다.
+    <code>innodb_change_buffering = none</code>으로 비활성화하면 삽입 성능은 낮아지나
+    비정상 종료 후 복구 시간이 단축된다 (merge 과정 없음).
+  </div>
+</section>
+
+
+<!-- ======================== CH 9 ======================== -->
+<section id="ch9">
+  <h2 class="chap"><span class="num">CH 09</span>정리 — 출발 의문 회수<a href="#ch9" class="anchor-link">#</a></h2>
+
+  <h3 class="step">압축</h3>
+  <p>이 글의 8개 챕터는 한 문장으로 압축된다.</p>
+  <div class="keypoint">
+    <span class="label">FINAL CONCLUSION — 출발 의문 회수</span>
+    <code>INT AUTO_INCREMENT PRIMARY KEY</code>는 B+Tree가 요구하는 세 가지 성질을 모두 최적으로 충족한다 —
+    ① <strong>정렬된 삽입</strong>: 단조증가이므로 항상 마지막 리프에 추가 →
+    <code>btr_page_split_and_insert()</code>의 오른쪽 확장 분기를 타 50:50 Split 없음,
+    ② <strong>고정 크기 4B</strong>: 내부 노드 페이지(16KB)에 키 포인터 쌍이 1,638개 들어가 Fan-out 최대화 → 트리 높이 3~4에서 고정,
+    ③ <strong>PK = 클러스터드 인덱스</strong>: 리프 노드가 곧 행 데이터 → PK 탐색 1회 I/O 최소화,
+    세컨더리 인덱스는 이 PK를 포인터로 보유 → Double Lookup 비용이 예측 가능.
+    UUID나 날짜 문자열 PK는 ①을 깨뜨려 삽입마다 50:50 Split을 반복시키고 <code>Data_free</code>를 키운다.
+  </div>
+
+  <h3 class="step">실무 체크리스트</h3>
+  <ul>
+    <li>InnoDB 테이블에는 반드시 <code>INT AUTO_INCREMENT PRIMARY KEY</code> 또는 <code>BIGINT</code> 단조증가 PK를 정의한다.</li>
+    <li>UUID(v4, 랜덤) PK가 필요하면 <code>UUID_TO_BIN(UUID(), TRUE)</code> + <code>BINARY(16)</code>으로 저장하거나 단조증가 UUID_v7을 고려한다.</li>
+    <li>EXPLAIN의 <code>type</code> 컬럼 우선순위: <code>const</code> &gt; <code>eq_ref</code> &gt; <code>ref</code> &gt; <code>range</code> &gt; <code>index</code> &gt; <code>ALL</code></li>
+    <li>세컨더리 인덱스 SELECT 시 Double Lookup을 피하려면 커버링 인덱스를 설계한다 (<code>Extra: Using index</code> 확인).</li>
+    <li>대량 삽입 후 <code>SHOW TABLE STATUS</code>의 <code>Data_free</code>가 크면 <code>OPTIMIZE TABLE</code>로 B+Tree를 재구성한다.</li>
+    <li>GAP Lock으로 인한 교착상태가 빈번하다면 격리 수준을 <code>READ COMMITTED</code>로 낮추는 것을 검토한다 (팬텀 리드 허용 트레이드오프).</li>
+    <li>소스코드 탐색 시: <code>btr_cur_search_to_nth_level()</code> → 수직 하강, <code>btr_page_split_and_insert()</code> → 페이지 분할, <code>page_cur_search_with_match()</code> → 페이지 내 이진 탐색.</li>
+  </ul>
+
+  <h3 class="step">한 그림으로</h3>
+  <div class="ascii">[ InnoDB B+Tree 전체 구조 — 12개 챕터 탐구의 종합 ]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  디스크 (16KB 페이지 단위 I/O)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  루트 페이지 (내부 노드, Level N)                           │
+  │  키: [401][801][1201]...  포인터: → 내부 노드 A/B/C/...    │
+  └─────────────────────┬──────────────────────────────────────┘
+                        │ btr_cur_search_to_nth_level()
+                        │ height-- 반복
+                        │ 각 페이지: Page Directory 슬롯 배열
+                        │   → page_cur_search_with_match() 이진 탐색
+  ┌─────────────────────▼──────────────────────────────────────┐
+  │  내부 노드 페이지들 (Level 1..N-1)                          │
+  │  키: [10][20][30]...   포인터: → 리프 페이지               │
+  │  INT(4B) + child_ptr(6B) = 10B → 16384/10 ≒ 1,638 키/페이지│
+  │  높이 3: 1,638³ ≒ 44억 행 커버                             │
+  └─────────────────────┬──────────────────────────────────────┘
+                        │ height == 0 → 리프 도달
+  ┌─────────────────────▼──────────────────────────────────────┐
+  │  리프 L1 (Level 0) ←FIL_PAGE_PREV/NEXT→ 리프 L2 ↔ 리프 L3 │
+  │  행 전체 데이터 (클러스터드: PK 순서로 정렬 저장)           │
+  │  [내부 배열] Page Directory 슬롯 배열: O(log n) 이진 탐색  │
+  │                                                             │
+  │  삽입 경로: AUTO_INCREMENT → 마지막 리프 오른쪽 끝 추가     │
+  │    → btr_page_split_and_insert() 오른쪽 확장 분기           │
+  │    → 50:50 Split 없음 / Data_free 증가 없음                 │
+  │                                                             │
+  │  병합(Merge): DELETE 후 점유율 < 50% → btr_compress() 실행 │
+  │    → 인접 형제와 합침 + 부모 포인터 제거 + 빈 페이지 반환   │
+  │                                                             │
+  │  중복키: UNIQUE/PK 삽입 시 동일 키 발견 → ERROR 1062 즉시  │
+  │          비UNIQUE → (값, PK) 복합키로 저장 → 중복 허용      │
+  │                                                             │
+  │  범위 탐색: 수직 하강 O(log n) → FIL_PAGE_NEXT 수평 이동   │
+  │  GAP Lock: 리프 레코드 사이 공간에 걸리는 잠금              │
+  └─────────────────────────────────────────────────────────────┘
+       ↑
+       └─ 세컨더리 인덱스 리프 = (인덱스 값, PK 값) 만 저장
+            SELECT * → PK로 클러스터드 재탐색 (Double Lookup) O(2 log n)
+            SELECT id, val → 커버링 인덱스, Extra: Using index
+            비UNIQUE 세컨더리 쓰기 → Change Buffer enqueue
+              → 해당 페이지 로드 시 ibuf_merge() 배치 반영
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Change Buffer (ibdata1 내부 B+Tree — 내부 큐)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ┌────────────────────────────────────────────┐
+  │ (space_id=3, page_no=42, INSERT val=7)     │
+  │ (space_id=3, page_no=42, INSERT val=21)    │  ← 같은 페이지 변경 모음
+  │ (space_id=3, page_no=88, DELETE mark=id5)  │
+  └────────────────────────────────────────────┘
+  → 해당 페이지가 버퍼 풀에 올라올 때 ibuf_merge() 일괄 처리
+  → 무작위 I/O → 순차 배치 I/O 변환
+  → 비UNIQUE 세컨더리 인덱스만 대상 (UNIQUE/PK는 즉시 처리)</div>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <p style="font-weight:800; color: var(--ink); margin-bottom:8px;">참고 문헌 및 소스코드 출처</p>
+    <ol class="refs">
+      <li>MySQL Reference Manual § <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html" target="_blank" rel="noopener">Clustered and Secondary Indexes</a> — InnoDB 클러스터드/세컨더리 인덱스 공식 정의</li>
+      <li>MySQL Reference Manual § <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html#innodb-gap-locks" target="_blank" rel="noopener">InnoDB Locking — Gap Locks</a> — GAP Lock 공식 정의</li>
+      <li>MySQL Reference Manual § <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-file-space.html" target="_blank" rel="noopener">InnoDB File-Space Management</a> — 페이지 크기 및 구조</li>
+      <li>MySQL Reference Manual § <a href="https://dev.mysql.com/doc/refman/8.0/en/glossary.html#glos_b_tree" target="_blank" rel="noopener">Glossary: B-tree</a></li>
+      <li>MySQL Reference Manual § <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-performance-optimization.html" target="_blank" rel="noopener">Optimizing InnoDB Queries</a> — AUTO_INCREMENT 삽입 최적화</li>
+      <li>mysql/mysql-server GitHub (trunk) — <a href="https://github.com/mysql/mysql-server/blob/trunk/storage/innobase/btr/btr0cur.cc" target="_blank" rel="noopener">storage/innobase/btr/btr0cur.cc</a> — 수직 하강 탐색 구현</li>
+      <li>mysql/mysql-server GitHub (trunk) — <a href="https://github.com/mysql/mysql-server/blob/trunk/storage/innobase/btr/btr0btr.cc" target="_blank" rel="noopener">storage/innobase/btr/btr0btr.cc</a> — 페이지 분할 구현</li>
+      <li>mysql/mysql-server GitHub (trunk) — <a href="https://github.com/mysql/mysql-server/blob/trunk/storage/innobase/include/btr0types.h" target="_blank" rel="noopener">storage/innobase/include/btr0types.h</a> — 레벨 정의</li>
+      <li>Percona Blog — <a href="https://www.percona.com/blog/innodb-page-merging-and-page-splitting/" target="_blank" rel="noopener">InnoDB Page Merging and Page Splitting</a></li>
+    </ol>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>

@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="ko"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>0513 학습 노트: SELECT · WHERE · JOIN — 행을 골라내고 합치는 6 절 구문의 실행 순서</title>
-  <meta name="description" content="3주차 3일차 — 0511·0512 에서 값을 어떻게 '넣지 않을지' 봤다면, 이번엔 어떻게 '꺼낼지'. SELECT 문 6개 절의 작성 순서와 실행 순서가 다르다는 사실에서 출발해 WHERE · JOIN · 그룹·함수·NULL 처리까지 추적." />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <meta name="description" content="3주차 3일차 — 0511·0512 에서 값을 어떻게 '넣지 않을지' 봤다면, 이번엔 어떻게 '꺼낼지'. SELECT 문 6개 절의 작성 순서와 실행 순서가 다르다는 사실에서 출발해 WHERE · JOIN · 그룹·함수·NULL 처리까지 추적.">
+  <meta property="og:title" content="0513 학습 노트: SELECT · WHERE · JOIN — 행을 골라내고 합치는 6 절 구문의 실행 순서">
+  <meta property="og:description" content="SELECT 문 6개 절의 작성 순서와 실행 순서가 다르다는 사실에서 출발해 WHERE · JOIN · 그룹·함수·NULL 처리까지 추적.">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="0513 학습 노트: SELECT · WHERE · JOIN — 행을 골라내고 합치는 6 절 구문의 실행 순서">
+  <meta name="twitter:description" content="SELECT 문 6개 절의 작성 순서와 실행 순서가 다르다는 사실에서 출발해 WHERE · JOIN · 그룹·함수·NULL 처리까지 추적.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&amp;display=swap" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
     :root { color-scheme: light; --ink:#1f2933; --muted:#667085; --line:#d7dee8; --paper:#ffffff; --surface:#ffffff;
@@ -139,25 +144,25 @@
   </div>
 
   <h3 class="step">테스트 — 별칭의 사용 가능 위치</h3>
-  <pre><code class="language-sql">-- ORDER BY 에서는 별칭 사용 가능
-select emp_id 사번, emp_name 이름, salary*12 연봉
-from employee
-order by 연봉 desc;   -- ok
+  <pre class="language-sql" tabindex="0"><code class="language-sql"><span class="token comment">-- ORDER BY 에서는 별칭 사용 가능</span>
+<span class="token keyword">select</span> emp_id 사번<span class="token punctuation">,</span> emp_name 이름<span class="token punctuation">,</span> salary<span class="token operator">*</span><span class="token number">12</span> 연봉
+<span class="token keyword">from</span> employee
+<span class="token keyword">order</span> <span class="token keyword">by</span> 연봉 <span class="token keyword">desc</span><span class="token punctuation">;</span>   <span class="token comment">-- ok</span>
 
--- WHERE 에서는 별칭 사용 불가
-select emp_id 사번, salary*12 연봉
-from employee
-where 연봉 &gt; 50000000;   -- error</code></pre>
+<span class="token comment">-- WHERE 에서는 별칭 사용 불가</span>
+<span class="token keyword">select</span> emp_id 사번<span class="token punctuation">,</span> salary<span class="token operator">*</span><span class="token number">12</span> 연봉
+<span class="token keyword">from</span> employee
+<span class="token keyword">where</span> 연봉 <span class="token operator">&gt;</span> <span class="token number">50000000</span><span class="token punctuation">;</span>   <span class="token comment">-- error</span></code></pre>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY3 § 절 실행 순서 검증</span></div>
+    <div class="terminal-header"><span class="t-label">SELECT 별칭 ORDER BY O / WHERE ✗ — SELECT 절 실행 순서 확인</span></div>
     <pre class="terminal-body"><span class="t-hdr">-- ORDER BY 별칭 사용</span>
-+------+--------+----------+
-| 사번  | 이름    | 연봉      |
-+------+--------+----------+
++------+--------+------------+
+| 사번  | 이름    | 연봉     |
++------+--------+------------+
 | 200  | 이미희   | 84000000 |
 | 220  | 김민지   | 72000000 |
-| ...                       |
-+------+--------+----------+
+| ...                        |
++------+--------+------------+
 22 rows in set (0.00 sec)
 
 <span class="t-hdr">-- WHERE 별칭 사용</span>
@@ -184,25 +189,31 @@ where 연봉 &gt; 50000000;   -- error</code></pre>
   </h2>
 
   <h3 class="step">학습</h3>
-  <pre><code class="language-sql">-- BETWEEN: 시작값 이상 AND 끝값 이하 (둘 다 포함)
-select emp_id, emp_name, salary
-from employee
-where salary between 3000000 and 5000000;
+  <pre class="language-sql" tabindex="0"><code class="language-sql"><span class="token comment">-- BETWEEN: 시작값 이상 AND 끝값 이하 (둘 다 포함)</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name<span class="token punctuation">,</span> salary
+<span class="token keyword">from</span> employee
+<span class="token keyword">where</span> salary <span class="token operator">between</span> <span class="token number">3000000</span> <span class="token operator">and</span> <span class="token number">5000000</span><span class="token punctuation">;</span>
 
--- IN: OR 의 축약
-select emp_id, emp_name, dept_id
-from employee
-where dept_id in ('20', '90');
+<span class="token comment">-- IN: OR 의 축약</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name<span class="token punctuation">,</span> dept_id
+<span class="token keyword">from</span> employee
+<span class="token keyword">where</span> dept_id <span class="token operator">in</span> <span class="token punctuation">(</span><span class="token string">'20'</span><span class="token punctuation">,</span> <span class="token string">'90'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
--- LIKE 와 와일드카드 — % 는 0+ 글자, _ 는 1 글자
-select emp_id, emp_name
-from employee
-where emp_name like '김%';   -- 성이 김씨
+<span class="token comment">-- LIKE 와 와일드카드 — % 는 0+ 글자, _ 는 1 글자</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name
+<span class="token keyword">from</span> employee
+<span class="token keyword">where</span> emp_name <span class="token operator">like</span> <span class="token string">'김%'</span><span class="token punctuation">;</span>   <span class="token comment">-- 성이 김씨</span>
 
--- NULL 비교 — IS NULL / IS NOT NULL
-select distinct mgr_id
-from employee
-where mgr_id is not null;</code></pre>
+<span class="token comment">-- NULL 비교 — IS NULL / IS NOT NULL</span>
+<span class="token keyword">select</span> <span class="token keyword">distinct</span> mgr_id
+<span class="token keyword">from</span> employee
+<span class="token keyword">where</span> mgr_id <span class="token operator">is</span> <span class="token operator">not</span> <span class="token boolean">null</span><span class="token punctuation">;</span></code></pre>
+  <blockquote class="cite">
+    The <code>WHERE</code> clause is evaluated before the <code>SELECT</code> list. This is why column aliases
+    defined in <code>SELECT</code> cannot be referenced in <code>WHERE</code> — those aliases do not yet exist
+    when row filtering occurs.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/problems-with-alias.html" target="_blank" rel="noopener">MySQL Reference Manual § Problems with Column Aliases</a></span>
+  </blockquote>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
@@ -215,16 +226,16 @@ where mgr_id is not null;</code></pre>
 
   <h3 class="step">테스트 — BETWEEN 경계 / IN 의 NULL</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY3 § WHERE 연산자</span></div>
+    <div class="terminal-header"><span class="t-label">SELECT WHERE BETWEEN / IN — 경계값 포함 · NULL 미포함 확인</span></div>
     <pre class="terminal-body"><span class="t-hdr">-- salary BETWEEN 3000000 AND 5000000</span>
-+--------+---------+---------+
-| emp_id | emp_name| salary  |
-+--------+---------+---------+
++--------+----------+---------+
+| emp_id | emp_name | salary  |
++--------+----------+---------+
 | 220    | 김민지   | 4500000 |
 | 213    | 이태림   | 3200000 |
 | 219    | 조은비   | 3000000 |   <span class="t-hdr">-- 경계값 포함</span>
 | 214    | 박정민   | 5000000 |   <span class="t-hdr">-- 경계값 포함</span>
-+--------+---------+---------+
++--------+----------+---------+
 8 rows in set (0.00 sec)
 
 <span class="t-hdr">-- dept_id IN ('20','90') 은 NULL 부서를 절대 포함하지 않음</span></pre>
@@ -234,8 +245,7 @@ where mgr_id is not null;</code></pre>
   <div class="keypoint">
     <span class="label">KEY POINT</span>
     축약 연산자는 가독성과 옵티마이저 힌트를 동시에 노린다. BETWEEN 의 경계 포함, IN 의 NULL 미포함은
-    "<code>=</code> 비교의 산술적 의미" 를 그대로 따른 결과다 — <code>x = NULL</code> 이 NULL 인 이상 IN 도 NULL 을 못 잡는다.
-  </div>
+    "<code>=</code> 비교의 산술적 의미" 를 그대로 따른 결과다 — <code>x = NULL</code> 이 NULL 인 이상 IN 도 NULL 을 못 잡는다. (IN은 내부적으로 = 연산자를 쓰는데, SQL에서 = 연산자로는 NULL을 비교(참으로 판정)할 수 없기 때문에, IN 연산자 괄호 안에 NULL을 아무리 집어넣어도 실제 NULL인 데이터를 찾아낼 수 없다는 의미)</div>
   <div class="bridge">
     <strong>다음 챕터로 가는 다리</strong> — 한 테이블에서 행을 골라내는 도구는 충분히 봤다. 두 테이블을 합쳐야 답이 나오는
     질문은? "JOB_ID 가 J4 인 직원의 직급명" 처럼 두 테이블에 정보가 나뉘어 있을 때 — JOIN 이 들어온다.
@@ -250,21 +260,21 @@ where mgr_id is not null;</code></pre>
   </h2>
 
   <h3 class="step">학습</h3>
-  <pre><code class="language-sql">-- USING: 양쪽 테이블의 연결 컬럼명이 동일할 때
-select emp_id, emp_name, job_id, job_title
-from employee
-join job using (job_id);
+  <pre class="language-sql" tabindex="0"><code class="language-sql"><span class="token comment">-- USING: 양쪽 테이블의 연결 컬럼명이 동일할 때</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name<span class="token punctuation">,</span> job_id<span class="token punctuation">,</span> job_title
+<span class="token keyword">from</span> employee
+<span class="token keyword">join</span> job <span class="token keyword">using</span> <span class="token punctuation">(</span>job_id<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
--- ON: 일반형. 컬럼명이 달라도 OK
-select e.emp_id, e.emp_name, d.dept_name
-from employee e
-join department d on e.dept_id = d.dept_id;
+<span class="token comment">-- ON: 일반형. 컬럼명이 달라도 OK</span>
+<span class="token keyword">select</span> e<span class="token punctuation">.</span>emp_id<span class="token punctuation">,</span> e<span class="token punctuation">.</span>emp_name<span class="token punctuation">,</span> d<span class="token punctuation">.</span>dept_name
+<span class="token keyword">from</span> employee e
+<span class="token keyword">join</span> department d <span class="token keyword">on</span> e<span class="token punctuation">.</span>dept_id <span class="token operator">=</span> d<span class="token punctuation">.</span>dept_id<span class="token punctuation">;</span>
 
--- 다중 JOIN
-select emp_id, emp_name, job_title, dept_name
-from employee
-join job using (job_id)
-join department using (dept_id);</code></pre>
+<span class="token comment">-- 다중 JOIN</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name<span class="token punctuation">,</span> job_title<span class="token punctuation">,</span> dept_name
+<span class="token keyword">from</span> employee
+<span class="token keyword">join</span> job <span class="token keyword">using</span> <span class="token punctuation">(</span>job_id<span class="token punctuation">)</span>
+<span class="token keyword">join</span> department <span class="token keyword">using</span> <span class="token punctuation">(</span>dept_id<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
   <blockquote class="cite">
     The <code>USING(col)</code> clause is a shorthand. It requires that the joined tables have a column of the same name,
     and produces a single combined column in the result, whereas <code>ON e.col = d.col</code> keeps both.
@@ -280,7 +290,7 @@ join department using (dept_id);</code></pre>
 
   <h3 class="step">테스트 — INNER JOIN 의 행 손실</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY3 § INNER JOIN 행 손실</span></div>
+    <div class="terminal-header"><span class="t-label">INNER JOIN COUNT(*) — 부서 없는 3행 손실 확인</span></div>
     <pre class="terminal-body"><span class="t-hdr">-- employee 단독 카운트</span>
 +----------+
 | count(*) |
@@ -326,19 +336,25 @@ join department using (dept_id);</code></pre>
   </h2>
 
   <h3 class="step">학습</h3>
-  <pre><code class="language-sql">-- 보너스포인트가 NULL 인 직원의 '연봉' 이 NULL 로 사라지는 문제
-select emp_id, emp_name, salary, bonus_pct,
-       (salary + salary * bonus_pct) * 12 as 연봉      -- NULL 발생
-from employee;
+  <pre class="language-sql" tabindex="0"><code class="language-sql"><span class="token comment">-- 보너스포인트가 NULL 인 직원의 '연봉' 이 NULL 로 사라지는 문제</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name<span class="token punctuation">,</span> salary<span class="token punctuation">,</span> bonus_pct<span class="token punctuation">,</span>
+       <span class="token punctuation">(</span>salary <span class="token operator">+</span> salary <span class="token operator">*</span> bonus_pct<span class="token punctuation">)</span> <span class="token operator">*</span> <span class="token number">12</span> <span class="token keyword">as</span> 연봉      <span class="token comment">-- NULL 발생</span>
+<span class="token keyword">from</span> employee<span class="token punctuation">;</span>
 
--- IFNULL 로 NULL → 0 치환
-select emp_id, emp_name, salary, bonus_pct,
-       (salary + salary * ifnull(bonus_pct, 0)) * 12 as "1년 연봉"
-from employee;
+<span class="token comment">-- IFNULL 로 NULL → 0 치환</span>
+<span class="token keyword">select</span> emp_id<span class="token punctuation">,</span> emp_name<span class="token punctuation">,</span> salary<span class="token punctuation">,</span> bonus_pct<span class="token punctuation">,</span>
+       <span class="token punctuation">(</span>salary <span class="token operator">+</span> salary <span class="token operator">*</span> ifnull<span class="token punctuation">(</span>bonus_pct<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">*</span> <span class="token number">12</span> <span class="token keyword">as</span> <span class="token string">"1년 연봉"</span>
+<span class="token keyword">from</span> employee<span class="token punctuation">;</span>
 
--- COALESCE: 여러 인자 중 처음으로 NULL 이 아닌 값
-select emp_name, coalesce(phone, email, '연락처 없음') as 연락처
-from employee;</code></pre>
+<span class="token comment">-- COALESCE: 여러 인자 중 처음으로 NULL 이 아닌 값</span>
+<span class="token keyword">select</span> emp_name<span class="token punctuation">,</span> <span class="token keyword">coalesce</span><span class="token punctuation">(</span>phone<span class="token punctuation">,</span> email<span class="token punctuation">,</span> <span class="token string">'연락처 없음'</span><span class="token punctuation">)</span> <span class="token keyword">as</span> 연락처
+<span class="token keyword">from</span> employee<span class="token punctuation">;</span></code></pre>
+  <blockquote class="cite">
+    <code>NULL</code> is not a value; it is a marker for the absence of a value.
+    Any arithmetic expression containing <code>NULL</code> evaluates to <code>NULL</code>.
+    <code>IFNULL(expr1, expr2)</code> returns <code>expr2</code> if <code>expr1</code> is <code>NULL</code>.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/working-with-null.html" target="_blank" rel="noopener">MySQL Reference Manual § Working with NULL Values</a></span>
+  </blockquote>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
@@ -349,21 +365,21 @@ from employee;</code></pre>
 
   <h3 class="step">테스트 — IFNULL 적용 전/후</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY3 § IFNULL</span></div>
+    <div class="terminal-header"><span class="t-label">SELECT IFNULL(bonus_pct, 0) — NULL 연봉 복구 확인</span></div>
     <pre class="terminal-body"><span class="t-hdr">-- IFNULL 미적용</span>
 +--------+---------+---------+-----------+----------+
-| emp_id | emp_name| salary  | bonus_pct | 연봉      |
+| emp_id | emp_name| salary  | bonus_pct | 연봉     |
 +--------+---------+---------+-----------+----------+
-| 200    | 이미희   | 7000000 |      NULL |     NULL |   <span class="t-err">-- 사라짐</span>
-| 220    | 김민지   | 4500000 |      0.20 | 64800000 |
+| 200    | 이미희  | 7000000 |      NULL |     NULL |   <span class="t-err">-- 사라짐</span>
+| 220    | 김민지  | 4500000 |      0.20 | 64800000 |
 +--------+---------+---------+-----------+----------+
 
 <span class="t-hdr">-- IFNULL(bonus_pct, 0) 적용</span>
 +--------+---------+---------+-----------+----------+
-| emp_id | emp_name| salary  | bonus_pct | 1년 연봉  |
+| emp_id | emp_name| salary  | bonus_pct | 1년 연봉 |
 +--------+---------+---------+-----------+----------+
-| 200    | 이미희   | 7000000 |      NULL | 84000000 |   <span class="t-ok">-- 복구</span>
-| 220    | 김민지   | 4500000 |      0.20 | 64800000 |
+| 200    | 이미희  | 7000000 |      NULL | 84000000 |   <span class="t-ok">-- 복구</span>
+| 220    | 김민지  | 4500000 |      0.20 | 64800000 |
 +--------+---------+---------+-----------+----------+</pre>
   </div>
 
@@ -387,24 +403,36 @@ from employee;</code></pre>
   </h2>
 
   <h3 class="step">학습</h3>
-  <pre><code class="language-sql">-- DISTINCT: 한 번만 사용 가능, 컬럼 묶음 단위 중복 제거
-select distinct dept_id, job_id
-from employee
-order by 1, 2;
+  <pre class="language-sql" tabindex="0"><code class="language-sql"><span class="token comment">-- DISTINCT: 한 번만 사용 가능, 컬럼 묶음 단위 중복 제거</span>
+<span class="token keyword">select</span> <span class="token keyword">distinct</span> dept_id<span class="token punctuation">,</span> job_id
+<span class="token keyword">from</span> employee
+<span class="token keyword">order</span> <span class="token keyword">by</span> <span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">;</span>
 
--- ORDER BY 에서 사용 가능한 3가지 — 컬럼명 / 별칭 / select 절 순번
-select emp_id 사번, emp_name 이름, salary 급여
-from employee
-order by 3 desc, 사번 asc;    -- 3 = salary 별칭 = 급여
+<span class="token comment">-- ORDER BY 에서 사용 가능한 3가지 — 컬럼명 / 별칭 / select 절 순번</span>
+<span class="token keyword">select</span> emp_id 사번<span class="token punctuation">,</span> emp_name 이름<span class="token punctuation">,</span> salary 급여
+<span class="token keyword">from</span> employee
+<span class="token keyword">order</span> <span class="token keyword">by</span> <span class="token number">3</span> <span class="token keyword">desc</span><span class="token punctuation">,</span> 사번 <span class="token keyword">asc</span><span class="token punctuation">;</span>    <span class="token comment">-- 3 = salary 별칭 = 급여</span>
 </code></pre>
   <p>
     DISTINCT 는 SELECT 절에서 한 번만 사용 가능하고, 그 뒤에 나열된 컬럼/계산식 묶음이 같은 행만 중복 제거된다.
     ORDER BY 는 ① 원래 컬럼명 ② SELECT 절의 별칭 ③ SELECT 절의 순번 — 세 가지 모두 받는다.
-  </p>
+  </p>  <blockquote class="cite">
+    <code>ORDER BY</code> is evaluated after the <code>SELECT</code> list, so it can reference column aliases
+    defined there. <code>DISTINCT</code> may appear only once, immediately after <code>SELECT</code>,
+    and applies to the combination of all listed columns.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/select.html" target="_blank" rel="noopener">MySQL Reference Manual § 13.2.13 SELECT Statement</a></span>
+  </blockquote>
 
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    DISTINCT 가 한 번만 허용되는 이유는 — SELECT 의 중복 제거는 최종 결과 집합 <strong>전체에</strong> 겸쳐야 하기 때문이다.
+    컨럼별로 다른 기준으로 중복을 제거한다는 것은 "어떤 행을 남길지" 기준이 모순을 일으킨다.
+    ORDER BY 가 별칭을 받을 수 있는 이유는 단순히 — ORDER BY 가 SELECT 보다 나중에 평가되기 때문이다.
+  </div>
   <h3 class="step">테스트 — DISTINCT 한 번 제한</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY3 § DISTINCT</span></div>
+    <div class="terminal-header"><span class="t-label">SELECT DISTINCT dept_id, job_id — 한 번 제한 · ERROR 1064 확인</span></div>
     <pre class="terminal-body"><span class="t-err">ERROR 1064 (42000): You have an error in your SQL syntax;
 -- "select distinct dept_id, distinct job_id from employee;"</span>
 
@@ -426,6 +454,10 @@ order by 3 desc, 사번 asc;    -- 3 = salary 별칭 = 급여
     DISTINCT 는 "어떤 컬럼 묶음 단위로 중복을 정의할 것인가" 이고, ORDER BY 는 6단계라서 별칭/순번을 모두 받는다.
     두 절 모두 결과의 "보이는 모양" 을 결정하는 마지막 단계다.
   </div>
+  <div class="bridge">
+    <strong>다음 첵터로 가는 다리</strong> — SELECT 6절 파이프라인의 모든 단계를 추적했다.
+    작성 순서와 실행 순서의 차이, WHERE에서 별칭이 안 되는 이유, JOIN에서 행이 수는 이유와 NULL 산술 오염까지 — 모두 한 나의 결론으로 있다.
+  </div>
 </section>
 
 
@@ -439,11 +471,13 @@ order by 3 desc, 사번 asc;    -- 3 = salary 별칭 = 급여
     출발 의문 — "왜 6 절로 쪼개고, 작성 순서와 실행 순서가 다른가?" 에 대한 답이 다섯 챕터에서 모두 모였다.
     각 절은 파이프라인의 한 단계이고, 작성 순서는 사람이 읽기 좋은 순서, 실행 순서는 데이터가 흘러가는 순서다.
   </p>
-  <pre><code class="language-sql">-- 파이썬 list comprehension 으로 비유하면:
-[salary*12 for emp in employees join job
- if emp.dept_id in ('20','90')
- sorted by salary*12 desc]
---    ↑ 5         1      2          6</code></pre>
+  <pre class="language-sql" tabindex="0"><code class="language-sql"><span class="token comment">-- 파이썬 list comprehension 으로 비유하면:</span>
+<span class="token punctuation">[</span>salary<span class="token operator">*</span><span class="token number">12</span> <span class="token keyword">for</span> emp <span class="token operator">in</span> employees <span class="token keyword">join</span> job
+ <span class="token keyword">if</span> emp<span class="token punctuation">.</span>dept_id <span class="token operator">in</span> <span class="token punctuation">(</span><span class="token string">'20'</span><span class="token punctuation">,</span><span class="token string">'90'</span><span class="token punctuation">)</span>
+ sorted <span class="token keyword">by</span> salary<span class="token operator">*</span><span class="token number">12</span> <span class="token keyword">desc</span><span class="token punctuation">]</span>
+<span class="token comment">--    ↑ 5         1      2          6</span></code></pre>
+
+  <h3 class="step">최종 결론</h3>
   <div class="keypoint">
     <span class="label">FINAL CONCLUSION</span>
     SELECT 가 5단계라는 사실이 — <code>WHERE 별칭 사용 불가</code> 라는 한 줄짜리 에러로 입증되고,
@@ -451,7 +485,6 @@ order by 3 desc, 사번 asc;    -- 3 = salary 별칭 = 급여
     NULL 의 산술 오염이 — <code>IFNULL(bonus_pct, 0)</code> 한 줄로 복구된다.
     SQL 의 SELECT 는 단일 문장이 아니라 <strong>6단 파이프라인</strong> 이고, 디버깅은 단계마다 따로 사고해야 한다.
     다음 의문 — 그러면 이 모든 도구를 들고 실제 데이터를 어디서 가져오는가? 그것이 0514 의 크롤링이 답한다.
-  </p>
   </div>
 </section>
 
@@ -474,7 +507,7 @@ order by 3 desc, 사번 asc;    -- 3 = salary 별칭 = 급여
     </ul>
     <p style="margin-top:18px"><strong>소스 코드</strong></p>
     <ul class="refs" style="margin-top:4px">
-      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub — roroblack/python_workspace</a></li>
+      <li><a href="https://github.com/roroblack/db_workspace" target="_blank" rel="noopener noreferrer">GitHub — roroblack/db_workspace</a></li>
       <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages — 블로그 목록</a></li>
     </ul>
   </div>
@@ -482,5 +515,6 @@ order by 3 desc, 사번 asc;    -- 3 = salary 별칭 = 급여
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-</body>
-</html>
+
+
+</body></html>

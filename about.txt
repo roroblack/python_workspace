@@ -5,6 +5,8 @@
     ./study/pdf     :       수업 교보재 pdf 자료
     ./study/test    :       학습 중 의문 사항들 별도 테스트
     ./study/blog    :       블로그 출력 결과물 파일들
+    
+    최종결과         :       https://devroro.blogspot.com/
 
 
 
@@ -22,8 +24,22 @@
     \                       ./python_module
     |- 0508         :       ./python_gui
     \                       ./python_streamlit_login_csv_project
-    |- 0511
-    |- 0512
+    |- 0511         :       ../db_workspace/db_수업결과물                   | DBMS 개요와 MySQL 소개 및 설치, DBMS 운영 및 관리, ERD | MySQL_서버구축및운영관리.pdf
+    \                       ../db_workspace/mysql_실습스크립트             
+    |- 0512         :       ../db_workspace/db_과제                        | SELECT문, DML문, TCL문                              | MySQL_기본.pdf
+    \                       ../db_workspace/db_수업결과물
+    |- 0513         :       ../db_workspace/db_과제                        | DDL문, 데이터 형식, 조인, 서브쿼리                     | MySQL_고급.pdf
+    \                       ../db_workspace/db_수업결과물
+    |- 0514         :       ../crawling_project/static_crawling_project   | 크롤링 기초, WEB 구조                                 | 웹크롤링이해와실습.pdf
+    \                       ../crawling_project/dbConnectProject
+    |- 0515         :       ../crawling_project/dynamic_crawling_project  | 크롤링 도구, 선택자, HTML 파싱                         | 웹크롤러만들기.pdf
+    \                       ../crawling_project/auto_crawler              | 크롤링 도구, 선택자, HTML 파싱                         | 웹크롤러만들기.pdf
+    \                       ../crawling_project/3team_1st_proj            | 크롤링 도구, 선택자, HTML 파싱                         | 웹크롤러만들기.pdf
+    |- 0516~0519    :       ../crawling_project/SKN32-1st-3Team           | 데이터 수집, ERD, 웹 앱 구현 및 테스트, 발표, 교과목 평가 | 프로젝트설명.txt, 물로간다_팀작업현황.xlsx, SKN32-1st-3Team/README.md, 물로간다_ver2.pptx
+    \                                                                                                                           https://docs.google.com/spreadsheets/d/10QCpgSJE9i5_fRU6IW2nIoNO0pWymVEwm7qnRn2TKaQ/edit?gid=471644863#gid=471644863
+    \                                                                                                                           https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN32-1st-3Team
+    |- 0520         :       ./test_numpy                                  | 데이터 분석 프로세스, 데이터 분석 도구                   | 데이터분석_라이브러리.pdf
+    |- 0521         :
 
 
 

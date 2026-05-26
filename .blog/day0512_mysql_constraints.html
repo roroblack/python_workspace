@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>0512 학습 노트: MySQL 제약조건과 DML — 자료형보다 한 층 더 강한 차단막</title>
   <meta name="description" content="3주차 2일차 — DAY1에서 'INSERT 시점에 자료형이 차단된다'고 봤다. 그런데 같은 키를 두 번 넣으면? 다른 테이블 키를 잘못 참조하면? 자료형 위에 한 층 더 쌓인 제약조건(PK/UK/FK/CHECK/NN)을 DAY2_constraint_alter.sql 실행 결과로 추적." />
+  <meta property="og:title" content="0512 학습 노트: MySQL 제약조건과 DML — 자료형보다 한 층 더 강한 차단막" />
+  <meta property="og:description" content="자료형 위에 한 층 더 쌓인 제약조건(PK/UK/FK/CHECK/NN)을 DAY2_constraint_alter.sql 실행 결과로 추적." />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="0512 학습 노트: MySQL 제약조건과 DML — 자료형보다 한 층 더 강한 차단막" />
+  <meta name="twitter:description" content="자료형 위에 한 층 더 쌓인 제약조건(PK/UK/FK/CHECK/NN)을 DAY2_constraint_alter.sql 실행 결과로 추적." />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -133,6 +139,11 @@ create table tbl_notnull2 (
     sname   varchar(20),
     constraint nn_tn2_nid not null (nid)   -- error
 );</code></pre>
+  <blockquote class="cite">
+    <code>NOT NULL</code> specifies that a column cannot contain the <code>NULL</code> value.
+    This constraint can only be specified at the column level; specifying it as a table constraint is not allowed.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/not-null-optimization.html" target="_blank" rel="noopener">MySQL Reference Manual § NOT NULL Optimization</a></span>
+  </blockquote>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
@@ -143,7 +154,7 @@ create table tbl_notnull2 (
 
   <h3 class="step">테스트 — NN 위반 / 정상 INSERT</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY2 § NOT NULL</span></div>
+    <div class="terminal-header"><span class="t-label">INSERT INTO tbl_notnull — NOT NULL 위반 ERROR 1048 확인</span></div>
     <pre class="terminal-body">Query OK, 1 row affected (0.00 sec)
 
 <span class="t-err">ERROR 1048 (23000): Column 'nid' cannot be null</span>
@@ -195,6 +206,12 @@ insert into tbl_unique2 values ('200', 'mysql', '01');  -- ok (uid 다름, 복�
 insert into tbl_unique2 values ('100', 'mysql', '04');  -- error (둘 다 중복)
 insert into tbl_unique2 values ('100', 'web',   '03');  -- error (uid 단일이 중복)
 insert into tbl_unique2 values (null,  'mysql', '01');  -- ok (NULL 은 허용)</code></pre>
+  <blockquote class="cite">
+    A <code>UNIQUE</code> index permits multiple <code>NULL</code> values for columns. Because
+    <code>NULL</code> is considered distinct from every other value, including itself, two rows with
+    <code>NULL</code> in a UNIQUE column are not considered to be duplicates.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/create-index.html" target="_blank" rel="noopener">MySQL Reference Manual § CREATE INDEX Statement</a></span>
+  </blockquote>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
@@ -206,7 +223,7 @@ insert into tbl_unique2 values (null,  'mysql', '01');  -- ok (NULL 은 허용)<
 
   <h3 class="step">테스트 — 단일 vs 복합 UNIQUE</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY2 § UNIQUE 복합키</span></div>
+    <div class="terminal-header"><span class="t-label">INSERT INTO tbl_unique2 — 단일/복합 UNIQUE 위반 ERROR 1062 확인</span></div>
     <pre class="terminal-body">Query OK, 1 row affected (0.01 sec)
 Query OK, 1 row affected (0.00 sec)
 <span class="t-err">ERROR 1062 (23000): Duplicate entry '100-mysql' for key 'tbl_unique2.uq_tun2_comp'</span>
@@ -268,6 +285,12 @@ create table tbl_pk2 (
     pid char(3), sname varchar(20), scode char(2),
     constraint pk_tpk2_comp primary key (pid, sname)
 );</code></pre>
+  <blockquote class="cite">
+    A table can have only one <code>PRIMARY KEY</code>. It implicitly applies both <code>NOT NULL</code>
+    and <code>UNIQUE</code> constraints. The primary key can consist of one column or multiple columns,
+    forming a composite primary key.
+    <span class="src">— <a href="https://dev.mysql.com/doc/refman/8.0/en/constraint-primary-key.html" target="_blank" rel="noopener">MySQL Reference Manual § PRIMARY KEY and UNIQUE Index Constraints</a></span>
+  </blockquote>
 
   <h3 class="step">의문 → 가설</h3>
   <div class="qbox">
@@ -279,7 +302,7 @@ create table tbl_pk2 (
 
   <h3 class="step">테스트 — PK 위반 시나리오</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY2 § PRIMARY KEY</span></div>
+    <div class="terminal-header"><span class="t-label">INSERT INTO tbl_pk — PK 위반 ERROR 1062 / 1048 / 1068 확인</span></div>
     <pre class="terminal-body">Query OK, 1 row affected (0.01 sec)
 <span class="t-err">ERROR 1062 (23000): Duplicate entry '100' for key 'tbl_pk.PRIMARY'</span>
 <span class="t-err">ERROR 1048 (23000): Column 'pid' cannot be null</span>
@@ -353,7 +376,7 @@ create table tbl_check2 (
 
   <h3 class="step">테스트 — CHECK 위반</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY2 § CHECK</span></div>
+    <div class="terminal-header"><span class="t-label">INSERT INTO tbl_check — CHECK 위반 ERROR 3819 / 3814 확인</span></div>
     <pre class="terminal-body">Query OK, 1 row affected (0.01 sec)
 <span class="t-err">ERROR 3819 (HY000): Check constraint 'tbl_check_chk_1' is violated.</span>
 <span class="t-err">ERROR 3819 (HY000): Check constraint 'ck_tbchk_marriage' is violated.</span>
@@ -431,7 +454,7 @@ create table tbl_fk5 (
 
   <h3 class="step">테스트 — FK 위반 / cascade 동작</h3>
   <div class="terminal">
-    <div class="terminal-header"><span class="t-label">DAY2 § FOREIGN KEY</span></div>
+    <div class="terminal-header"><span class="t-label">INSERT INTO tbl_fk3 — FK 위반 ERROR 1452 · CASCADE UPDATE 확인</span></div>
     <pre class="terminal-body"><span class="t-err">ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails
 (`mydb`.`tbl_fk3`, CONSTRAINT `fk_tblfk3_lid` FOREIGN KEY (`loc_id`) REFERENCES `location` (`location_id`))</span>
 
@@ -456,6 +479,10 @@ Query OK, 1 row affected (0.01 sec)
     <span class="label">KEY POINT</span>
     FK 는 부모-자식 관계를 행 단위로 강제하고, ON DELETE/UPDATE 옵션이 부모의 변경이 자식에 어떻게 전파되는지를 결정한다.
     "관계" 라는 개념이 RDB 의 R(Relational) 을 정의한다.
+  </div>
+  <div class="bridge">
+    <strong>다음 첵터로 가는 다리</strong> — NN / UK / PK / CHECK / FK 다섯 제약에 대한 실험이 모두 끝났다.
+    각 제약이 한 가지 종류의 "잘못된 행"을 정의한다는 사실이 하나의 결론으로 합쳐진다.
   </div>
 </section>
 
