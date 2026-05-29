@@ -1,0 +1,35 @@
+$ git add test_numpy test_pandas
+
+$ git commit -m Update test_numpy and test_pandas
+[master 282ff79] Update test_numpy and test_pandas
+ 15 files changed, 1979 insertions(+), 3 deletions(-)
+ create mode 100644 test_pandas/data/auto-mpg.data
+ create mode 100644 test_pandas/data/auto-mpg.data-original
+ create mode 100644 test_pandas/data/auto-mpg.txt
+ create mode 100644 test_pandas/data/data_info.json
+ create mode 100644 test_pandas/data/user_info.csv
+ create mode 100644 test_pandas/data/user_info.xlsx
+ create mode 100644 test_pandas/pandas_test3.py
+ create mode 100644 test_pandas/pandas_test4.py
+ create mode 100644 test_pandas/pandas_test5.py
+ create mode 100644 test_pandas/pandas_test6.py
+ create mode 100644 test_pandas/pandas_test7.py
+ create mode 100644 test_pandas/pandas_test8.py
+
+$ git push origin HEAD
+To https://github.com/roroblack/python_workspace.git
+ ! [rejected]        HEAD -> master (fetch first)
+error: failed to push some refs to 'https://github.com/roroblack/python_workspace.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+$ git pull origin HEAD
+From https://github.com/roroblack/python_workspace
+ * branch            HEAD       -> FETCH_HEAD
+Merge made by the 'ort' strategy.
+ .blog/day0511_mysql_intro.html | 209 ++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 187 insertions(+), 22 deletions(-)
+

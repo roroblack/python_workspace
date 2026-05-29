@@ -1,0 +1,16 @@
+$ git status --short -- test_numpy test_pandas
+ M test_numpy/numpy_test2.py
+ M test_pandas/pandas_test2.py
+ M test_pandas/requirements.txt
+?? test_pandas/data/
+?? test_pandas/pandas_test3.py
+?? test_pandas/pandas_test4.py
+?? test_pandas/pandas_test5.py
+?? test_pandas/pandas_test6.py
+?? test_pandas/pandas_test7.py
+?? test_pandas/pandas_test8.py
+
+$ git remote -v
+origin	https://github.com/roroblack/python_workspace.git (fetch)
+origin	https://github.com/roroblack/python_workspace.git (push)
+
