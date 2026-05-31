@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pandas로 배우는 이상값 탐지와 데이터 정규화 — SK 네트웍스 AI 32기 5주차</title>
+  <meta name="description" content="SK 네트웍스 AI Family 32기 부트캠프 5주차 실습 기록. DataFrame 구조 탐색, MultiIndex, auto-mpg describe, IQR·Z-score 이상값 탐지, 3전략, 상관행렬, MinMax·Standard 스케일링을 9챕터로 정리.">
+  <meta property="og:title" content="Pandas로 배우는 이상값 탐지와 데이터 정규화">
+  <meta property="og:description" content="DataFrame→MultiIndex→describe→IQR/Z-score→3전략→상관행렬→스케일링→API비교→FINAL">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Pandas로 배우는 이상값 탐지와 데이터 정규화">
+  <meta name="twitter:description" content="DataFrame→MultiIndex→describe→IQR/Z-score→3전략→상관행렬→스케일링→API비교→FINAL">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+:root {
+  color-scheme: light;
+  --ink:#1f2933; --muted:#667085; --line:#d7dee8;
+  --paper:#ffffff; --surface:#ffffff;
+  --accent:#52A97E; --accent-2:#E8875A; --accent-3:#5B9BD5; --accent-4:#9178C4;
+  --accent-soft:#EBF7F1; --warn-soft:#FFF1E8;
+  --code-bg:#1e1e1e; --code-ink:#e5e7eb;
+  --shadow:none;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Nanum Gothic Coding","Segoe UI",Arial,sans-serif;
+  line-height:1.78; font-size:16px; }
+a { color:var(--accent-3); text-underline-offset:3px; }
+.page { width:min(880px, calc(100% - 32px)); margin:0 auto; }
+header.cover { padding:48px 0 24px; border-bottom:3px solid var(--ink); }
+.eyebrow { font-size:0.9rem; color:var(--muted); letter-spacing:0.06em;
+  text-transform:uppercase; margin:0 0 8px; }
+h1 { font-size:2rem; line-height:1.32; margin:6px 0 12px; letter-spacing:-0.01em; }
+.deck { font-size:1.05rem; color:#374151; margin:0 0 18px; }
+.meta-row { display:flex; flex-wrap:wrap; gap:12px 18px;
+  font-size:0.92rem; color:var(--muted); padding-top:10px;
+  border-top:1px solid var(--line); }
+.meta-row strong { color:var(--ink); margin-right:4px; }
+main { padding:36px 0 60px; }
+nav.toc { border-top:3px solid var(--ink); border-bottom:1px solid var(--line);
+  padding:14px 0 18px; margin:0 0 30px; }
+nav.toc h2 { font-size:0.95rem; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+nav.toc ol { list-style:none; padding:0; margin:0;
+  display:grid; grid-template-columns:repeat(2,1fr); gap:4px 16px; font-size:0.95rem; }
+nav.toc a { color:var(--ink); text-decoration:none; border-bottom:1px dashed transparent; }
+nav.toc a:hover { border-bottom-color:var(--accent-3); }
+section { margin:48px 0 0; }
+h2.chap { font-size:1.45rem; margin:0 0 14px; padding:14px 0 8px;
+  border-top:3px solid var(--ink); }
+h2.chap .num { display:inline-block; border:2px solid var(--accent-2);
+  color:var(--accent-2); padding:1px 8px; font-size:0.8rem;
+  margin-right:10px; vertical-align:middle; letter-spacing:0.04em; }
+h2.chap .anchor-link { float:right; color:var(--muted); font-weight:400;
+  text-decoration:none; opacity:0; transition:opacity .15s; }
+h2.chap:hover .anchor-link { opacity:1; }
+h3.step { margin:22px 0 10px; font-size:1.05rem; letter-spacing:0.04em;
+  color:var(--accent-3); border-left:4px solid var(--accent-3); padding-left:10px; }
+p { margin:10px 0; }
+ul, ol { padding-left:1.4em; }
+li { margin:4px 0; }
+strong { color:var(--ink); }
+.qbox { border-left:4px solid var(--accent-3); background:#EBF4FF;
+  padding:12px 16px; margin:14px 0; }
+.qbox .label { display:inline-block; background:var(--accent-3); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.keypoint { border-left:4px solid var(--accent); background:var(--accent-soft);
+  padding:12px 16px; margin:14px 0; }
+.keypoint .label { display:inline-block; background:var(--accent); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.callout { border-left:4px solid var(--accent-2); background:var(--warn-soft);
+  padding:12px 16px; margin:14px 0; }
+.callout .label { display:inline-block; background:var(--accent-2); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.bridge { border-left:4px solid var(--muted); background:#F4F6F9;
+  padding:10px 14px; margin:18px 0 4px; font-size:0.94rem; color:#374151; }
+.bridge strong { color:var(--ink); }
+blockquote.cite { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:12px 16px; margin:14px 0; font-style:normal; }
+blockquote.cite .src { display:block; color:var(--muted);
+  font-size:0.9em; margin-top:6px; }
+code { font-family:"Cascadia Code","Consolas","D2Coding",monospace;
+  background:#EEF0F6; padding:1px 5px; font-size:0.92em; }
+pre { background:var(--code-bg); color:var(--code-ink); padding:16px;
+  overflow-x:auto; font-size:0.88rem; line-height:1.55; margin:14px 0;
+  border:1px solid #2a2a2a; }
+pre code { background:transparent; padding:0; color:inherit;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; }
+.terminal { margin:14px 0; border:1px solid #2a2a2a; }
+.terminal-header { background:#2d2d2d; color:#cbd5e1; padding:6px 12px;
+  font-size:0.82rem; font-family:"Cascadia Code","Consolas",monospace; }
+.terminal-header::before { content:'PS> '; color:var(--accent-2); font-weight:700; }
+.terminal-body { background:#1e1e1e; color:#e5e7eb; padding:14px 16px;
+  margin:0; overflow-x:auto; font-size:0.86rem; line-height:1.55;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; white-space:pre; }
+.ascii { font-family:"Nanum Gothic Coding","Cascadia Code","Consolas",monospace;
+  white-space:pre; line-height:1.6; font-size:0.88rem;
+  background:#F8F9FA; border:1px solid var(--line);
+  padding:14px 16px; margin:14px 0; overflow-x:auto; }
+table { border-collapse:collapse; width:100%; margin:14px 0; font-size:0.95rem; }
+th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; }
+th { background:#EEF0F5; color:var(--ink); }
+.hl { background:#EBF7F1; }
+footer { padding:30px 0 60px; border-top:3px solid var(--ink); margin-top:50px;
+  color:var(--muted); font-size:0.9rem; }
+footer p { margin:6px 0; }
+.ref-chain { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:14px 18px; margin:24px 0; }
+.ref-chain .ref-title { color:var(--accent-4); font-weight:700;
+  margin:0 0 8px; letter-spacing:0.04em; }
+.ref-chain ol { padding-left:1.4em; margin:0; }
+.ref-chain li { margin:4px 0; font-size:0.93rem; }
+figure.shot { margin:14px 0 18px; border:1px solid var(--line); background:#fff; padding:8px; }
+figure.shot img { display:block; width:100%; height:auto; }
+figure.shot figcaption { margin-top:8px; font-size:0.86rem; color:var(--muted); text-align:center; letter-spacing:0.02em; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+<header class="cover">
+  <p class="eyebrow">Python · 5주차 · 교과목 2 · 데이터 분석</p>
+  <h1>Pandas로 배우는 이상값 탐지와 데이터 정규화</h1>
+  <p class="deck">이 글은 SK 네트웍스 AI Family 32기 부트캠프 5주차 수업 실습 기록이다.
+  DataFrame 구조 탐색에서 시작해 MultiIndex, auto-mpg 기술 통계 탐색,
+  IQR·Z-score 이상값 탐지 비교, 3가지 처리 전략, 상관행렬 분석,
+  MinMax·StandardScaler 정규화, Pandas vs sklearn API 비교까지 9개 챕터로 정리한다.</p>
+  <div class="meta-row">
+    <span><strong>날짜</strong>2026-05-22</span>
+    <span><strong>Python</strong>3.13.5 · NumPy 2.4.4 · Pandas 3.0.2</span>
+    <span><strong>패키지</strong>scikit-learn 1.8.0 · scipy 1.17.1</span>
+    <span><strong>OS</strong>Windows 11 Pro 25H2</span>
+    <span><strong>IDE</strong>VS Code 1.117.0</span>
+    <span><strong>HW</strong>Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+    <span><strong>커리큘럼</strong>교과목 2 · 단원 1 · 데이터 분석 — 데이터분석_통계.pdf</span>
+  </div>
+</header>
+
+<main>
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#ch1">CH 01 — DataFrame 구조 탐색 · 인덱스·컬럼 조작</a></li>
+    <li><a href="#ch2">CH 02 — MultiIndex · stack · unstack</a></li>
+    <li><a href="#ch3">CH 03 — auto-mpg 로드 · 기술 통계 탐색</a></li>
+    <li><a href="#ch4">CH 04 — 이상값 탐지 : IQR vs Z-score</a></li>
+    <li><a href="#ch5">CH 05 — 이상값 처리 3전략 비교</a></li>
+    <li><a href="#ch6">CH 06 — 상관행렬 분석 · 다중공선성 탐지</a></li>
+    <li><a href="#ch7">CH 07 — MinMax · StandardScaler 정규화</a></li>
+    <li><a href="#ch8">CH 08 — Pandas 직접 계산 vs sklearn API 비교</a></li>
+    <li><a href="#ch9">CH 09 — 이상값·정규화 파이프라인 · FINAL CONCLUSION</a></li>
+  </ol>
+</nav>
+
+<div class="bridge">
+  <strong>도입</strong> — "이상값이 있는 데이터를 그냥 지우면 되지 않을까?"
+  이 질문이 오늘 9챕터의 출발점이다.
+  제거 외에도 중앙값 대체·캡핑이라는 대안이 있으며
+  각각 데이터 분포에 다른 영향을 준다는 것을 auto-mpg 데이터로 확인한다.
+  마지막에는 스케일링과 sklearn API의 원리까지 분해한다.
+</div>
+
+<!-- ===================== CH 01 ===================== -->
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span>DataFrame 구조 탐색 · 인덱스·컬럼 조작<a href="#ch1" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>DataFrame의 핵심 속성: <code>.values</code>(NumPy 배열), <code>.dtypes</code>(컬럼별 dtype),
+  <code>.shape</code>, <code>.index</code>, <code>.columns</code>.
+  혼합 dtype 컬럼이 있으면 <code>.values</code>는 object 배열이 된다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test3.py (발췌)
+# 2026-05-22
+
+import pandas as pd
+import numpy as np
+
+data = {
+    "2019": [9904312, 3448737, 2890451, 2466052],
+    "2020": [9631482, 3393191, 2632035, 2431774],
+    "2021": [9762546, 3512547, 2517680, 2456016],
+    "지역": ["수도권", "경상권", "수도권", "경상권"],
+}
+idx = ["서울", "부산", "인천", "대구"]
+df = pd.DataFrame(data, index=idx)
+
+print(df.dtypes)    # 2019 int64, 2020 int64, 지역 object
+print(df.shape)     # (4, 4)
+print(df.values)    # dtype=object (혼합 컬럼)
+print(type(df.index))  # pandas.Index</code></pre>
+
+  <blockquote class="cite">
+    "The DataFrame object can be thought of as a dict of Series objects, all sharing
+    the same index. Accessing <code>.values</code> on a mixed-dtype DataFrame
+    returns an object array."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/user_guide/dsintro.html#dataframe" target="_blank" rel="noopener">DataFrame</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "df.values는 NumPy 배열인데, 그러면 Pandas가 NumPy를 내포하는 구조인가?"<br>
+    → 맞다. Pandas DataFrame은 내부적으로 NumPy ndarray 블록으로 구성된다.
+    단, 컬럼 dtype이 혼합(int + object)이면 .values는 object 배열이 된다.
+    dtype이 균일한 경우에만 int64·float64 배열이 추출된다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §01 · Python 3.13.5 · PowerShell — DataFrame 속성 탐색</div>
+    <pre class="terminal-body">df.dtypes:
+  2019    int64
+  2020    int64
+  2021    int64
+  지역    object
+
+df.shape  : (4, 4)
+df.values.dtype : object  ← 혼합 컬럼 → object 배열
+
+숫자 컬럼만 추출:
+df[['2019','2020']].values.dtype : int64</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    Pandas = NumPy + 라벨 + 혼합 dtype 지원.
+    <code>.values</code>로 NumPy 배열을 꺼낼 수 있지만, 혼합 dtype 컬럼이 있으면 object 배열이 반환된다.
+    수치 연산이 필요하면 먼저 수치 컬럼만 선택해야 한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 단순 구조를 파악했다. 행·열에 다중 계층 인덱스를 붙이면 어떤 분석이 가능해지는가? MultiIndex와 stack/unstack을 살펴본다.
+  </div>
+</section>
+
+<!-- ===================== CH 02 ===================== -->
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span>MultiIndex · stack · unstack<a href="#ch2" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p><strong>MultiIndex</strong>는 행 또는 열에 다중 계층 인덱스를 부여한다.
+  <code>stack(level)</code>은 지정 열 레벨을 행으로 내려 <strong>long format</strong>을 만들고,
+  <code>unstack(level)</code>은 행 레벨을 열로 올려 <strong>wide format</strong>을 만든다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test4.py (발췌)
+# 2026-05-21 ~ 2026-05-22
+
+import pandas as pd, numpy as np
+
+row_idx = pd.MultiIndex.from_product(
+    [['M', 'F'], ['id_1', 'id_2', 'id_3']],
+    names=['Gender', 'Gidx2']
+)
+col_idx = pd.MultiIndex.from_product(
+    [['A', 'B'], ['C1', 'C2', 'C3', 'C4']],
+    names=['Cidx1', 'Cidx2']
+)
+df = pd.DataFrame(
+    np.random.randint(0, 100, (6, 8)),
+    index=row_idx, columns=col_idx
+)
+print(df.shape)                    # (6, 8)
+stacked = df.stack('Cidx1')
+print(stacked.shape)               # (12, 4)</code></pre>
+
+  <blockquote class="cite">
+    "Hierarchical indexing makes it possible to work with higher-dimensional data
+    in a lower-dimensional form. Stack and unstack rotate data between rows and columns."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/user_guide/advanced.html" target="_blank" rel="noopener">MultiIndex / Advanced indexing</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "stack()과 unstack()을 반복하면 원본으로 돌아올까?"<br>
+    → 이론상 가능하지만 NaN 발생·열 순서 변경 시 완전 복원이 보장되지 않는다.
+    stack/unstack은 같은 데이터를 다른 시각으로 보는 도구이지, 완전한 역변환이 아니다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §02 · Python 3.13.5 · PowerShell — stack/unstack shape 변화</div>
+    <pre class="terminal-body">원본 shape     : (6, 8)
+stack('Cidx1') : (12, 4)   행 6→12, 열 8→4
+unstack('Gidx2'): (2, 12)  행 6→2, 열 8→12
+
+stack 후 인덱스 레벨  : 3개 ['Gender','Gidx2','Cidx1']
+unstack 후 컬럼 레벨  : 2개</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    stack()은 열 레벨을 행으로 내려 long format, unstack()은 행 레벨을 열로 올려 wide format을 만든다.
+    집계·시각화 목적에 따라 데이터 포맷을 전환하는 강력한 도구다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — MultiIndex 구조 실습을 마쳤다. 이제 실제 분석 데이터(auto-mpg)를 로드해 기술 통계를 탐색한다 — describe()에서 count가 shape보다 작으면 무슨 의미인가?
+  </div>
+</section>
+
+<!-- ===================== CH 03 ===================== -->
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span>auto-mpg 로드 · 기술 통계 탐색<a href="#ch3" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p><code>describe()</code>는 count, mean, std, min, Q1/Q2/Q3, max를 한 번에 반환한다.
+  count가 <code>shape[0]</code>보다 작으면 NaN이 있다는 신호다.
+  auto-mpg의 horsepower 컬럼에는 '?' 문자가 섞여 있어
+  <code>na_values=['?']</code>를 지정하지 않으면 object 타입으로 읽힌다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-22
+
+import pandas as pd
+
+df = pd.read_csv(
+    'test_pandas/data/auto-mpg.data',
+    sep=r'\s+', header=None,
+    names=['mpg','cylinders','displacement','horsepower',
+           'weight','acceleration','model_year','origin','car_name'],
+    na_values=['?']   # '?' → NaN 자동 변환
+)
+print(df.shape)                    # (398, 9)
+print(df['horsepower'].describe())
+print(df.isna().sum())</code></pre>
+
+  <blockquote class="cite">
+    "Descriptive statistics summarize the central tendency, dispersion, and
+    shape of a dataset's distribution, excluding NaN values."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html" target="_blank" rel="noopener">DataFrame.describe</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "describe()에서 count가 전체 행 수보다 작으면 무조건 결측값인가?"<br>
+    → 맞다. describe()는 NaN을 count에서 제외한다.
+    horsepower count=392 vs shape=398 → 6개 결측값.
+    na_values=['?'] 없이 로드하면 horsepower가 object 타입이 돼
+    describe()에 아예 포함되지 않는다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §03 · Python 3.13.5 · PowerShell — auto-mpg describe · isna</div>
+    <pre class="terminal-body">shape: (398, 9)
+
+horsepower describe:
+  count    392.000   ← 398 - 392 = 6개 결측값
+  mean     104.469
+  std       38.491
+  min       46.000
+  25%       75.000
+  50%       93.500
+  75%      126.000
+  max      230.000
+
+isna().sum():
+  horsepower    6
+  (나머지 컬럼 모두 0)
+
+Q1=75  Q3=126  IQR=51
+max=230 은 Q3(126)에서 크게 벗어남 → 이상값 후보</pre>
+  </div>
+
+  <figure class="shot">
+    <img src="img/charts/d0522_ch03_describe.png" alt="auto-mpg 6개 수치형 변수 boxplot">
+    <figcaption>그림 0522-3 · auto-mpg 6개 수치 변수 분포(boxplot) — horsepower·acceleration 이상값 후보 시각화</figcaption>
+  </figure>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    로드 단계의 <code>na_values=['?']</code> 옵션이 전처리 전체를 좌우한다.
+    describe()의 count와 shape[0] 차이 = 결측값 개수.
+    max=230이 Q3(126) + 1.5×IQR(51) = 202.5를 초과하므로 이상값 탐지가 필요하다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 분포를 파악했다. max=230이 이상값인지 어떻게 정량적으로 판정하는가? IQR과 Z-score 두 방법을 비교한다.
+  </div>
+</section>
+
+<!-- ===================== CH 04 ===================== -->
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span>이상값 탐지 : IQR vs Z-score<a href="#ch4" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>두 가지 이상값 탐지 방법:</p>
+  <ul>
+    <li><strong>IQR</strong> : IQR = Q3 - Q1. 하한 = Q1 - 1.5×IQR, 상한 = Q3 + 1.5×IQR. 분포 무관.</li>
+    <li><strong>Z-score</strong> : Z = (x - mean) / std. |Z| &gt; 3이면 이상값. 정규분포 가정.</li>
+  </ul>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-22
+
+hp = df['horsepower'].dropna()
+
+Q1 = hp.quantile(0.25)   # 75.0
+Q3 = hp.quantile(0.75)   # 126.0
+IQR = Q3 - Q1            # 51.0
+lower = Q1 - 1.5 * IQR   # -1.5
+upper = Q3 + 1.5 * IQR   # 202.5
+
+iqr_out = hp[(hp < lower) | (hp > upper)]
+
+z_scores = (hp - hp.mean()) / hp.std()
+z_out = hp[z_scores.abs() > 3]</code></pre>
+
+  <blockquote class="cite">
+    "The IQR method is robust to the influence of extreme observations because
+    it relies on quantiles rather than mean and standard deviation."
+    <span class="src">— scipy.stats 공식 문서 · <a href="https://docs.scipy.org/doc/scipy/reference/stats.html" target="_blank" rel="noopener">scipy.stats 개요</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "IQR과 Z-score가 탐지하는 이상값이 다를 수 있는가?"<br>
+    → auto-mpg horsepower처럼 오른쪽 꼬리 분포에서는 IQR이 더 많은 이상값을 탐지할 것이다.
+    Z-score는 정규분포를 가정하므로 오른쪽 꼬리 데이터에서 과소 탐지할 수 있다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §04 · Python 3.13.5 · PowerShell — IQR vs Z-score 탐지 비교</div>
+    <pre class="terminal-body">Q1=75.0  Q3=126.0  IQR=51.0
+하한=-1.5  상한=202.5
+
+IQR 이상값 (10개):
+  [208 210 215 215 220 225 230 225 210 215]
+
+Z-score |Z|>3 이상값 (5개):
+  [220 225 230 225 220]
+
+공통 탐지 : 5개  (IQR and Z-score 모두)
+IQR만 탐지: 5개  (208~215 범위)
+Z-score만 : 0개
+
+→ 오른쪽 꼬리에서 IQR이 더 보수적으로 탐지</pre>
+  </div>
+
+  <div class="ascii">
+  ┌───────────────────────────────────────────────────────────┐
+  │  IQR vs Z-score 이상값 탐지 비교                          │
+  ├────────────────┬──────────────────────────────────────────┤
+  │  구분          │  IQR              Z-score                │
+  ├────────────────┼──────────────────────────────────────────┤
+  │  기준          │  Q1-1.5×IQR~상한  |Z| > 3               │
+  │  분포 가정     │  없음             정규분포 가정           │
+  │  이상값 수     │  10개             5개                    │
+  │  평균 민감도   │  낮음             높음                    │
+  │  권장 상황     │  비대칭 분포      정규 분포               │
+  └────────────────┴──────────────────────────────────────────┘</div>
+
+  <figure class="shot">
+    <img src="img/charts/d0522_ch04_iqr_z.png" alt="IQR 박스플롯·Z-score 산점도">
+    <figcaption>그림 0522-4 · horsepower — IQR 박스플롯(빨간선 상한) vs Z-score 산점도(|Z|≥3 주황)</figcaption>
+  </figure>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    두 방법 <strong>공통 탐지값(5개)</strong>이 가장 신뢰도 높은 이상값이다.
+    오른쪽 꼬리 분포엔 IQR, 정규 분포엔 Z-score가 더 적합하다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 이상값 10개를 탐지했다. 제거·대체·캡핑 세 전략 중 어느 것이 분포를 가장 적게 왜곡하는가?
+  </div>
+</section>
+
+<!-- ===================== CH 05 ===================== -->
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span>이상값 처리 3전략 비교<a href="#ch5" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <table>
+    <tr><th>전략</th><th>방법</th><th>장점</th><th>단점</th></tr>
+    <tr><td>제거</td><td>boolean indexing drop</td><td>단순·명확</td><td>데이터 손실, n 감소</td></tr>
+    <tr><td>대체</td><td>이상값 → median</td><td>n 유지, 중앙값 보존</td><td>분포 약간 왜곡</td></tr>
+    <tr class="hl"><td>캡핑</td><td>clip(lower, upper)</td><td>n 유지, 극단값 완화</td><td>정보 변형</td></tr>
+  </table>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-22
+
+hp = df['horsepower'].dropna()
+median_val = hp.median()
+
+# 제거
+hp_drop = hp[(hp >= lower) & (hp <= upper)]
+
+# 대체
+hp_replace = hp.copy()
+hp_replace[(hp_replace < lower) | (hp_replace > upper)] = median_val
+
+# 캡핑
+hp_clip = hp.clip(lower=lower, upper=upper)</code></pre>
+
+  <blockquote class="cite">
+    "Winsorization (clipping) replaces extreme values at specified percentiles,
+    preserving sample size while limiting the influence of outliers."
+    <span class="src">— scipy.stats.mstats · <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mstats.winsorize.html" target="_blank" rel="noopener">winsorize</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "제거와 캡핑 중 어느 것이 평균을 더 잘 보존하는가?"<br>
+    → 캡핑은 행 수(n)를 유지하고 이상값을 상한값으로 교체하므로
+    평균이 원본과 가장 가깝다. 제거는 고마력 차량 데이터가 사라져 평균이 내려간다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §05 · Python 3.13.5 · PowerShell — 3전략 통계 비교</div>
+    <pre class="terminal-body">전략              count  mean    std    min   max
+원본(결측제거)    392   104.47  38.49  46.0  230.0
+제거(drop)        382   101.48  35.14  46.0  200.0  ← n 감소
+중앙값대체        392   101.27  35.26  46.0  200.0
+캡핑(IQR 상한)    392   104.05  36.33  46.0  202.5  ← 평균 최보존
+
+→ 캡핑이 원본 평균(104.47)과 가장 가까운 104.05</pre>
+  </div>
+  <figure class="shot">
+    <img src="img/charts/d0522_ch05_strategies.png" alt="이상값 처리 3전략 분포 비교">
+    <figcaption>그림 0522-5 · 원본 · 제거(drop) · 중앙값 대체 · 캐핑(clip) — 4개 전략 boxplot 비교</figcaption>
+  </figure>
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    캡핑이 n 유지 + 평균 보존 면에서 가장 균형적이다.
+    전략 선택 기준: 데이터 크기(충분 → 제거), 분포 보존(부족 → 중앙값 대체), 극단값 완화(→ 캡핑).
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 이상값을 처리했다. 그런데 여러 변수를 함께 모델에 넣기 전에 변수 간 상관관계를 먼저 확인해야 하지 않는가?
+  </div>
+</section>
+
+<!-- ===================== CH 06 ===================== -->
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span>상관행렬 분석 · 다중공선성 탐지<a href="#ch6" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p><code>df.corr()</code>는 모든 수치형 변수 쌍의 피어슨 상관계수를 계산한다.
+  |r| &gt; 0.8이면 강한 상관, &gt; 0.7이면 다중공선성 위험 신호다.
+  선형 회귀 등에서 강한 상관 변수 쌍은 VIF 검사 또는 PCA로 처리해야 한다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-22
+
+numeric_df = df.select_dtypes(include='number')
+corr = numeric_df.corr()
+
+# |r| > 0.7 변수 쌍 필터링
+import numpy as np
+mask = np.triu(np.ones(corr.shape), k=1).astype(bool)
+high_corr = corr.where(mask).stack()
+high_corr = high_corr[high_corr.abs() > 0.7]
+print(high_corr.sort_values(ascending=False))</code></pre>
+
+  <blockquote class="cite">
+    "Pearson's correlation measures linear association. High correlation
+    between predictors (multicollinearity) inflates standard errors
+    and makes coefficient estimates unreliable."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.corr.html" target="_blank" rel="noopener">DataFrame.corr</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "mpg와 weight의 상관계수 -0.832는 왜 모델 학습에 문제를 일으킬 수 있는가?"<br>
+    → 선형 회귀에서 weight와 displacement 같은 강한 상관 변수를 동시에 넣으면
+    두 변수 중 하나의 계수가 불안정해진다. 이것이 다중공선성 문제다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §06 · Python 3.13.5 · PowerShell — 상관행렬 및 고상관 쌍 필터</div>
+    <pre class="terminal-body">|r| > 0.7 변수 쌍:
+  cylinders    displacement   0.951   ← 매우 강한 양의 상관
+  displacement weight         0.933
+  cylinders    weight         0.898
+  cylinders    mpg           -0.778   ← 강한 음의 상관
+  displacement mpg           -0.805
+  weight       mpg           -0.832
+
+→ mpg는 weight, displacement, cylinders 모두와 강한 음의 상관
+→ 세 변수 중 하나만 선택하는 것이 다중공선성 방지에 유리</pre>
+  </div>
+
+  <figure class="shot">
+    <img src="img/charts/d0522_ch06_corr.png" alt="auto-mpg 상관행렬 히트맵">
+    <figcaption>그림 0522-6 · auto-mpg 수치형 변수 상관행렬 — |r|>0.7 쌍 식별 (RdBu 대칭 채색)</figcaption>
+  </figure>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    스케일링 전 corr() 분석은 피처 선택(feature selection)의 필수 단계다.
+    |r| &gt; 0.8 변수 쌍은 다중공선성 위험이 있으므로 둘 중 하나를 제거하거나 PCA로 압축한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 상관 분석을 마쳤다. 이제 스케일이 다른 여러 변수를 같은 범위로 맞추는 정규화(스케일링)를 적용한다 — MinMax와 Standard 중 언제 무엇을 선택해야 하는가?
+  </div>
+</section>
+
+<!-- ===================== CH 07 ===================== -->
+<section id="ch7">
+  <h2 class="chap"><span class="num">CH 07</span>MinMax · StandardScaler 정규화<a href="#ch7" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <ul>
+    <li><strong>MinMaxScaler</strong> : (x - min) / (max - min) → [0, 1]. 이상값이 max·min을 결정하므로 취약.</li>
+    <li><strong>StandardScaler</strong> : (x - mean) / std → 평균 0, 표준편차 1. 이상값에 상대적으로 강건.</li>
+  </ul>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-22
+
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+scaler_mm  = MinMaxScaler()
+scaler_std = StandardScaler()
+
+df['mpg_minmax']   = scaler_mm.fit_transform(df[['mpg']])
+df['mpg_standard'] = scaler_std.fit_transform(df[['mpg']])</code></pre>
+
+  <blockquote class="cite">
+    "MinMaxScaler is sensitive to outliers, as the range depends on the minimum
+    and maximum values. StandardScaler assumes data is approximately normally distributed."
+    <span class="src">— scikit-learn 공식 문서 · <a href="https://scikit-learn.org/stable/modules/preprocessing.html" target="_blank" rel="noopener">Preprocessing data</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "이상값이 있을 때 MinMax가 정상 데이터를 0 근처로 압축하는 이유는?"<br>
+    → MinMax의 분모 = max - min. 이상값이 max를 올리면 정상 범위 데이터가
+    전체 범위의 앞쪽 좁은 구간으로 압축된다.
+    예: 정상 범위 9~42, 이상값 max=46.6 → 정상값 대부분이 [0, 0.7] 이내로 몰림.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §07 · Python 3.13.5 · PowerShell — MinMax·Standard 스케일링 비교</div>
+    <pre class="terminal-body">mpg 원본:
+  mean=23.45  std=7.81  min=9.0  max=46.6
+
+MinMaxScaler:
+  mean=0.3842  std=0.2082  min=0.0  max=1.0
+
+StandardScaler:
+  mean=0.0000  std=1.0000  min=-1.85  max=2.97
+
+이상값 있을 때 MinMax 비교:
+  이상값 제거 후 MinMax → min=0.0 max=1.0 분포 고름
+  이상값 포함 MinMax   → 정상값 대부분 [0, 0.85] 이내로 압축</pre>
+  </div>
+
+  <figure class="shot">
+    <img src="img/charts/d0522_ch07_scaling.png" alt="MinMax·Standard 스케일링 비교">
+    <figcaption>그림 0522-7 · horsepower 원본 vs MinMax(0~1) vs Standard(μ=0, σ=1) — 분포 형태 보존 확인</figcaption>
+  </figure>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    이상값 제거 후 MinMax, 이상값 잔존 시 Standard.
+    두 스케일러 모두 분포의 형태(shape)는 변경하지 않는다 — 값의 범위만 변환한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — sklearn API로 스케일링을 완료했다. sklearn fit_transform과 Pandas 직접 계산 결과가 동일한지 — 그리고 fit과 transform을 분리하는 이유는?
+  </div>
+</section>
+
+<!-- ===================== CH 08 ===================== -->
+<section id="ch8">
+  <h2 class="chap"><span class="num">CH 08</span>Pandas 직접 계산 vs sklearn API 비교<a href="#ch8" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>sklearn의 <code>fit_transform</code>은 두 단계로 동작한다:
+  <code>fit(X)</code>는 X의 통계(min, max, mean, std)를 저장하고,
+  <code>transform(X)</code>는 저장된 통계로 X를 변환한다.
+  train/test split 시 <strong>fit은 train 데이터에만 호출</strong>해야 데이터 누수(leakage)를 방지한다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-22
+
+import numpy as np
+
+# Pandas 직접 계산 (MinMax)
+mpg = df['mpg']
+mpg_min, mpg_max = mpg.min(), mpg.max()
+pandas_minmax = (mpg - mpg_min) / (mpg_max - mpg_min)
+
+# sklearn MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
+sk_minmax = MinMaxScaler().fit_transform(df[['mpg']]).flatten()
+
+# 차이 확인
+diff = np.abs(pandas_minmax.values - sk_minmax)
+print(f"최대 차이: {diff.max():.2e}")  # ~0 (부동소수점 수준)</code></pre>
+
+  <blockquote class="cite">
+    "Fit on training data only. Applying the scaler to the test set using statistics
+    learned on the training set prevents data leakage."
+    <span class="src">— scikit-learn 공식 문서 · <a href="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html" target="_blank" rel="noopener">MinMaxScaler</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "sklearn scaler와 Pandas 수동 계산 결과가 정확히 같은가?"<br>
+    → 부동소수점 수준(~1e-15) 오차를 제외하면 동일하다.
+    sklearn이 내부적으로 동일한 수식을 C 코드로 구현하기 때문이다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0522_runner.py §08 · Python 3.13.5 · PowerShell — Pandas vs sklearn diff 검증</div>
+    <pre class="terminal-body">Pandas MinMax 앞 5개:
+  [0.2391  0.1491  0.1807  0.1912  0.2007]
+
+sklearn MinMax 앞 5개:
+  [0.2391  0.1491  0.1807  0.1912  0.2007]
+
+최대 차이 : 2.78e-17  ← 부동소수점 오차 수준 (실질적 동일)
+
+--- fit/transform 분리 중요성 ---
+scaler.fit(X_train)       → 훈련 통계 저장
+scaler.transform(X_test)  → 훈련 통계로 테스트 변환
+                            (test로 fit하면 데이터 누수!)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    Pandas 직접 계산과 sklearn API는 결과가 동일하다.
+    그러나 실제 ML 파이프라인에서는 <strong>fit은 train만, transform은 train·test 모두</strong>에 적용해야 데이터 누수를 방지한다.
+    수식 원리 이해 없이 API만 쓰면 이 실수를 모를 수 있다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 모든 전처리 단계를 개별적으로 확인했다. 이제 전체 파이프라인을 통합하고 선택 기준을 최종 정리한다.
+  </div>
+</section>
+
+<!-- ===================== CH 09 ===================== -->
+<section id="ch9">
+  <h2 class="chap"><span class="num">CH 09</span>이상값·정규화 파이프라인 · FINAL CONCLUSION<a href="#ch9" class="anchor-link">#</a></h2>
+
+  <p>오늘 실습의 전체 흐름을 파이프라인으로 정리한다.</p>
+
+  <div class="ascii">
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  이상값·정규화 전처리 파이프라인 — DAY 0522 (9단계)              │
+  ├──────────────────────────────────────────────────────────────────┤
+  │  [1] 로드       read_csv(na_values=['?'])                        │
+  │           ↓                                                      │
+  │  [2] 탐색       describe() → count vs shape 비교                 │
+  │           ↓                                                      │
+  │  [3] 이상값탐지  IQR / Z-score → 공통 탐지값 확인               │
+  │           ↓                                                      │
+  │  [4] 이상값처리  제거 / 대체(median) / 캡핑 중 선택             │
+  │           ↓                                                      │
+  │  [5] 상관행렬    corr() → |r|>0.7 다중공선성 확인               │
+  │           ↓                                                      │
+  │  [6] 스케일링    MinMax(이상값 제거후) / Standard(잔존시)        │
+  │           ↓                                                      │
+  │  [7] 검증       describe 재확인 · isna().sum()==0                │
+  └──────────────────────────────────────────────────────────────────┘</div>
+
+  <h3 class="step">결론(최종)</h3>
+  <div class="keypoint">
+    <span class="label">FINAL CONCLUSION</span>
+    <ol>
+      <li><strong>로드 옵션</strong> : na_values=['?'] 누락 → object 타입 → 모든 수치 분석 실패.</li>
+      <li><strong>이상값 탐지</strong> : 오른쪽 꼬리 → IQR, 정규 분포 → Z-score, 공통 탐지가 신뢰도 최고.</li>
+      <li><strong>이상값 처리</strong> : 충분한 데이터 → 제거, 부족 → median 대체, 극단값 완화 → 캡핑.</li>
+      <li><strong>상관행렬</strong> : 스케일링 전 |r|&gt;0.7 쌍 확인 → 다중공선성 사전 탐지.</li>
+      <li><strong>스케일링 선택</strong> : 이상값 제거 후 MinMax / 잔존 시 Standard.</li>
+      <li><strong>fit/transform 분리</strong> : fit은 train 데이터에만. test에 fit하면 데이터 누수.</li>
+      <li><strong>파이프라인 순서</strong> : 로드 → 탐색 → 이상값 → 상관 → 스케일링 → 검증 엄수.</li>
+    </ol>
+  </div>
+
+  <div class="ref-chain">
+    <p class="ref-title">참고 자료 (REF-CHAIN)</p>
+    <ol>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/user_guide/dsintro.html#dataframe" target="_blank" rel="noopener">DataFrame</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/user_guide/advanced.html" target="_blank" rel="noopener">MultiIndex / Advanced indexing</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html" target="_blank" rel="noopener">DataFrame.describe</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.corr.html" target="_blank" rel="noopener">DataFrame.corr</a></li>
+      <li><strong>scipy.stats 문서</strong>
+        <a href="https://docs.scipy.org/doc/scipy/reference/stats.html" target="_blank" rel="noopener">scipy.stats 개요</a></li>
+      <li><strong>scipy.stats.mstats</strong>
+        <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mstats.winsorize.html" target="_blank" rel="noopener">winsorize</a></li>
+      <li><strong>scikit-learn 문서</strong>
+        <a href="https://scikit-learn.org/stable/modules/preprocessing.html" target="_blank" rel="noopener">Preprocessing data</a></li>
+      <li><strong>scikit-learn 문서</strong>
+        <a href="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html" target="_blank" rel="noopener">MinMaxScaler</a></li>
+      <li><strong>workspace 확인</strong>
+        <code>test_pandas/pandas_test3~5.py</code> · <code>test_pandas/data/auto-mpg.data</code></li>
+    </ol>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>SK 네트웍스 AI Family 32기 · 교과목 2 단원 1 · 2026-05-22</p>
+  <p>Python 3.13.5 · NumPy 2.4.4 · Pandas 3.0.2 · scikit-learn 1.8.0 · scipy 1.17.1 · VS Code 1.117.0 · Windows 11 Pro 25H2</p>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>

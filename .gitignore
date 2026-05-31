@@ -1,11 +1,11 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 *.pyc
 
-# 媛?곹솚寃?
+# 가상환경
 .venv/
 venv/
 env/
@@ -14,22 +14,22 @@ ENV/
 # VS Code
 .vscode/
 
-# 諛고룷/鍮뚮뱶
+# 배포/빌드
 *.egg-info/
 dist/
 build/
 *.egg
 
-# ?뺤텞?뚯씪
+# 압축파일
 *.zip
 *.tar.gz
 *.rar
 
-# ?섍꼍?ㅼ젙
+# 환경설정
 .env
 .env.*
 
-# OS 愿??
+# OS 관련
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -37,5 +37,5 @@ desktop.ini
 # pytest
 .pytest_cache/
 
-# study
-.study
+# study (작업 초안·노트·스크립트 — 공개 제외)
+/.study/

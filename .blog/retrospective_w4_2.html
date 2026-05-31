@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>0520-0522 회고: 데이터 분석 도구 — NumPy·Pandas 전처리 3일 — SK 네트웍스 AI 32기 5주차</title>
+  <meta name="description" content="SK 네트웍스 AI Family 32기 부트캠프 5주차(2026/05/20~22) 실습 회고. NumPy 분석 도구, 변수 변환·결측값 처리, 이상값 탐지·정규화까지 3일의 학습을 정리한다.">
+  <meta property="og:title" content="0520-0522 회고: NumPy·Pandas 데이터 전처리 3일">
+  <meta property="og:description" content="NumPy 분석 도구 → 변수 변환·결측값 처리 → 이상값 탐지·정규화 · 5주차 데이터 분석 실습 회고">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="0520-0522 회고: NumPy·Pandas 데이터 전처리 3일">
+  <meta name="twitter:description" content="NumPy 분석 도구 → 변수 변환·결측값 처리 → 이상값 탐지·정규화 · 5주차 데이터 분석 실습 회고">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+:root {
+  color-scheme: light;
+  --ink:#1f2933; --muted:#667085; --line:#d7dee8;
+  --paper:#ffffff; --surface:#ffffff;
+  --accent:#52A97E; --accent-2:#E8875A; --accent-3:#5B9BD5; --accent-4:#9178C4;
+  --accent-soft:#EBF7F1; --warn-soft:#FFF1E8;
+  --code-bg:#1e1e1e; --code-ink:#e5e7eb;
+  --shadow:none;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Nanum Gothic Coding","Segoe UI",Arial,sans-serif;
+  line-height:1.78; font-size:16px; }
+a { color:var(--accent-3); text-underline-offset:3px; }
+.page { width:min(880px, calc(100% - 32px)); margin:0 auto; }
+header.cover { padding:48px 0 24px; border-bottom:3px solid var(--ink); }
+.eyebrow { font-size:0.9rem; color:var(--muted); letter-spacing:0.06em;
+  text-transform:uppercase; margin:0 0 8px; }
+h1 { font-size:2rem; line-height:1.32; margin:6px 0 12px; letter-spacing:-0.01em; }
+.deck { font-size:1.05rem; color:#374151; margin:0 0 18px; }
+.meta-row { display:flex; flex-wrap:wrap; gap:12px 18px;
+  font-size:0.92rem; color:var(--muted); padding-top:10px;
+  border-top:1px solid var(--line); }
+.meta-row strong { color:var(--ink); margin-right:6px; }
+main { padding:36px 0 60px; }
+nav.toc { border-top:3px solid var(--ink); border-bottom:1px solid var(--line);
+  padding:14px 0 18px; margin:0 0 30px; }
+nav.toc h2 { font-size:0.95rem; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+nav.toc ol { list-style:none; padding:0; margin:0;
+  display:grid; grid-template-columns:repeat(2,1fr); gap:4px 16px; font-size:0.95rem; }
+nav.toc a { color:var(--ink); text-decoration:none; border-bottom:1px dashed transparent; }
+nav.toc a:hover { border-bottom-color:var(--accent-3); }
+section { margin:48px 0 0; }
+h2.chap { font-size:1.45rem; margin:0 0 14px; padding:14px 0 8px;
+  border-top:3px solid var(--ink); position:relative; }
+h2.chap .num { display:inline-block; border:2px solid var(--accent);
+  color:var(--accent); padding:1px 8px; font-size:0.8rem;
+  margin-right:10px; vertical-align:middle; letter-spacing:0.04em; }
+h2.chap .anchor-link { float:right; color:var(--muted); font-weight:400;
+  text-decoration:none; opacity:0; transition:opacity .15s; }
+h2.chap:hover .anchor-link { opacity:1; }
+h3.step { margin:22px 0 10px; font-size:1.05rem; letter-spacing:0.04em;
+  color:var(--accent-3); border-left:4px solid var(--accent-3); padding-left:10px; }
+p { margin:10px 0; }
+ul, ol { padding-left:1.4em; }
+li { margin:4px 0; }
+strong { color:var(--ink); }
+.qbox { border-left:4px solid var(--accent-3); background:#EBF4FF;
+  padding:12px 16px; margin:14px 0; }
+.qbox .label { display:inline-block; background:var(--accent-3); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.keypoint { border-left:4px solid var(--accent); background:var(--accent-soft);
+  padding:12px 16px; margin:14px 0; }
+.keypoint .label { display:inline-block; background:var(--accent); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.callout { border-left:4px solid var(--accent-2); background:var(--warn-soft);
+  padding:12px 16px; margin:14px 0; }
+.callout .label { display:inline-block; background:var(--accent-2); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.bridge { border-left:4px solid var(--muted); background:#F4F6F9;
+  padding:10px 14px; margin:18px 0 4px; font-size:0.94rem; color:#374151; }
+.bridge strong { color:var(--ink); }
+blockquote.cite { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:12px 16px; margin:14px 0; font-style:normal; }
+blockquote.cite .src { display:block; color:var(--muted);
+  font-size:0.9em; margin-top:6px; }
+code { font-family:"Cascadia Code","Consolas","D2Coding",monospace;
+  background:#EEF0F6; padding:1px 5px; font-size:0.92em; }
+pre { background:var(--code-bg); color:var(--code-ink); padding:16px;
+  overflow-x:auto; font-size:0.88rem; line-height:1.55; margin:14px 0;
+  border:1px solid #2a2a2a; }
+pre code { background:transparent; padding:0; color:inherit;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; }
+table { border-collapse:collapse; width:100%; margin:14px 0; font-size:0.95rem; }
+th, td { border:1px solid var(--line); padding:6px 10px;
+  text-align:left; vertical-align:top; }
+th { background:#EEF0F5; color:var(--ink); }
+footer { padding:30px 0 60px; border-top:3px solid var(--ink); margin-top:50px;
+  color:var(--muted); font-size:0.9rem; }
+footer p { margin:6px 0; }
+.ref-chain { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:14px 18px; margin:24px 0; }
+.ref-chain .ref-title { color:var(--accent-4); font-weight:700;
+  margin:0 0 8px; letter-spacing:0.04em; }
+.ref-chain ol { padding-left:1.4em; margin:0; }
+.ref-chain li { margin:4px 0; font-size:0.93rem; }
+.day-badge { display:inline-block; background:var(--ink); color:#fff;
+  padding:2px 10px; font-size:0.82rem; margin-right:8px;
+  letter-spacing:0.04em; vertical-align:middle; }
+.ascii { font-family:"Nanum Gothic Coding","Cascadia Code","Consolas",monospace;
+  white-space:pre; line-height:1.6; font-size:0.88rem;
+  background:#F8F9FA; border:1px solid var(--line);
+  padding:14px 16px; margin:14px 0; overflow-x:auto; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+<header class="cover">
+  <p class="eyebrow">Python · 5주차 회고 · 부트캠프</p>
+  <h1>0520-0522 회고: 데이터 분석 도구 — NumPy·Pandas 전처리 3일</h1>
+  <p class="deck">이 글은 SK 네트웍스 AI Family 32기 부트캠프 5주차 전반부(2026/05/20~22)의 학습 회고다.
+  단위 프로젝트가 마무리된 직후 "데이터 분석"이라는 교과 주제로 전환되면서
+  NumPy의 분석 도구를 시작으로 변수 변환·결측값 처리, 이상값 탐지·정규화까지
+  3일간 진행한 학습 과정과 그 안에서 얻은 인사이트를 정리한다.</p>
+  <div class="meta-row">
+    <span><strong>작성일</strong>2026-05-28</span>
+    <span><strong>기간</strong>2026/05/20(화) ~ 05/22(목)</span>
+    <span><strong>Python</strong>3.13.5 · NumPy 2.4.4 · Pandas 3.0.2</span>
+    <span><strong>SW</strong>VS Code 1.117.0 · Windows 11 Pro 25H2 · PowerShell</span>
+    <span><strong>HW</strong>Asrock x600 · Ryzen 8600G · 24GB · RTX 4070 Super</span>
+    <span><strong>커리큘럼</strong>교과목 2 · 단원 1 — 데이터분석_라이브러리.pdf · 데이터전처리.pdf · 데이터분석_통계.pdf</span>
+  </div>
+</header>
+
+<main>
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#ch1">CH 01 — 5주차 전환: 단위 프로젝트 → 데이터 분석</a></li>
+    <li><a href="#ch2">CH 02 — 0520: NumPy 분석 도구와 라이브러리 생태계</a></li>
+    <li><a href="#ch3">CH 03 — 0521: 변수 변환과 결측값 처리</a></li>
+    <li><a href="#ch4">CH 04 — 0522: 이상값 탐지와 데이터 정규화</a></li>
+    <li><a href="#ch5">CH 05 — 3일의 연결: 전처리 파이프라인으로 통합</a></li>
+    <li><a href="#ch6">CH 06 — 회고: 잘한 점 / 부족했던 점 / 다음 한 수</a></li>
+  </ol>
+</nav>
+
+<div class="bridge">
+  <strong>3일의 출발 목표</strong> — "분석하기 전에 데이터를 '분석 가능한 상태'로 만든다."
+  이 문장이 3일간 실습의 핵심이었다. dtype 탐지 → 결측값 채우기 → 이상값 제거·캡핑 →
+  스케일링까지, 각 단계는 독립적이지 않고 순서 있는 파이프라인이었다.
+  어떤 순서로 왜 그 방법을 선택해야 하는지를 데이터로 직접 검증하며 이해했다.
+</div>
+
+<!-- ===================== CH 01 ===================== -->
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span>5주차 전환: 단위 프로젝트 → 데이터 분석<a href="#ch1" class="anchor-link">#</a></h2>
+
+  <h3 class="step">상황</h3>
+  <p>0519(화) 팀 단위 프로젝트 발표를 마쳤다.
+  수소차 등록 현황·충전소·FAQ 통합 대시보드("물로간다")를 4일 만에 완성해 발표했고,
+  팀원 모두 최선을 다한 한 주였다.
+  그리고 0520(수)부터 바로 다음 교과 주제인 <strong>데이터 분석</strong>으로 전환됐다.</p>
+
+  <p>교재 자료는 세 PDF였다:
+  <strong>데이터분석_라이브러리.pdf</strong>(0520 기준),
+  <strong>데이터전처리.pdf</strong>(0521),
+  <strong>데이터분석_통계.pdf</strong>(0522).
+  각각 NumPy 분석 도구, 변수 변환·결측값, 이상값·정규화라는 독립된 주제를 다루면서도
+  사실 하나의 흐름이었다.</p>
+
+  <div class="qbox">
+    <span class="label">전환 질문</span>
+    "단위 프로젝트에서 MySQL·Streamlit을 했는데, 왜 갑자기 NumPy·Pandas인가?"<br>
+    → 데이터 분석 프로세스의 관점에서 보면 순서가 명확하다:
+    <strong>데이터 수집(크롤링) → 저장(DB) → 전처리(NumPy·Pandas) → 시각화 → 모델링.</strong>
+    단위 프로젝트에서 수집·저장을 실습했으니, 다음 단계인 전처리로 이동한 것이다.
+  </div>
+
+  <blockquote class="cite">
+    "The Data Science pipeline: Data Collection → Storage → Preprocessing → EDA → Modeling → Deployment.
+    Preprocessing (cleaning, transforming) typically takes 60-80% of total project time."
+    <span class="src">— 교재 데이터분석_라이브러리.pdf · 1장 데이터 분석 프로세스 개요</span>
+  </blockquote>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    단위 프로젝트(수집·저장)에서 데이터 분석(전처리·시각화)으로의 전환은
+    데이터 파이프라인의 자연스러운 다음 단계였다.
+    3일간의 실습은 "분석 가능한 데이터 만들기"라는 하나의 목표를 향해 이어진다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 4주제에서 5주차로의 전환 맥락을 파악했다. 0520에 어떤 뗄를 쉽기 시작했는지 들어가본다.
+  </div>
+</section>
+
+<!-- ===================== CH 02 ===================== -->
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span><span class="day-badge">0520</span>NumPy 분석 도구와 라이브러리 생태계<a href="#ch2" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습 내용</h3>
+  <p>0520의 핵심은 "왜 NumPy인가?"를 이해하는 것이었다.
+  Python 기본 리스트로도 수치 연산이 가능한데,
+  NumPy가 별도 라이브러리로 존재하는 이유는 <strong>C 기반 연속 메모리 배열(ndarray)</strong>과
+  <strong>BLAS/LAPACK 연동 선형대수 연산</strong> 때문이다.</p>
+
+  <table>
+    <tr><th>라이브러리</th><th>역할</th><th>의존성</th></tr>
+    <tr><td>NumPy</td><td>n차원 배열 연산 · 선형대수 · 난수 생성</td><td>기반 계층</td></tr>
+    <tr><td>Pandas</td><td>라벨 인덱스 + 테이블형 데이터</td><td>NumPy 위</td></tr>
+    <tr><td>matplotlib</td><td>시각화 기반</td><td>NumPy 위</td></tr>
+    <tr><td>scikit-learn</td><td>머신러닝 알고리즘</td><td>NumPy + SciPy</td></tr>
+  </table>
+
+  <p>실습에서는 <code>test_numpy/</code> 폴더에 numpy_test1~10.py를 작성하며
+  ndarray 생성·슬라이싱·연산·함수를 확인했다.
+  특히 <code>dtype</code> 지정과 NaN·Inf 전파 규칙이 처음에는 헷갈렸는데,
+  실제로 <code>np.array(['서울', '부산경남'], dtype='U3')</code> 에서
+  '부산경남'이 '부산경'으로 잘리는 것을 직접 확인하면서 완전히 이해했다.</p>
+
+  <blockquote class="cite">
+    "NumPy's ndarray is a fixed-type, contiguous-memory array.
+    Broadcasting allows universal functions to operate element-wise on arrays of different shapes."
+    <span class="src">— 교재 데이터분석_라이브러리.pdf · 2장 NumPy 기초</span>
+  </blockquote>
+
+  <h3 class="step">잘 이해된 것</h3>
+  <div class="keypoint">
+    <span class="label">이해 확인</span>
+    <ul>
+      <li>브로드캐스팅 규칙: 작은 배열이 큰 배열 shape에 맞게 확장되는 원리</li>
+      <li><code>nan == nan</code>이 <code>False</code>인 이유 — IEEE 754 표준</li>
+      <li>vstack/hstack의 shape 제약 — 연결 방향의 반대 축이 같아야 함</li>
+    </ul>
+  </div>
+
+  <h3 class="step">어려웠던 것</h3>
+  <div class="callout">
+    <span class="label">CHALLENGE</span>
+    <code>dtype='U3'</code>과 <code>dtype='S3'</code>의 차이(유니코드 vs. 바이트)를
+    처음엔 혼동했다. 한글은 유니코드 문자열(<code>U</code> 타입)로 처리해야 하며
+    <code>S</code> 타입으로 지정하면 한글이 올바르게 저장되지 않는다는 것을
+    직접 테스트 후 확인했다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — NumPy ndarray의 구조를 이해했다. 0521에는 NumPy를 기반으로 한 Pandas의 결측값 처리와 변수 변환으로 넘어간다.
+  </div>
+</section>
+
+<!-- ===================== CH 03 ===================== -->
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span><span class="day-badge">0521</span>변수 변환과 결측값 처리<a href="#ch3" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습 내용</h3>
+  <p>0521의 핵심 질문은 "결측값을 어떻게 처리하는 게 데이터를 덜 왜곡할까?"였다.
+  titanic 데이터셋의 age 컬럼(결측값 19.9%)으로 네 가지 전략을 비교했다.</p>
+
+  <table>
+    <tr><th>전략</th><th>mean</th><th>std</th><th>count</th></tr>
+    <tr><td>원본(NaN 포함)</td><td>29.70</td><td>14.53</td><td>714</td></tr>
+    <tr><td>fillna(0)</td><td>23.80</td><td>17.60</td><td>891</td></tr>
+    <tr><td>fillna(mean)</td><td>29.70</td><td>13.00</td><td>891</td></tr>
+    <tr><td>fillna(median)</td><td>29.36</td><td>13.02</td><td>891</td></tr>
+    <tr><td>dropna()</td><td>29.70</td><td>14.53</td><td>714</td></tr>
+  </table>
+
+  <p><code>fillna(0)</code>은 평균이 23.8로 떨어지고 표준편차가 17.6으로 치솟는다.
+  <strong>결측값이 "나이=0"과 같이 해석되어 분포를 심각하게 왜곡</strong>한다.
+  평균 대체는 평균을 유지하지만 표준편차가 13.0으로 줄어들었다 —
+  "<em>가짜로 채워진 값들이 분포를 좁힌다</em>"는 것을 수치로 확인한 것이다.</p>
+
+  <blockquote class="cite">
+    "Mean imputation preserves the mean but underestimates variance,
+    potentially leading to underfitting in downstream models."
+    <span class="src">— 교재 데이터전처리.pdf · 3장 결측값 처리 전략 비교</span>
+  </blockquote>
+
+  <h3 class="step">잘 이해된 것</h3>
+  <div class="keypoint">
+    <span class="label">이해 확인</span>
+    <ul>
+      <li><code>.iloc</code>(위치 기반)과 <code>.loc</code>(라벨 기반) 명시 구분 — 라벨이 정수일 때 혼동 방지</li>
+      <li>log 변환은 왜도를 줄이지만 <strong>이미 작은 왜도에 적용하면 역방향 왜도 발생</strong></li>
+      <li><code>pd.cut</code> 구간화는 해석 편의를 높이지만 예측 모델에서는 연속값이 원칙</li>
+    </ul>
+  </div>
+
+  <h3 class="step">어려웠던 것</h3>
+  <div class="callout">
+    <span class="label">CHALLENGE</span>
+    log1p 변환 후 왜도가 0.39 → -1.88로 오히려 반대 방향이 됐다.
+    처음엔 변환 코드가 잘못됐다고 생각했는데, titanic age의 원래 왜도가 이미 작아서
+    log 변환이 과보정이 된 것이었다.
+    <strong>왜도 크기를 먼저 확인하고 변환 여부를 결정해야 한다</strong>는 순서를 배웠다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 결측값 처리 전략을 파악했다. 0522에서는 정상 범위를 벗어나는 이상값을 어떻게 탐지하고 처리할지로 넘어간다.
+  </div>
+</section>
+
+<!-- ===================== CH 04 ===================== -->
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span><span class="day-badge">0522</span>이상값 탐지와 데이터 정규화<a href="#ch4" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습 내용</h3>
+  <p>0522의 핵심은 auto-mpg 데이터셋의 horsepower 컬럼으로
+  IQR과 Z-score 두 방법을 직접 비교한 것이었다.
+  IQR 기준(하한=-1.5, 상한=202.5)으로는 10개, Z-score(|Z|>3)로는 5개가 탐지됐다.
+  <strong>IQR이 Z-score보다 더 많은 이상값을 탐지</strong>했다.</p>
+
+  <table>
+    <tr><th>방법</th><th>이상값 수</th><th>범위</th><th>가정</th></tr>
+    <tr><td>IQR</td><td>10개</td><td>&gt;202.5 또는 &lt;-1.5</td><td>분포 무관</td></tr>
+    <tr><td>Z-score</td><td>5개</td><td>|Z| &gt; 3</td><td>정규분포</td></tr>
+    <tr><td>두 방법 공통</td><td>5개</td><td>220, 225, 225, 230 등</td><td>—</td></tr>
+  </table>
+
+  <p>이상값 처리 후 스케일링 비교:</p>
+  <ul>
+    <li><strong>MinMaxScaler</strong>: mpg → mean=0.3842, 범위 [0, 1]. 이상값에 민감.</li>
+    <li><strong>StandardScaler</strong>: mpg → mean=0.000, std=1.000. 정규분포에 안정적.</li>
+  </ul>
+
+  <blockquote class="cite">
+    "IQR-based outlier detection is more robust than Z-score for skewed distributions
+    because it relies on quantiles rather than mean and standard deviation."
+    <span class="src">— 교재 데이터분석_통계.pdf · 4장 이상값 탐지 기법 비교</span>
+  </blockquote>
+
+  <h3 class="step">잘 이해된 것</h3>
+  <div class="keypoint">
+    <span class="label">이해 확인</span>
+    <ul>
+      <li>IQR 방법이 Z-score보다 <strong>오른쪽 꼬리 분포</strong>에서 더 많은 이상값을 잡는 이유</li>
+      <li>이상값 처리 3전략(제거/대체/캡핑) 중 캡핑이 평균을 가장 잘 보존하는 이유</li>
+      <li>MinMax는 이상값 존재 시 정상값이 0 근처로 압축되는 메커니즘</li>
+    </ul>
+  </div>
+
+  <h3 class="step">어려웠던 것</h3>
+  <div class="callout">
+    <span class="label">CHALLENGE</span>
+    auto-mpg 데이터의 horsepower 열에 '?' 문자가 섞여 있어
+    <code>pd.read_csv()</code>로 불러오면 float이 아닌 object 타입이 된다.
+    <code>na_values=['?']</code>를 지정해야 NaN으로 자동 변환된다는 것을
+    describe()의 count 차이(398 vs. 392)에서 처음 발견했다.
+    <strong>로드 단계의 옵션이 전처리 결과를 좌우한다</strong>는 것을 체감했다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 3일의 개별 학습 내용을 파악했다. 세 날의 학습이 하나의 전처리 파이프라인으로 어떻게 연결되는지 정리한다.
+  </div>
+</section>
+
+<!-- ===================== CH 05 ===================== -->
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span>3일의 연결 — 전처리 파이프라인으로 통합<a href="#ch5" class="anchor-link">#</a></h2>
+
+  <p>0520~0522의 학습을 하나의 파이프라인으로 연결하면 다음과 같다.</p>
+
+  <div class="ascii">
+  ┌────────────────────────────────────────────────────────────┐
+  │  데이터 전처리 파이프라인 (0520~0522 통합)                 │
+  ├────────────────────────────────────────────────────────────┤
+  │  [0520]  탐색   dtype · shape · NaN/Inf 탐지              │
+  │           ↓                                                │
+  │  [0521]  결측   isna → fillna(mean/median) / dropna       │
+  │           ↓      변환  astype · log1p · pd.cut           │
+  │           ↓                                                │
+  │  [0522]  이상값  IQR / Z-score → 제거·대체·캡핑           │
+  │           ↓      스케일  MinMaxScaler / StandardScaler     │
+  │           ↓                                                │
+  │  [검증]  describe 재확인 · isna().sum()==0 · shape 확인   │
+  └────────────────────────────────────────────────────────────┘</div>
+
+  <p>각 단계는 "다음 단계가 올바르게 작동하기 위한 조건"을 만들어 준다.
+  dtype이 맞지 않으면 fillna가 실패하고,
+  이상값이 남아 있으면 MinMaxScaler 결과가 왜곡된다.
+  <strong>순서를 지키는 것 자체가 전처리 품질을 보장하는 방법</strong>이다.</p>
+
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    전처리는 "문제 있는 값을 고치는 것"이 아니라
+    "다음 분석 단계가 올바른 가정 위에서 작동하도록 보장하는 것"이다.
+    각 단계를 마칠 때마다 <code>describe()</code>로 검증하는 습관이 필요하다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 파이프라인 흐름을 정리했다. 3일을 학습하면서 잘한 점·부족했던 점·다음 한 수를 회고한다.
+  </div>
+</section>
+
+<!-- ===================== CH 06 ===================== -->
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span>회고 — 잘한 점 / 부족했던 점 / 다음 한 수<a href="#ch6" class="anchor-link">#</a></h2>
+
+  <h3 class="step">잘한 점</h3>
+  <ul>
+    <li><strong>실행으로 검증하는 습관</strong> — 모든 개념을 runner.py로 직접 실행해 확인했다.
+      "이럴 것 같다"가 아닌 실제 출력 숫자로 이해했다.</li>
+    <li><strong>비교 실험</strong> — fillna(0) vs. fillna(mean) vs. dropna, IQR vs. Z-score,
+      MinMax vs. Standard 등 같은 데이터로 여러 방법을 나란히 비교했다.
+      어느 방법이 언제 더 나은지를 수치로 이해했다.</li>
+    <li><strong>의문 기록</strong> — 이해가 막히는 시점에 "왜?"를 기록하고 테스트로 해결했다.
+      특히 log 변환 과보정 문제는 왜도 수치를 확인하지 않고 적용한 결과임을 스스로 찾아냈다.</li>
+  </ul>
+
+  <h3 class="step">부족했던 점</h3>
+  <div class="callout">
+    <span class="label">개선 필요</span>
+    <ul>
+      <li><strong>데이터 로드 옵션 무시</strong> — <code>na_values=['?']</code>처럼 로드 단계 옵션이
+        후속 전처리에 미치는 영향을 처음엔 간과했다.
+        실무에서는 원천 데이터의 결측 표현 방식을 먼저 파악해야 한다.</li>
+      <li><strong>시각화 부재</strong> — 0521~0522 실습에서 분포를 수치로만 확인했다.
+        histogram·boxplot을 함께 보면 왜도·이상값 판정이 훨씬 직관적이었을 것이다.
+        (0526 시각화 실습에서 보완됨)</li>
+      <li><strong>다중공선성 미확인</strong> — 상관행렬을 보지 않고 스케일링만 했다.
+        corr(mpg, weight)=-0.832처럼 강한 음의 상관이 있는 변수를 함께 모델에 넣으면
+        VIF 문제가 생긴다는 것을 0526 실습에서 사후 확인했다.</li>
+    </ul>
+  </div>
+
+  <h3 class="step">다음 한 수</h3>
+  <div class="keypoint">
+    <span class="label">ACTION PLAN</span>
+    <ol>
+      <li><strong>전처리 체크리스트 작성</strong> — 탐색·결측·이상값·스케일링·검증 5단계를
+        매 데이터셋에 적용하는 표준 순서를 내 것으로 만든다.</li>
+      <li><strong>시각화와 병행</strong> — 각 전처리 단계에서 histogram·boxplot을
+        동시에 출력해 수치 변화를 눈으로 확인하는 습관을 들인다.</li>
+      <li><strong>스케일러 선택 기준 명확화</strong> — 이상값 존재 여부와 모델 종류에 따라
+        MinMax/Standard/RobustScaler를 선택하는 기준을 정리해 둔다.</li>
+    </ol>
+  </div>
+
+  <div class="ref-chain">
+    <p class="ref-title">참고 자료 (REF-CHAIN)</p>
+    <ol>
+      <li><strong>교재</strong> 데이터분석_라이브러리.pdf — NumPy 배열 기초·브로드캐스팅·데이터 분석 라이브러리 생태계</li>
+      <li><strong>교재</strong> 데이터전처리.pdf — Pandas Series/DataFrame 인덱싱·결측값 처리 전략</li>
+      <li><strong>교재</strong> 데이터분석_통계.pdf — IQR/Z-score 이상값 탐지·MinMax/Standard 스케일링</li>
+      <li><strong>실습 폴더</strong>
+        <code>test_numpy/numpy_test1~10.py</code> · <code>test_pandas/pandas_test1~8.py</code>
+        — about.txt 기준 0520~0522 실습 코드</li>
+      <li><strong>관련 블로그 글</strong>
+        <a href="day0521_data_preprocessing.html">day0521 — 변수 변환과 결측값 처리</a> ·
+        <a href="day0522_outlier_normalization.html">day0522 — 이상값 탐지와 정규화</a></li>
+      <li><strong>NumPy 공식 문서</strong>
+        <a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener">NumPy 최신 문서</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/" target="_blank" rel="noopener">Pandas 최신 문서</a></li>
+    </ol>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>SK 네트웍스 AI Family 32기 · 5주차 전반부 회고 · 2026-05-28</p>
+  <p>Python 3.13.5 · NumPy 2.4.4 · Pandas 3.0.2 · VS Code 1.117.0 · Windows 11 Pro 25H2</p>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>

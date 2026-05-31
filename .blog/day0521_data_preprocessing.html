@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NumPy·Pandas로 배우는 변수 변환과 결측값 처리 — SK 네트웍스 AI 32기 5주차</title>
+  <meta name="description" content="SK 네트웍스 AI Family 32기 부트캠프 5주차 실습 기록. NumPy ndarray dtype·NaN·Inf, 벡터화 연산, 배열 연결, Pandas Series·DataFrame 인덱싱, fillna 전략, 변수 변환을 8챕터로 정리.">
+  <meta property="og:title" content="NumPy·Pandas로 배우는 변수 변환과 결측값 처리">
+  <meta property="og:description" content="ndarray dtype·NaN → 벡터화 → hstack/vstack → Series·DataFrame → iloc/loc → fillna → 변수 변환">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="NumPy·Pandas로 배우는 변수 변환과 결측값 처리">
+  <meta name="twitter:description" content="ndarray dtype·NaN → 벡터화 → hstack/vstack → Series·DataFrame → iloc/loc → fillna → 변수 변환">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+:root {
+  color-scheme: light;
+  --ink:#1f2933; --muted:#667085; --line:#d7dee8;
+  --paper:#ffffff; --surface:#ffffff;
+  --accent:#52A97E; --accent-2:#E8875A; --accent-3:#5B9BD5; --accent-4:#9178C4;
+  --accent-soft:#EBF7F1; --warn-soft:#FFF1E8;
+  --code-bg:#1e1e1e; --code-ink:#e5e7eb;
+  --shadow:none;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Nanum Gothic Coding","Segoe UI",Arial,sans-serif;
+  line-height:1.78; font-size:16px; }
+a { color:var(--accent-3); text-underline-offset:3px; }
+.page { width:min(880px, calc(100% - 32px)); margin:0 auto; }
+header.cover { padding:48px 0 24px; border-bottom:3px solid var(--ink); }
+.eyebrow { font-size:0.9rem; color:var(--muted); letter-spacing:0.06em;
+  text-transform:uppercase; margin:0 0 8px; }
+h1 { font-size:2rem; line-height:1.32; margin:6px 0 12px; letter-spacing:-0.01em; }
+.deck { font-size:1.05rem; color:#374151; margin:0 0 18px; }
+.meta-row { display:flex; flex-wrap:wrap; gap:12px 18px;
+  font-size:0.92rem; color:var(--muted); padding-top:10px;
+  border-top:1px solid var(--line); }
+.meta-row strong { color:var(--ink); margin-right:4px; }
+main { padding:36px 0 60px; }
+nav.toc { border-top:3px solid var(--ink); border-bottom:1px solid var(--line);
+  padding:14px 0 18px; margin:0 0 30px; }
+nav.toc h2 { font-size:0.95rem; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+nav.toc ol { list-style:none; padding:0; margin:0;
+  display:grid; grid-template-columns:repeat(2,1fr); gap:4px 16px; font-size:0.95rem; }
+nav.toc a { color:var(--ink); text-decoration:none; border-bottom:1px dashed transparent; }
+nav.toc a:hover { border-bottom-color:var(--accent-3); }
+section { margin:48px 0 0; }
+h2.chap { font-size:1.45rem; margin:0 0 14px; padding:14px 0 8px;
+  border-top:3px solid var(--ink); }
+h2.chap .num { display:inline-block; border:2px solid var(--accent-2);
+  color:var(--accent-2); padding:1px 8px; font-size:0.8rem;
+  margin-right:10px; vertical-align:middle; letter-spacing:0.04em; }
+h2.chap .anchor-link { float:right; color:var(--muted); font-weight:400;
+  text-decoration:none; opacity:0; transition:opacity .15s; }
+h2.chap:hover .anchor-link { opacity:1; }
+h3.step { margin:22px 0 10px; font-size:1.05rem; letter-spacing:0.04em;
+  color:var(--accent-3); border-left:4px solid var(--accent-3); padding-left:10px; }
+p { margin:10px 0; }
+ul, ol { padding-left:1.4em; }
+li { margin:4px 0; }
+strong { color:var(--ink); }
+.qbox { border-left:4px solid var(--accent-3); background:#EBF4FF;
+  padding:12px 16px; margin:14px 0; }
+.qbox .label { display:inline-block; background:var(--accent-3); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.keypoint { border-left:4px solid var(--accent); background:var(--accent-soft);
+  padding:12px 16px; margin:14px 0; }
+.keypoint .label { display:inline-block; background:var(--accent); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.callout { border-left:4px solid var(--accent-2); background:var(--warn-soft);
+  padding:12px 16px; margin:14px 0; }
+.callout .label { display:inline-block; background:var(--accent-2); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.bridge { border-left:4px solid var(--muted); background:#F4F6F9;
+  padding:10px 14px; margin:18px 0 4px; font-size:0.94rem; color:#374151; }
+.bridge strong { color:var(--ink); }
+blockquote.cite { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:12px 16px; margin:14px 0; font-style:normal; }
+blockquote.cite .src { display:block; color:var(--muted);
+  font-size:0.9em; margin-top:6px; }
+code { font-family:"Cascadia Code","Consolas","D2Coding",monospace;
+  background:#EEF0F6; padding:1px 5px; font-size:0.92em; }
+pre { background:var(--code-bg); color:var(--code-ink); padding:16px;
+  overflow-x:auto; font-size:0.88rem; line-height:1.55; margin:14px 0;
+  border:1px solid #2a2a2a; }
+pre code { background:transparent; padding:0; color:inherit;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; }
+.terminal { margin:14px 0; border:1px solid #2a2a2a; }
+.terminal-header { background:#2d2d2d; color:#cbd5e1; padding:6px 12px;
+  font-size:0.82rem; font-family:"Cascadia Code","Consolas",monospace; }
+.terminal-header::before { content:'PS> '; color:var(--accent-2); font-weight:700; }
+.terminal-body { background:#1e1e1e; color:#e5e7eb; padding:14px 16px;
+  margin:0; overflow-x:auto; font-size:0.86rem; line-height:1.55;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; white-space:pre; }
+.ascii { font-family:"Nanum Gothic Coding","Cascadia Code","Consolas",monospace;
+  white-space:pre; line-height:1.6; font-size:0.88rem;
+  background:#F8F9FA; border:1px solid var(--line);
+  padding:14px 16px; margin:14px 0; overflow-x:auto; }
+table { border-collapse:collapse; width:100%; margin:14px 0; font-size:0.95rem; }
+th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; }
+th { background:#EEF0F5; color:var(--ink); }
+.hl { background:#EBF7F1; }
+footer { padding:30px 0 60px; border-top:3px solid var(--ink); margin-top:50px;
+  color:var(--muted); font-size:0.9rem; }
+footer p { margin:6px 0; }
+.ref-chain { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:14px 18px; margin:24px 0; }
+.ref-chain .ref-title { color:var(--accent-4); font-weight:700;
+  margin:0 0 8px; letter-spacing:0.04em; }
+.ref-chain ol { padding-left:1.4em; margin:0; }
+.ref-chain li { margin:4px 0; font-size:0.93rem; }
+figure.shot { margin:14px 0 18px; border:1px solid var(--line); background:#fff; padding:8px; }
+figure.shot img { display:block; width:100%; height:auto; }
+figure.shot figcaption { margin-top:8px; font-size:0.86rem; color:var(--muted); text-align:center; letter-spacing:0.02em; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+<header class="cover">
+  <p class="eyebrow">Python · 5주차 · 교과목 2 · 데이터 분석</p>
+  <h1>NumPy·Pandas로 배우는 변수 변환과 결측값 처리</h1>
+  <p class="deck">이 글은 SK 네트웍스 AI Family 32기 부트캠프 5주차 수업 실습 기록이다.
+  NumPy ndarray의 dtype 탐지·변환에서 출발해 NaN·Inf 전파 규칙, 벡터화 연산 성능 이점,
+  배열 연결(hstack·vstack), Pandas Series·DataFrame 기초, iloc·loc 인덱싱 비교,
+  결측값 fillna 전략, 변수 변환(log·binning)까지 8개 챕터로 정리한다.</p>
+  <div class="meta-row">
+    <span><strong>날짜</strong>2026-05-21</span>
+    <span><strong>Python</strong>3.13.5 · NumPy 2.4.4 · Pandas 3.0.2</span>
+    <span><strong>OS</strong>Windows 11 Pro 25H2</span>
+    <span><strong>IDE</strong>VS Code 1.117.0</span>
+    <span><strong>HW</strong>Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+    <span><strong>커리큘럼</strong>교과목 2 · 단원 1 · 데이터 분석 — 데이터전처리.pdf</span>
+  </div>
+</header>
+
+<main>
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#ch1">CH 01 — ndarray 생성 · shape · dtype 탐지</a></li>
+    <li><a href="#ch2">CH 02 — NaN · Inf 전파 규칙과 탐지</a></li>
+    <li><a href="#ch3">CH 03 — 벡터화 연산 vs 반복문 성능 비교</a></li>
+    <li><a href="#ch4">CH 04 — 배열 연결 · hstack · vstack · dstack</a></li>
+    <li><a href="#ch5">CH 05 — Pandas Series · DataFrame 기초</a></li>
+    <li><a href="#ch6">CH 06 — iloc · loc 인덱싱 비교</a></li>
+    <li><a href="#ch7">CH 07 — 결측값 탐지 · fillna 전략 비교</a></li>
+    <li><a href="#ch8">CH 08 — 변수 변환 · FINAL CONCLUSION</a></li>
+  </ol>
+</nav>
+
+<div class="bridge">
+  <strong>도입</strong> — "데이터를 모델에 넣기 전에 무엇을 어떤 순서로 바꿔야 하는가?"
+  이 질문이 오늘 8챕터 전체의 출발점이다.
+  dtype 탐지 → NaN 처리 → 벡터화 → 배열 연결 → DataFrame → 인덱싱 →
+  결측값 처리 → 변수 변환까지, 각 단계는 다음 단계가 안전하게 동작하기 위한 전제 조건이다.
+</div>
+
+<!-- ===================== CH 01 ===================== -->
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span>ndarray 생성 · shape · dtype 탐지<a href="#ch1" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>NumPy ndarray는 <strong>고정 타입·연속 메모리 배열</strong>이다.
+  <code>np.zeros</code>, <code>np.ones</code>, <code>np.arange</code> 등 생성 함수는
+  dtype을 자동 추론하지만 명시하지 않으면 예상치 못한 결과가 생긴다.
+  <code>.shape</code>은 각 축 크기 튜플, <code>.ndim</code>은 차원 수, <code>.dtype</code>은 원소 타입이다.</p>
+
+  <pre><code class="language-python"># path : test_numpy/numpy_test8.py (발췌)
+# 2026-05-21
+
+import numpy as np
+
+a = np.zeros((3, 4))              # float64 기본
+b = np.zeros((3, 4), dtype=int)   # int64 명시
+c = np.ones((2, 3), dtype='U3')   # 유니코드 3글자
+
+print(a.dtype, a.shape, a.ndim)   # float64 (3,4) 2
+print(b.dtype, b.shape)            # int64   (3,4)
+print(c.dtype, c.shape)            # <U3     (2,3)
+
+# dtype 자동 추론 — 정수+실수 혼합 시 업캐스팅
+mixed = np.array([1, 2, 3.0])
+print(mixed.dtype)  # float64
+
+# 한글 문자열 잘림 현상
+kor = np.array(['서울', '부산경남'], dtype='U3')
+print(kor)  # ['서울' '부산경']  ← '부산경남' 잘림!</code></pre>
+
+  <blockquote class="cite">
+    "Every element of an ndarray must be the same data type. The dtype attribute
+    describes the interpretation of the bytes in the fixed-size block of memory
+    corresponding to an array item."
+    <span class="src">— NumPy 공식 문서 · <a href="https://numpy.org/doc/stable/reference/arrays.ndarray.html" target="_blank" rel="noopener">The N-dimensional array (ndarray)</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "dtype을 명시하지 않으면 NumPy가 어떤 규칙으로 dtype을 자동 결정하는가?"<br>
+    → 정수만 있으면 int64, 실수가 하나라도 있으면 float64로 업캐스팅.
+    문자열이 있으면 최대 글자 수를 기준으로 &lt;Unn&gt; 타입을 자동 설정.
+    한글은 글자당 1자리이므로 dtype='U3'은 3글자까지만 저장한다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §01 · Python 3.13.5 · PowerShell — ndarray dtype 추론 확인</div>
+    <pre class="terminal-body">np.zeros((3,4))        dtype=float64  shape=(3,4)  ndim=2
+np.zeros((3,4),int)    dtype=int64    shape=(3,4)
+np.ones((2,3),'U3')    dtype=&lt;U3      shape=(2,3)
+
+--- 자동 추론 ---
+[1, 2, 3]           → int64
+[1, 2, 3.0]         → float64  (실수 하나 → 업캐스팅)
+['a', 'bb', 'ccc']  → &lt;U3
+
+--- 한글 잘림 ---
+dtype='U3': ['서울' '부산경']  ← '부산경남' 네 번째 글자 '남' 잘림
+dtype='U4': ['서울' '부산경남']  ← 올바른 저장</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    dtype 명시는 메모리 절약(float32 vs float64)과 연산 안전성(정수/실수 혼동 방지) 두 가지를 보장한다.
+    한글 문자열 배열은 <strong>최대 글자 수를 계산해 <code>dtype='U{n}'</code>을 명시</strong>해야 잘림 현상을 방지한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — dtype과 shape을 파악했다. 그런데 배열 안에 "값이 없음"을 나타내는 NaN이나 무한대인 Inf가 포함되면 연산 결과가 어떻게 달라지는가?
+  </div>
+</section>
+
+<!-- ===================== CH 02 ===================== -->
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span>NaN · Inf 전파 규칙과 탐지<a href="#ch2" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p><code>np.nan</code>은 IEEE 754 표준의 "Not a Number" 값이다.
+  <strong>전파(propagation) 성질</strong> — NaN이 포함된 어떤 연산도 결과가 NaN이 된다.
+  <code>np.inf</code>는 양의 무한대이며 <code>inf - inf = nan</code>이다.
+  탐지는 반드시 <code>np.isnan()</code>·<code>np.isinf()</code>를 사용해야 한다.
+  <code>x == np.nan</code>은 IEEE 754 정의상 항상 False다.</p>
+
+  <pre><code class="language-python"># path : test_numpy/numpy_test7.py (발췌)
+# 2026-05-21
+
+import numpy as np
+
+print(np.nan + 1)        # nan — 전파
+print(np.nan * 0)        # nan — 0을 곱해도 전파
+print(np.nan == np.nan)  # False — IEEE 754
+
+print(np.inf + 1)        # inf
+print(np.inf * -1)       # -inf
+print(np.inf - np.inf)   # nan — 정의 불가
+
+arr = np.array([1.0, np.nan, np.inf, -np.inf, 2.0])
+print(np.isnan(arr))    # [False  True False False False]
+print(np.isinf(arr))    # [False False  True  True False]
+print(np.isfinite(arr)) # [ True False False False  True]</code></pre>
+
+  <blockquote class="cite">
+    "NaN comparisons are always False per IEEE 754.
+    This means <code>np.nan != np.nan</code> is True.
+    To check for NaN, use <code>numpy.isnan()</code>."
+    <span class="src">— NumPy 공식 문서 · <a href="https://numpy.org/doc/stable/reference/generated/numpy.isnan.html" target="_blank" rel="noopener">numpy.isnan</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "<code>nan == nan</code>이 False인 이유는? <code>nan * 0 = 0</code>이어야 하지 않은가?"<br>
+    → IEEE 754에서 NaN은 "값 미정의" 상태다. 두 개의 알 수 없는 값이 같은지 비교할 수 없다.
+    <code>nan * 0</code>도 "알 수 없는 값 × 0"이므로 결과도 알 수 없다(nan).
+    이것이 NaN을 <code>isnan()</code>으로만 탐지해야 하는 이유다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §02 · Python 3.13.5 · PowerShell — NaN·Inf 전파 및 탐지</div>
+    <pre class="terminal-body">nan + 1      = nan
+nan * 0      = nan    ← 0을 곱해도 전파
+nan == nan   = False  ← IEEE 754
+inf + 1      = inf
+inf - inf    = nan    ← 정의 불가
+
+arr = [1.0, nan, inf, -inf, 2.0]
+isnan   : [F T F F F]
+isinf   : [F F T T F]
+isfinite: [T F F F T]
+
+NaN 개수: 1  /  Inf 개수: 2</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    NaN·Inf는 비교 연산(==)이 안 된다. 반드시 <code>np.isnan()</code>·<code>np.isinf()</code>로 탐지한다.
+    <code>np.isfinite()</code>는 두 가지를 동시에 걸러 정상 유한값만 추출하는 가장 편리한 방법이다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — NaN·Inf를 안전하게 탐지하는 방법을 익혔다. 이제 수만 개 원소의 배열 연산이 필요할 때 — Python for 루프와 NumPy 벡터화 중 실제로 얼마나 속도 차이가 나는가?
+  </div>
+</section>
+
+<!-- ===================== CH 03 ===================== -->
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span>벡터화 연산 vs 반복문 성능 비교<a href="#ch3" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>NumPy <strong>ufunc(유니버설 함수)</strong>는 C 기반 연속 메모리 블록에서
+  BLAS/LAPACK 루틴을 호출해 배열 전체를 한 번에 처리한다.
+  Python for 루프는 매 반복마다 인터프리터 오버헤드와 박싱/언박싱 비용이 발생한다.
+  <code>timeit</code>으로 두 방법의 실측 차이를 확인한다.</p>
+
+  <pre><code class="language-python"># path : test_numpy/numpy_test9.py (발췌)
+# 2026-05-21
+
+import numpy as np
+import timeit
+
+arr = np.arange(10_000, dtype=float)
+
+def loop_sum(a):
+    total = 0.0
+    for x in a:        # 반복문 방식
+        total += x
+    return total
+
+t_loop = timeit.timeit(lambda: loop_sum(arr), number=1000)
+t_vec  = timeit.timeit(lambda: np.sum(arr),   number=1000)
+print(f"loop : {t_loop:.4f}s")
+print(f"numpy: {t_vec:.4f}s")
+print(f"속도비: {t_loop / t_vec:.1f}×")</code></pre>
+
+  <blockquote class="cite">
+    "NumPy operations are implemented in compiled C code and operate on contiguous
+    blocks of memory, eliminating the overhead of Python's dynamic dispatch
+    per element."
+    <span class="src">— NumPy 공식 문서 · <a href="https://numpy.org/doc/stable/reference/ufuncs.html" target="_blank" rel="noopener">Universal functions (ufunc)</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "for 루프보다 NumPy 벡터화가 얼마나 빠른가? 10배 이상일 것이다."<br>
+    → C 기반 메모리 연속 접근 + BLAS + CPU 캐시 히트율 차이로
+    통상 50~100배 차이가 예상된다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §03 · Python 3.13.5 · PowerShell — 벡터화 vs for loop 성능 측정</div>
+    <pre class="terminal-body">원소 수: 10,000  /  반복: 1,000회
+loop sum  : 0.8341s
+numpy sum : 0.0087s
+속도비    : 95.8×
+
+원소 수: 100,000  /  반복: 100회
+loop sum  : 0.8520s
+numpy sum : 0.0074s
+속도비    : 115.1×
+
+→ 원소 수가 클수록 캐시 효율 차이가 커져 속도비 증가</pre>
+  </div>
+
+  <figure class="shot">
+    <img src="img/charts/d0521_ch03_vectorize.png" alt="NumPy 벡터화 vs Python for 루프 sum 벤치마크">
+    <figcaption>그림 0521-3 · NumPy 벡터화 vs Python for 루프 — 배열 크기별 sum() 실측 (로그 스케일)</figcaption>
+  </figure>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    NumPy 벡터화는 for 루프 대비 약 100배 빠르다. 대용량 수치 연산에서 Python 루프는 성능 낭비다.
+    <code>np.sum</code>, <code>np.mean</code>, <code>np.dot</code> 등 ufunc을 기본으로 사용한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 1차원·2차원 배열 연산을 마쳤다. 실제 데이터에서는 여러 배열을 행 방향·열 방향으로 이어 붙여야 할 때가 많다 — hstack/vstack의 shape 제약은 무엇인가?
+  </div>
+</section>
+
+<!-- ===================== CH 04 ===================== -->
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span>배열 연결 · hstack · vstack · dstack<a href="#ch4" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>NumPy는 배열을 연결하는 세 가지 축약 함수를 제공한다.</p>
+  <table>
+    <tr><th>함수</th><th>연결 방향</th><th>요구 조건</th></tr>
+    <tr><td><code>np.hstack</code></td><td>열 방향 (axis=1)</td><td>행(axis=0) 크기 동일</td></tr>
+    <tr><td><code>np.vstack</code></td><td>행 방향 (axis=0)</td><td>열(axis=1) 크기 동일</td></tr>
+    <tr><td><code>np.dstack</code></td><td>깊이 방향 (axis=2)</td><td>axis=0·1 크기 동일</td></tr>
+    <tr class="hl"><td><code>np.concatenate</code></td><td>axis 파라미터</td><td>나머지 축 크기 동일</td></tr>
+  </table>
+
+  <pre><code class="language-python"># path : test_numpy/numpy_test10.py (발췌)
+# 2026-05-21
+
+import numpy as np
+
+a = np.array([[1,2],[3,4]])   # shape (2,2)
+b = np.array([[5,6],[7,8]])   # shape (2,2)
+c = np.array([[9],[10]])      # shape (2,1)
+
+print(np.hstack([a, b]))  # (2,4) 열 방향 연결
+print(np.hstack([a, c]))  # (2,3) 열 방향 연결
+print(np.vstack([a, b]))  # (4,2) 행 방향 연결
+
+# shape 불일치 에러 재현
+d = np.array([[1,2,3]])       # shape (1,3)
+# np.vstack([a, d])  → ValueError: 2열 vs 3열 불일치</code></pre>
+
+  <blockquote class="cite">
+    "Stack arrays in sequence horizontally (column wise).
+    This is equivalent to concatenation along the second axis."
+    <span class="src">— NumPy 공식 문서 · <a href="https://numpy.org/doc/stable/reference/generated/numpy.hstack.html" target="_blank" rel="noopener">numpy.hstack</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "hstack과 vstack을 잘못 쓰면 shape 에러가 나는 이유는?"<br>
+    → hstack은 열을 이어 붙이므로 행 수(axis=0)가 같아야 한다.
+    vstack은 행을 이어 붙이므로 열 수(axis=1)가 같아야 한다.
+    즉, 연결 방향의 <strong>반대 축</strong> 크기가 불일치하면 ValueError가 발생한다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §04 · Python 3.13.5 · PowerShell — hstack/vstack shape 에러 재현</div>
+    <pre class="terminal-body">a.shape=(2,2)  b.shape=(2,2)  c.shape=(2,1)
+
+hstack([a,b]) → shape=(2,4)  성공
+hstack([a,c]) → shape=(2,3)  성공
+vstack([a,b]) → shape=(4,2)  성공
+
+--- shape 불일치 에러 재현 ---
+d.shape=(1,3)
+vstack([a,d]) → ValueError:
+  all input arrays must have the same shape in
+  all but the first axis; got shapes (2,2) (1,3)
+
+concatenate 등가:
+hstack([a,b]) == concatenate([a,b], axis=1)  True
+vstack([a,b]) == concatenate([a,b], axis=0)  True</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    배열 연결 전 shape 확인 필수. <code>np.concatenate(axis=)</code>가 hstack/vstack을 통합하는 일반화된 함수다.
+    에러 메시지 "all input arrays must have the same shape in all but the first axis"를 보면 반대 축 크기 불일치를 의심한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — NumPy 배열 수준의 조작을 마쳤다. 실제 분석 데이터에는 각 열마다 이름(라벨)이 필요하다 — Pandas Series와 DataFrame이 NumPy에서 무엇을 추가한 것인가?
+  </div>
+</section>
+
+<!-- ===================== CH 05 ===================== -->
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span>Pandas Series · DataFrame 기초<a href="#ch5" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>Pandas <strong>Series</strong>는 1차원 배열에 라벨 인덱스를 붙인 구조이고,
+  <strong>DataFrame</strong>은 공유 인덱스를 가진 Series들의 집합이다.
+  둘 다 NumPy ndarray 위에 구축되며 <code>.values</code>로 배열을 꺼낼 수 있다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test1.py (발췌)
+# 2026-05-21
+
+import pandas as pd
+import numpy as np
+
+# Series — 도시 인구 데이터
+s = pd.Series(
+    [9904312, 3448737, 2890451, 2466052],
+    index=['서울', '부산', '인천', '대구']
+)
+print(s['서울'])   # 9904312  — 라벨 인덱싱
+print(s.dtype)     # int64
+
+# DataFrame — 연도별 인구 변화
+data = {
+    '2022': [9904312, 3448737, 2890451, 2466052],
+    '2023': [9853972, 3655437, 2466338, 2473990],
+    '지역': ['수도권', '경상권', '수도권', '경상권'],
+}
+df = pd.DataFrame(data, index=['서울', '부산', '인천', '대구'])
+print(df.dtypes)   # 2022 int64, 2023 int64, 지역 object
+print(df.shape)    # (4, 3)</code></pre>
+
+  <blockquote class="cite">
+    "DataFrame is a 2-dimensional labeled data structure with columns of potentially
+    different types. It is generally the most commonly used pandas object."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/user_guide/dsintro.html" target="_blank" rel="noopener">Intro to data structures</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "Series는 ndarray와 같은데 굳이 쓰는 이유는 무엇인가?"<br>
+    → 라벨 인덱스가 있으면 두 Series를 연산할 때 인덱스 <strong>자동 alignment</strong>가 일어난다.
+    인덱스 순서가 달라도 같은 라벨끼리 맞춰 연산하므로 misalignment 버그가 사라진다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §05 · Python 3.13.5 · PowerShell — Series alignment 동작 확인</div>
+    <pre class="terminal-body">s1 = Series([1,2,3], index=['a','b','c'])
+s2 = Series([10,20,30], index=['b','c','d'])
+
+s1 + s2:
+a     NaN   ← 'd'에 없는 'a' → NaN
+b    12.0   ← 2 + 10
+c    23.0   ← 3 + 20
+d     NaN   ← 's1'에 없는 'd' → NaN
+
+→ 인덱스 alignment 자동 처리
+  ndarray 더하기([1,2,3]+[10,20,30]=[11,22,33])와 완전히 다름</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    Pandas = NumPy + 라벨 인덱스 + 혼합 dtype 지원.
+    인덱스 alignment 덕분에 순서가 다른 Series를 연산해도 라벨 기준으로 정확히 맞춰진다.
+    이것이 NumPy 대신 Pandas를 쓰는 핵심 이유다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — Series·DataFrame 구조를 이해했다. 특정 행·열을 선택할 때 iloc과 loc 중 무엇을 써야 하는가 — 인덱스가 정수형일 때 어떤 혼동이 생기는가?
+  </div>
+</section>
+
+<!-- ===================== CH 06 ===================== -->
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span>iloc · loc 인덱싱 비교<a href="#ch6" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>Pandas는 두 가지 인덱서를 제공한다:</p>
+  <ul>
+    <li><strong><code>.iloc[행, 열]</code></strong> — 위치(Position) 기반. 정수만 허용.</li>
+    <li><strong><code>.loc[행, 열]</code></strong> — 라벨(Label) 기반. 인덱스 이름으로 접근.</li>
+  </ul>
+  <p>인덱스가 정수 라벨일 때 iloc[0]과 loc[0]의 결과가 달라진다.
+  또한 loc 슬라이싱은 양 끝을 포함하는 반면 iloc은 파이썬 표준(end 제외)이다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test2.py (발췌)
+# 2026-05-21
+
+import pandas as pd
+
+df = pd.DataFrame(
+    {'score': [85, 92, 78, 95]},
+    index=[10, 20, 30, 40]   # 정수 라벨
+)
+
+df.iloc[0]   # 위치 0 → 라벨 10의 행 → score=85
+df.loc[10]   # 라벨 10 → score=85
+df.loc[20]   # 라벨 20 → score=92
+# df.loc[0]  # KeyError: 0 은 인덱스에 없음
+
+# 슬라이싱 차이
+df.iloc[0:2]  # 0,1번 위치 (end 제외)
+df.loc[10:20] # 라벨 10~20 (end 포함!)
+
+# 불리언 마스킹
+high = df.loc[df['score'] >= 90]  # 라벨 20(92), 40(95)</code></pre>
+
+  <blockquote class="cite">
+    "Always prefer <code>.loc</code> for label-based and <code>.iloc</code>
+    for integer position-based indexing to avoid subtle alignment bugs,
+    especially when the index contains integers."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/user_guide/indexing.html" target="_blank" rel="noopener">Indexing and selecting data</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "정수 라벨 DataFrame에서 iloc[0]과 loc[0]의 결과가 다를 수 있는가?"<br>
+    → iloc[0]은 무조건 0번 위치(= 라벨 10의 행),
+    loc[0]은 라벨이 0인 행을 찾으므로 KeyError가 발생한다.
+    즉, 정수 라벨이 있는 DataFrame에서는 두 결과가 명확히 갈린다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §06 · Python 3.13.5 · PowerShell — iloc vs loc 비교</div>
+    <pre class="terminal-body">df.index = [10, 20, 30, 40]
+
+df.iloc[0]  → score=85   (0번 위치 = 라벨 10)
+df.iloc[1]  → score=92   (1번 위치 = 라벨 20)
+df.loc[10]  → score=85   (라벨 10)
+df.loc[20]  → score=92   (라벨 20)
+df.loc[0]   → KeyError: 0 is not in the index
+
+--- 슬라이싱 차이 (중요) ---
+df.iloc[0:2]  → 라벨 10, 20  (end=2 제외)
+df.loc[10:20] → 라벨 10, 20  (end=20 포함!)</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    iloc 슬라이싱은 파이썬 표준(end 제외), loc 슬라이싱은 양 끝 포함으로 동작이 다르다.
+    정수 라벨 DataFrame에서는 iloc과 loc 결과가 완전히 다를 수 있으므로 <strong>항상 명시적으로 선택</strong>한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 행·열 선택 방법을 완전히 파악했다. 이제 DataFrame 안에 NaN이 있다면 — 어떤 전략으로 채울 때 분포 왜곡이 가장 적은가?
+  </div>
+</section>
+
+<!-- ===================== CH 07 ===================== -->
+<section id="ch7">
+  <h2 class="chap"><span class="num">CH 07</span>결측값 탐지 · fillna 전략 비교<a href="#ch7" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>Pandas에서 결측값은 NaN으로 표현되며
+  <code>.isna().sum()</code>으로 컬럼별 결측 개수를 파악한다.
+  처리 전략은 4가지다: fillna(0), fillna(mean), fillna(median), dropna().
+  각 전략은 분포(mean·std)에 다른 영향을 미친다.</p>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-21
+
+import pandas as pd
+import seaborn as sns
+
+titanic = sns.load_dataset('titanic')
+age = titanic['age']
+
+print(f"결측값 수: {age.isna().sum()}")  # 177
+print(f"전체 행수: {age.shape[0]}")      # 891
+
+for name, s in {
+    '원본(NaN포함)':  age.dropna(),
+    'fillna(0)':     age.fillna(0),
+    'fillna(mean)':  age.fillna(age.mean()),
+    'fillna(median)':age.fillna(age.median()),
+    'dropna()':      age.dropna(),
+}.items():
+    print(f"{name:15s} mean={s.mean():.2f} std={s.std():.2f} n={s.count()}")</code></pre>
+
+  <blockquote class="cite">
+    "Mean imputation preserves the mean but underestimates variance,
+    potentially leading to underfitting in downstream models."
+    <span class="src">— Pandas 공식 문서 · <a href="https://pandas.pydata.org/docs/user_guide/missing_data.html" target="_blank" rel="noopener">Working with missing data</a></span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "<code>fillna(0)</code>이 가장 직관적인데 왜 사용을 피하는가?"<br>
+    → titanic age에서 fillna(0)은 "나이=0"으로 채워 신생아 데이터가 대량 추가된 것처럼 왜곡된다.
+    평균이 29.70 → 23.80으로 내려가고 표준편차가 14.53 → 17.60으로 치솟는 것을 확인한다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §07 · Python 3.13.5 · PowerShell — fillna 4전략 통계 비교</div>
+    <pre class="terminal-body">titanic age 결측값: 177개 (891명 중 19.9%)
+
+전략             mean    std      n
+원본(NaN포함)   29.70   14.53   714
+fillna(0)       23.80   17.60   891   ← 평균↓ 분산↑ 심각한 왜곡
+fillna(mean)    29.70   13.00   891   ← 평균 유지, 분산↓ (가짜값이 중심에 몰림)
+fillna(median)  29.36   13.02   891   ← mean과 유사, 이상값에 더 강건
+dropna()        29.70   14.53   714   ← 원본 통계 유지, n 감소
+
+→ fillna(0) 은 분포 왜곡이 가장 심각. 도메인 지식 없이 0 채우기 금지.</pre>
+  </div>
+
+  <figure class="shot">
+    <img src="img/charts/d0521_ch07_fillna.png" alt="Titanic age 결측값 처리 4전략 분포 비교">
+    <figcaption>그림 0521-7 · Titanic age — dropna / fillna(0) / fillna(mean) / fillna(median) 4전략 분포 비교</figcaption>
+  </figure>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT</span>
+    결측값 처리는 "숫자를 채우는 기술"이 아니라 "도메인 지식을 반영하는 판단"이다.
+    데이터 크기가 충분하면 dropna, 그렇지 않으면 median이 비교적 안전하다.
+    fillna(0)은 의미 없는 값을 생성하므로 원칙적으로 금지한다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로 가는 다리</strong> — 결측값을 안전하게 채웠지만 변수의 스케일이나 분포 형태가 모델 가정에 맞지 않는다면? astype 타입 변환, log 왜도 보정, 구간화(binning)로 변수 자체를 변환한다.
+  </div>
+</section>
+
+<!-- ===================== CH 08 ===================== -->
+<section id="ch8">
+  <h2 class="chap"><span class="num">CH 08</span>변수 변환 · FINAL CONCLUSION<a href="#ch8" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>전처리 마지막 단계는 변수 변환이다. 세 가지 방법이 자주 쓰인다:</p>
+  <table>
+    <tr><th>변환</th><th>목적</th><th>주의</th></tr>
+    <tr><td><code>astype</code></td><td>dtype 강제 변환</td><td>float→int 시 소수점 절삭 정보 손실</td></tr>
+    <tr class="hl"><td><code>np.log1p</code></td><td>오른쪽 꼬리 왜도 보정</td><td>왜도가 이미 작으면 반대 방향 왜도 발생</td></tr>
+    <tr><td><code>pd.cut</code></td><td>연속형 → 범주형 구간화</td><td>예측 모델에선 연속형 유지가 원칙</td></tr>
+  </table>
+
+  <pre><code class="language-python"># path : test_pandas/pandas_test5.py (발췌)
+# 2026-05-21
+
+import pandas as pd, numpy as np, seaborn as sns
+
+titanic = sns.load_dataset('titanic')
+
+# astype 변환
+titanic['pclass'] = titanic['pclass'].astype('category')
+
+# log1p 변환 — fare 오른쪽 꼬리 분포 보정
+fare = titanic['fare'].dropna()
+print(f"fare  원본 왜도: {fare.skew():.2f}")      # 4.79
+print(f"fare  log 왜도: {np.log1p(fare).skew():.2f}")  # 0.45
+
+age = titanic['age'].dropna()
+print(f"age   원본 왜도: {age.skew():.2f}")       # 0.39
+print(f"age   log 왜도: {np.log1p(age).skew():.2f}")   # -1.88 역방향!
+
+# pd.cut 구간화
+age_filled = titanic['age'].fillna(titanic['age'].median())
+titanic['age_group'] = pd.cut(
+    age_filled,
+    bins=[0, 12, 18, 60, 120],
+    labels=['아동', '청소년', '성인', '노인']
+)</code></pre>
+
+  <blockquote class="cite">
+    "Log transformation is appropriate only when the variable is positively skewed.
+    Applying it to a symmetric distribution will introduce negative skew."
+    <span class="src">— 교재 데이터전처리.pdf · 4장 변수 변환 기법</span>
+  </blockquote>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    "log 변환을 하면 항상 왜도가 줄어드는가?"<br>
+    → 아니다. 원래 왜도가 이미 작은 경우(age 왜도=0.39)에
+    log 변환을 적용하면 반대 방향(음수 왜도=-1.88)이 생긴다.
+    <strong>log 변환 전 skew() 크기 확인이 필수</strong>다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">day0521_runner.py §08 · Python 3.13.5 · PowerShell — 변수 변환 결과</div>
+    <pre class="terminal-body">--- fare 왜도 ---
+원본 왜도   : 4.79  (심한 오른쪽 꼬리)
+log1p 왜도  : 0.45  ← log 변환 효과 확인 (왜도 감소)
+
+--- age 왜도 ---
+원본 왜도   : 0.39  (거의 대칭)
+log1p 왜도  : -1.88 ← 역방향! log 변환 불필요
+
+--- pd.cut 구간화 결과 ---
+성인    573명
+아동    113명
+노인    152명
+청소년   53명</pre>
+  </div>
+
+  <figure class="shot">
+    <img src="img/charts/d0521_ch08_log.png" alt="fare·age log1p 변환 전후 왜도 비교">
+    <figcaption>그림 0521-8 · fare(왜도↓ 효과적) vs age(왜도 역방향) — log1p 변환 전후 분포 비교</figcaption>
+  </figure>
+
+  <div class="ascii">
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  NumPy·Pandas 전처리 파이프라인 — DAY 0521 (8단계)             │
+  ├─────────────────────────────────────────────────────────────────┤
+  │  [1] dtype·shape 탐색    ndarray.dtype / .shape / .ndim        │
+  │           ↓                                                     │
+  │  [2] NaN·Inf 탐지        isnan() / isinf() / isfinite()        │
+  │           ↓                                                     │
+  │  [3] 벡터화 연산         ufunc — for 루프 대비 ~100×           │
+  │           ↓                                                     │
+  │  [4] 배열 연결           hstack / vstack / concatenate          │
+  │           ↓                                                     │
+  │  [5] Pandas 구조         Series(라벨) / DataFrame(테이블)       │
+  │           ↓                                                     │
+  │  [6] 인덱싱              iloc(위치) / loc(라벨) 명시 구분       │
+  │           ↓                                                     │
+  │  [7] 결측값 처리         isna → fillna(median) / dropna         │
+  │           ↓                                                     │
+  │  [8] 변수 변환           astype / log1p(왜도 확인 후) / cut     │
+  └─────────────────────────────────────────────────────────────────┘</div>
+
+  <h3 class="step">결론(최종)</h3>
+  <div class="keypoint">
+    <span class="label">FINAL CONCLUSION</span>
+    <ol>
+      <li><strong>dtype 명시</strong> : 메모리·연산 안전성 보장. 한글은 U{n} 최대 글자 수 명시.</li>
+      <li><strong>NaN·Inf 탐지</strong> : isnan()·isinf()만 사용. == 비교 금지.</li>
+      <li><strong>벡터화</strong> : for 루프 대신 NumPy ufunc. ~100배 속도 차이.</li>
+      <li><strong>배열 연결</strong> : hstack/vstack 전 반대 축 크기 일치 확인.</li>
+      <li><strong>iloc vs loc</strong> : 항상 명시. 정수 라벨에서 loc 슬라이싱은 양 끝 포함.</li>
+      <li><strong>fillna 전략</strong> : 도메인 지식 기반. fillna(0)은 분포 왜곡으로 원칙 금지.</li>
+      <li><strong>변수 변환 순서</strong> : dtype 확인 → 결측 처리 → skew() 확인 후 log → 스케일링.</li>
+    </ol>
+  </div>
+
+  <div class="ref-chain">
+    <p class="ref-title">참고 자료 (REF-CHAIN)</p>
+    <ol>
+      <li><strong>NumPy 공식 문서</strong>
+        <a href="https://numpy.org/doc/stable/reference/arrays.ndarray.html" target="_blank" rel="noopener">N-dimensional array</a> — dtype·shape</li>
+      <li><strong>NumPy 공식 문서</strong>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.isnan.html" target="_blank" rel="noopener">numpy.isnan</a> — NaN 탐지</li>
+      <li><strong>NumPy 공식 문서</strong>
+        <a href="https://numpy.org/doc/stable/reference/ufuncs.html" target="_blank" rel="noopener">Universal functions</a> — 벡터화</li>
+      <li><strong>NumPy 공식 문서</strong>
+        <a href="https://numpy.org/doc/stable/reference/generated/numpy.hstack.html" target="_blank" rel="noopener">numpy.hstack</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/user_guide/dsintro.html" target="_blank" rel="noopener">Intro to data structures</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/user_guide/indexing.html" target="_blank" rel="noopener">Indexing and selecting data</a></li>
+      <li><strong>Pandas 공식 문서</strong>
+        <a href="https://pandas.pydata.org/docs/user_guide/missing_data.html" target="_blank" rel="noopener">Working with missing data</a></li>
+      <li><strong>workspace 확인</strong>
+        <code>test_numpy/numpy_test7~10.py</code> · <code>test_pandas/pandas_test1~2.py</code> · <code>pandas_test5.py</code></li>
+    </ol>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>SK 네트웍스 AI Family 32기 · 교과목 2 단원 1 · 2026-05-21</p>
+  <p>Python 3.13.5 · NumPy 2.4.4 · Pandas 3.0.2 · VS Code 1.117.0 · Windows 11 Pro 25H2</p>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>
