@@ -44,6 +44,11 @@
     |- 0522         :       ./test_pandas                                 | 이상값 처리, 데이터 정규화                              | 데이터분석_통계.pdf
     |- 0526         :       ./test_pandas                                 | 데이터 시각화 (matplotlib · seaborn)                   | 4_데이터시각화.pdf
     \                       ./test_numpy
+    |- 0527         :       ../ml_workspace                               | 머신러닝 학습방법과 데이터 관리, 회귀                       | 머신러닝_학습방법_데이터관리.pdf
+    |- 0528         :       ../ml_workspace                               | 머신러닝 회귀모델과 분류모델, 로지스틱 회귀                    | 머신러닝_회귀모델_분류모델.pdf
+    \                       ../google_ai_ml_engineering/google_ai_ml_eng                                                (BQML 분류 모델 실습: logistic_reg)
+    \                       ../google_ai_ml_engineering/NL_API                                                          (Natural Language API: 항목·감정 분석)
+    |- 0529         :       ../ml_workspace                               | 머신러닝 서포트 백터 머신(SVM) 구조                      | 머신러닝_서포트백터머신구조.pdf
     
 
 
