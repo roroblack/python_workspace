@@ -1,0 +1,52 @@
+--- 다중 인덱스 DataFrame ---
+Cidx1           A           B      
+Cidx2          C1    C2    C3    C4
+Gidx1 Gidx2                        
+M     id_1   0.55  0.72  0.60  0.54
+      id_2   0.42  0.65  0.44  0.89
+      id_3   0.96  0.38  0.79  0.53
+F     id_1   0.57  0.93  0.07  0.09
+      id_2   0.02  0.83  0.78  0.87
+      id_3   0.98  0.80  0.46  0.78
+
+--- 컬럼 A 그룹만 선택 ---
+Cidx2          C1    C2
+Gidx1 Gidx2            
+M     id_1   0.55  0.72
+      id_2   0.42  0.65
+      id_3   0.96  0.38
+F     id_1   0.57  0.93
+      id_2   0.02  0.83
+      id_3   0.98  0.80
+
+--- 그룹 M 행만 선택 ---
+Cidx1     A           B      
+Cidx2    C1    C2    C3    C4
+Gidx2                        
+id_1   0.55  0.72  0.60  0.54
+id_2   0.42  0.65  0.44  0.89
+id_3   0.96  0.38  0.79  0.53
+
+--- stack(Cidx1) ---
+Cidx2                C1    C2    C3    C4
+Gidx1 Gidx2 Cidx1                        
+M     id_1  A      0.55  0.72   NaN   NaN
+            B       NaN   NaN  0.60  0.54
+      id_2  A      0.42  0.65   NaN   NaN
+            B       NaN   NaN  0.44  0.89
+      id_3  A      0.96  0.38   NaN   NaN
+            B       NaN   NaN  0.79  0.53
+F     id_1  A      0.57  0.93   NaN   NaN
+            B       NaN   NaN  0.07  0.09
+      id_2  A      0.02  0.83   NaN   NaN
+            B       NaN   NaN  0.78  0.87
+      id_3  A      0.98  0.80   NaN   NaN
+            B       NaN   NaN  0.46  0.78
+
+--- unstack(Gidx2) ---
+Cidx1     A                                   B                              
+Cidx2    C1                C2                C3                C4            
+Gidx2  id_1  id_2  id_3  id_1  id_2  id_3  id_1  id_2  id_3  id_1  id_2  id_3
+Gidx1                                                                        
+F      0.57  0.02  0.98  0.93  0.83  0.80  0.07  0.78  0.46  0.09  0.87  0.78
+M      0.55  0.42  0.96  0.72  0.65  0.38  0.60  0.44  0.79  0.54  0.89  0.53

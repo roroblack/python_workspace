@@ -1,0 +1,48 @@
+=== rebuild_terminals.py 실행 시각: 2026-05-10 00:32:47.367484 ===
+logs 폴더: c:\_proj\python_workspace\.study\test\2-dict\logs
+
+[읽기 OK] 01_create.txt  (508 bytes)
+[읽기 OK] 02_access.txt  (255 bytes)
+[읽기 OK] 03_mutate.txt  (469 bytes)
+[읽기 OK] 04_views.txt  (311 bytes)
+[읽기 OK] 05_order.txt  (199 bytes)
+[읽기 OK] 06_copy.txt  (332 bytes)
+[읽기 OK] 07_merge.txt  (208 bytes)
+[읽기 OK] 08_comprehension.txt  (248 bytes)
+[읽기 OK] 09_hash_sizeof.txt  (733 bytes)
+[읽기 OK] 10_employee.txt  (669 bytes)
+[읽기 OK] 11_runtime_error.txt  (196 bytes)
+
+HTML에서 발견된 터미널 블록: 11개
+  [1] §?? — 270자
+  [2] §?? — 270자
+  [3] §?? — 270자
+  [4] §?? — 270자
+  [5] §?? — 270자
+  [6] §?? — 270자
+  [7] §?? — 270자
+  [8] §?? — 270자
+  [9] §10 — 269자
+  [10] §11 — 269자
+  [11] §09 — 269자
+  교체: §10 (10_employee)
+  교체: §11 (11_runtime_error)
+  교체: §09 (09_hash_sizeof)
+
+총 교체: 3개
+저장 완료: c:\_proj\python_workspace\.study\blog\dict.html
+
+=== 검증 ===
+figure.shot 잔여: 0
+terminal 블록 수: 11
+  §01_create: 'dict():      {'name': 'aman', 'age': 33,' → ✓ 있음
+  §02_access: 'd['a'] = 1' → ✓ 있음
+  §03_mutate: 'after set/add: {'a': 100, 'b': 2, 'c': 3' → ✓ 있음
+  §04_views: 'keys  : dict_keys(['a', 'b', 'c'])' → ✓ 있음
+  §05_order: 'insertion order : [('c', 99), ('a', 97),' → ✓ 있음
+  §06_copy: 'src    : {'name': '홍길동', 'ids': [1, 2, 3' → ✓ 있음
+  §07_merge: 'a | b : {'x': 1, 'y': 20, 'z': 30}' → ✓ 있음
+  §08_comprehension: 'squares: {1: 1, 2: 4, 3: 9, 4: 16, 5: 25' → ✓ 있음
+  §09_hash_sizeof: 'len -> sys.getsizeof(dict)' → ✓ 있음
+  §10_employee: '>> 전체 출력' → ✓ 있음
+  §11_runtime_error: 'RuntimeError: dictionary changed size du' → ✓ 있음

@@ -1,0 +1,8 @@
+============================================================
+# 07_payment_system
+============================================================
+    카드 *3456: 50,000원 청구
+  [16:24:58] CreditCard 50,000원 결제 성공
+    계좌 6789: 50,000원 이체
+  [16:24:58] BankTransfer 50,000원 결제 성공
+TypeError: Can't instantiate abstract class BrokenGateway without an implementation for abstract method 'refund'

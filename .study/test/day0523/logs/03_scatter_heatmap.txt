@@ -1,0 +1,12 @@
+--- 상관행렬 ---
+                mpg  cylinders  displacement  horsepower  weight  acceleration
+mpg           1.000     -0.778        -0.805      -0.778  -0.832         0.423
+cylinders    -0.778      1.000         0.951       0.843   0.898        -0.505
+displacement -0.805      0.951         1.000       0.897   0.933        -0.544
+horsepower   -0.778      0.843         0.897       1.000   0.865        -0.689
+weight       -0.832      0.898         0.933       0.865   1.000        -0.417
+acceleration  0.423     -0.505        -0.544      -0.689  -0.417         1.000
+
+mpg ↔ horsepower 상관계수 : -0.778
+mpg ↔ weight     상관계수 : -0.832
+PNG 저장 : c:\_proj\python_workspace\.study\write\tmp\..\..\test\day0523\logs\03_scatter_heatmap.png  (base64 길이: 81252 문자)

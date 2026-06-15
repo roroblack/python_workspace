@@ -1,0 +1,24 @@
+============================================================
+# 03_rules
+============================================================
+min_support=0.01, min_confidence=0.20 기준
+빈발 itemset 수: 333   생성 규칙 수: 234
+
+[lift 상위 10개 규칙]
+선행(antecedent)                          후행                        sup   conf   lift
+------------------------------------------------------------------------------------
+{citrus fruit, other vegetables}        {root vegetables}      0.0104  0.359  3.295
+{other vegetables, yogurt}              {whipped/sour cream}   0.0102  0.234  3.267
+{other vegetables, tropical fruit}      {root vegetables}      0.0123  0.343  3.145
+{beef}                                  {root vegetables}      0.0174  0.331  3.040
+{citrus fruit, root vegetables}         {other vegetables}     0.0104  0.586  3.030
+{root vegetables, tropical fruit}       {other vegetables}     0.0123  0.585  3.021
+{other vegetables, whole milk}          {root vegetables}      0.0232  0.310  2.842
+{root vegetables}                       {other vegetables, whole milk} 0.0232  0.213  2.842
+{butter}                                {other vegetables, whole milk} 0.0115  0.207  2.771
+{curd, whole milk}                      {yogurt}               0.0101  0.385  2.761
+
+최고 lift 규칙 : {citrus fruit, other vegetables} -> {root vegetables}
+  support=0.0104 confidence=0.359 lift=3.295
+최고 support 규칙: {other vegetables} -> {whole milk} (support=0.0748)
+최고 confidence 규칙: {citrus fruit, root vegetables} -> {other vegetables} (confidence=0.586)

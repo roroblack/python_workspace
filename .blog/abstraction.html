@@ -453,7 +453,7 @@
 <section class="bridge">
   이 글은 한 줄짜리 의문에서 시작한다 — <strong>"파이썬에는 <code>interface</code> 키워드가 없는데, 어떻게 인터페이스를 강제하는가?"</strong>
   답을 찾기 위해 먼저 비교 대상이 되는 C/C++ 의 vtable 모델을 살펴본 뒤(CH00),
-  파이썬의 기본인 덕 타이핑이 어디서 무너지는지 확인하고(CH01),
+  파이썬의 기본인 덕 타이핑이 어디서 낮아지는지 확인하고(CH01),
   그 빈틈을 메우는 두 도구 — <code>ABC</code>(CH02·03·06)와 <code>Protocol</code>(CH04) — 을 차례로 추적한다.
   그 둘이 어떻게 갈라지는지 결정하고(CH05) 실전 결제 시스템에 적용한 뒤(CH07),
   워크스페이스 참조 코드 <code>class_oop4.py</code> 한 줄 — 주석 처리된 <code>Animal()</code> — 의 의미를 확정짓는다(CH08).
@@ -592,12 +592,12 @@ Child.method() 호출
   <span class="label">PARTIAL — 가설 통과</span>
   세 항목 모두 예측대로 동작했다. 파이썬은 vtable을 쓰지 않고 <strong>호출마다 <code>__mro__</code> 순서로 <code>__dict__</code>를 뒤진다</strong>.
   이것이 덕 타이핑과 런타임 메서드 교체의 토대이며, 동시에 <strong>구현 누락을 컴파일 타임에 잡지 못한다</strong>는
-  치명적인 단점의 출처이기도 하다 — <code>Stone</code>의 <code>AttributeError</code>가 그 단점을 그대로 노출했다.
+  심각한 단점의 출처이기도 하다 — <code>Stone</code>의 <code>AttributeError</code>가 그 단점을 그대로 노출했다.
 </div>
 <div class="bridge">
   <strong>다음 챕터로 가는 다리</strong> — 이 단점이 실제 OOP 코드에서는 어떻게 드러날까?
   워크스페이스 참조 파일 <code>python_oop/class_oop3.py</code>의 <code>Animal/Dog/Cat</code> 다형성 루프가
-  이 토대 위에서 어떻게 동작하는지, 그리고 어디서 무너지는지를 CH01에서 직접 본다.
+  이 토대 위에서 어떻게 동작하는지, 그리고 어디서 낮아지는지를 CH01에서 직접 본다.
 </div>
 
 <!-- ────────────────────────────────────────────────────────
@@ -1229,7 +1229,7 @@ type(IWriter) = &lt;class 'abc.ABCMeta'&gt;</pre>
 <div class="keypoint">
   <span class="label">KEY POINT</span>
   세 가설 모두 통과 — 이론(공식 문서) 과 내부(<code>Lib/abc.py</code> + <code>typeobject.c</code>) 가 그대로 일치한다.
-  ABC 의 차단은 마법이 아니라 단지 <strong><code>__abstractmethods__</code> frozenset 이 비어있는지 검사</strong>하는 한 줄이다.
+  ABC 의 차단은 특별한 비법이 아니라 단지 <strong><code>__abstractmethods__</code> frozenset 이 비어있는지 검사</strong>하는 한 줄이다.
   공집합이 되는 순간 게이트가 열린다.
 </div>
 <div class="bridge">
@@ -1424,7 +1424,7 @@ issubclass(Dog, Animal):   True</pre>
   덕분에 덕 타이핑이 가능하지만, 구현 누락은 호출 시점에야 드러난다 (CH01).<br>
   ② 그 약점을 보완하는 두 도구는 — <strong>ABC</strong> 가 객체 생성 시점에 차단(CH02·03·07)하고,
   <strong>Protocol</strong> 이 상속 변경 없이 구조적 호환을 표현(CH04)한다. 둘은 배타적이지 않다(CH05).<br>
-  ③ ABC 의 차단은 마법이 아니라 <code>__abstractmethods__</code> frozenset 한 줄짜리 검사다(CH06).<br>
+  ③ ABC 의 차단은 특별한 비법이 아니라 <code>__abstractmethods__</code> frozenset 한 줄짜리 검사다(CH06).<br>
   ④ 그래서 <code>class_oop4.py</code> 의 <code>Animal()</code> 줄이 <strong>주석 처리되어야만 했던 것</strong> 이고,
   그 주석은 ABC 의 본체 — "부모 직접 생성 차단, 자식 인식은 유지" — 의 결과다.<br>
   요컨대 인터페이스 키워드의 부재는 결함이 아니라 설계 선택이며, 그 빈자리는 <strong>ABC 와 Protocol 두 도구의 조합</strong> 으로 메워진다.

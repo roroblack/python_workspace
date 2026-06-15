@@ -1,0 +1,10 @@
+============================================================
+# 01_create
+============================================================
+dict():      {'name': 'aman', 'age': 33, 'city': 'seoul'} dict
+literal:     {'name': 'Alice', 'age': 30, 'city': 'New York'}
+from list:   {'a': 1, 'b': 2, 'c': 3}
+from zip:    {'x': 10, 'y': 20, 'z': 30}
+fromkeys:    {'a': 0, 'b': 0, 'c': 0}
+mixed keys:  {1: 'int key', 'a': 'str key', (1, 2): 'tuple key', 3.14: 'float key'}
+list key  -> TypeError: unhashable type: 'list'

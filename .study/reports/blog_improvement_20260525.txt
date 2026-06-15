@@ -1,0 +1,155 @@
+================================================================================
+블로그 개선 완료 보고서
+작성일: 2026-05-25
+대상 파일: .blog/ 디렉터리 내 5개 HTML 파일
+================================================================================
+
+■ 개요
+────────────────────────────────────────────────────────────────────────────────
+blog_audit_20260525.txt 에서 도출한 모든 위반 항목을 반영하고,
+5개 파일 전체에 걸쳐 GUIDE.txt §2·§3·§17 요건을 충족시킨 작업 기록이다.
+
+
+■ 작업 기준 (GUIDE.txt 핵심 규칙)
+────────────────────────────────────────────────────────────────────────────────
+§2   챕터 마이크로 구조
+      학습 → 테스트(terminal) → 의문→가설(qbox) → 결론(keypoint) → bridge
+      마지막 챕터: "최종 정리" h3 (table/요약) → "최종 결론" h3 → FINAL CONCLUSION keypoint
+
+§3   필수 head 메타 태그
+      og:title / og:description / og:type / twitter:card / twitter:title / twitter:description
+
+§17  챕터별 인라인 인용 (blockquote.cite)
+      챕터당 1-2개, 코드·학습 콘텐츠 직후 qbox 이전에 배치
+
+
+■ 파일별 변경 내역
+────────────────────────────────────────────────────────────────────────────────
+
+1. day0512_mysql_constraints.html
+   [MySQL 제약조건 — NOT NULL / UNIQUE / PK / CHECK / FK]
+
+   변경 전: bridges=1 cites=0 og=False tw=False
+   변경 후: bridges=6 cites=5 og=True  tw=True
+
+   ▶ 추가된 항목
+   - OG 메타 태그 3개 (og:title, og:description, og:type)
+   - Twitter 카드 메타 태그 3개 (twitter:card, twitter:title, twitter:description)
+   - CH01 인용: MySQL Reference Manual § NOT NULL Constraint
+   - CH02 인용: MySQL CREATE INDEX § NULL Values in UNIQUE Indexes
+   - CH03 인용: MySQL Reference Manual § PRIMARY KEY
+   - CH04 인용: MySQL Reference Manual § CHECK Constraints (이전 세션 작업)
+   - CH05 인용: MySQL Reference Manual § FOREIGN KEY Constraints (이전 세션 작업)
+   - CH05→CH06 bridge 추가
+
+
+2. day0513_mysql_select_join.html
+   [SELECT 6절 실행순서, WHERE, JOIN, IFNULL, DISTINCT/ORDER BY]
+
+   변경 전: bridges=1 cites=0 og=False tw=False
+   변경 후: bridges=6 cites=5 og=True  tw=True
+
+   ▶ 추가된 항목
+   - OG / Twitter 메타 태그 6개
+   - CH02 인용: MySQL Reference Manual § WHERE Clause Evaluation
+   - CH04 인용: MySQL § Working with NULL Values
+   - CH05 인용: MySQL SELECT Statement § ORDER BY / DISTINCT
+   - CH05 qbox ("의문 → 가설") 추가 (DISTINCT 1회성 · ORDER BY 별칭 허용 원인)
+   - CH05→CH06 bridge 추가
+   - CH06 "최종 결론" h3 추가 (FINAL CONCLUSION keypoint 직전)
+   - HTML 버그 수정: FINAL CONCLUSION keypoint 내 잉여 </p> 제거
+
+
+3. day0514_static_crawling.html
+   [BeautifulSoup 정적 크롤링, find/find_all, CSS 선택자, MySQLTemplate DB 저장]
+
+   변경 전: bridges=1 cites=0 og=False tw=False
+   변경 후: bridges=5 cites=4 og=True  tw=True
+
+   ▶ 추가된 항목
+   - OG / Twitter 메타 태그 6개
+   - CH02 인용: Beautiful Soup Documentation § find() vs find_all()
+   - CH03 인용: Beautiful Soup Documentation § CSS Attribute Selectors
+   - CH04 인용: MySQL Connector/Python § Parameterized Queries (SQL Injection 방지)
+   - CH04→CH05 bridge 추가
+   - CH05 "최종 결론" h3 추가 (FINAL CONCLUSION keypoint 직전)
+
+   ※ day0514는 5챕터 구조로 챕터 간 bridge는 4개가 최대
+
+
+4. day0515_dynamic_crawling.html
+   [Selenium 동적 크롤링, WebDriverManager, WebDriverWait, 선택자 안정화, APScheduler]
+
+   변경 전: bridges=1 cites=0 og=False tw=False
+   변경 후: bridges=6 cites=4 og=True  tw=True
+
+   ▶ 추가된 항목
+   - OG / Twitter 메타 태그 6개
+   - CH01 인용: Selenium Documentation § WebDriver
+   - CH02 인용: webdriver-manager § PyPI
+   - CH05 인용: APScheduler Documentation § Schedulers overview
+   - CH02→CH03 bridge: "JS 렌더링은 비동기 — 대기 전략이 필요하다"
+   - CH03→CH04 bridge: "선택자 문제 — 어떤 선택자가 배포 이후에도 살아남는가"
+   - CH04→CH05 bridge: "주기적 자동 수집은 APScheduler와 결합해야 실력 라인을 넘는다"
+   - CH05→CH06 bridge: "대기·선택자 안정화·자동화, 이 세 축이 하나의 결론으로 합쳐진다"
+   - CH04 terminal 블록: 별점 정규식 추출 결과
+   - CH05 테스트 h3 + terminal 블록: BackgroundScheduler.start() 잡 등록 확인
+   - CH06 "최종 결론" h3 추가 (FINAL CONCLUSION keypoint 직전)
+
+
+5. day0520_numpy.html
+   [NumPy ndarray vs list, shape/reshape, boolean masking, 통계함수, seed/난수]
+
+   변경 전: bridges=1 cites=1 og=False tw=False
+   변경 후: bridges=6 cites=5 og=True  tw=True
+
+   ▶ 추가된 항목
+   - OG / Twitter 메타 태그 6개
+   - CH02 인용: NumPy Docs § ndarray.reshape
+   - CH03 인용: NumPy Docs § Boolean array indexing
+   - CH04 인용: NumPy Docs § Statistics
+   - CH05 인용: NumPy Docs § numpy.random.seed
+   - CH01→CH02 bridge: "이제 shape와 reshape로 배열의 형태를 바꾸는 법이다"
+   - CH02→CH03 bridge: "boolean masking으로 SQL WHERE 절을 코드로 가져온다"
+   - CH03→CH04 bridge: "이제 통계 함수로 분포의 윤곽을 그린다"
+   - CH04→CH05 bridge: "재현 가능한 실험을 위한 seed가 남았다"
+   - CH05→CH06 bridge: "numpy의 위치를 정리한다"
+   - CH03 테스트 h3 + terminal 블록: a[a > 25] boolean masking 동작 확인
+   - CH06 "최종 정리" h3로 레이블 변경 (기존: "한 주의 흐름에서 numpy의 위치")
+   - CH06 "최종 결론" h3 추가 (FINAL CONCLUSION keypoint 직전)
+
+
+■ 최종 검증 결과 (verify_blogs.py 실행)
+────────────────────────────────────────────────────────────────────────────────
+파일명                             bridges  cites  qbox  kp  final_h3  og    tw
+─────────────────────────────────────────────────────────────────────────────
+day0512_mysql_constraints.html       6       5      5     6      3    True  True
+day0513_mysql_select_join.html       6       5      5     6      3    True  True
+day0514_static_crawling.html         5       4      4     5      3    True  True
+day0515_dynamic_crawling.html        6       4      5     6      3    True  True
+day0520_numpy.html                   6       5      5     6      3    True  True
+─────────────────────────────────────────────────────────────────────────────
+※ final_h3 = 3 인 이유: TOC 앵커 · CH h2 제목 · h3.step "최종 결론" — 총 3회 등장
+
+GUIDE.txt 준수 항목:
+  ✅ §3  OG / Twitter 메타 태그 — 전 파일 완비
+  ✅ §2  최종 챕터 "최종 정리" h3 + "최종 결론" h3 패턴 — 전 파일 완비
+  ✅ §2  챕터 간 bridge div — 전 파일 완비
+  ✅ §17 챕터별 blockquote.cite 인용 — 전 파일 최소 4개 이상
+  ✅ CSS  Swiss style 유지 (border-radius: 0, box-shadow: none, no gradient)
+
+
+■ 스타일 검증
+────────────────────────────────────────────────────────────────────────────────
+추가된 모든 HTML 요소는 기존 :root 변수(--accent, --ink, --line 등)를 사용하며
+border-radius / box-shadow / gradient 를 사용하지 않았다.
+blockquote.cite · div.bridge · div.terminal 은 모두 기존 CSS 클래스 재사용.
+
+
+■ 남은 사항
+────────────────────────────────────────────────────────────────────────────────
+- verify_blogs.py (임시 검증 스크립트): 삭제 가능
+- 브라우저 실측 검증: 변경 사항이 모두 텍스트 콘텐츠이므로 레이아웃 영향 없음
+  (ASCII 다이어그램 없음 → Playwright 실측 불필요)
+
+================================================================================

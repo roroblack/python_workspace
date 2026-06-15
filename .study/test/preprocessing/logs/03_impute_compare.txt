@@ -1,0 +1,15 @@
+============================================================
+# 03_impute_compare
+============================================================
+원본 mean=29.6991, median=28.0
+
+원본(NaN포함)        count= 714  mean=29.6991  std=14.5265  median= 28.0
+dropna()         count= 714  mean=29.6991  std=14.5265  median= 28.0
+fillna(mean)     count= 891  mean=29.6991  std=13.0020  median= 29.7
+fillna(median)   count= 891  mean=29.3616  std=13.0197  median= 28.0
+fillna(0)        count= 891  mean=23.7993  std=17.5961  median= 24.0
+
+fillna(mean) 의 평균: 29.6991  (원본 평균과 동일 — 평균은 안 흔듦)
+표준편차 변화: 원본 14.5265 → mean대치 13.0020  (-10.5%)
+  → 같은 값(평균)을 177번 꽂으니 흩어짐이 줄어 분산이 작아진다.
+[chart] ch_impute.png 저장

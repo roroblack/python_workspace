@@ -1,0 +1,9 @@
+============================================================
+# 06_internals
+============================================================
+ILogger.__abstractmethods__ = frozenset({'flush', 'log'})
+FileLogger.__abstractmethods__ = frozenset()
+  [FILE] 테스트 메시지
+  [FILE] flush
+IWriter.__abstractmethods__ = frozenset({'write'})
+type(IWriter) = <class 'abc.ABCMeta'>

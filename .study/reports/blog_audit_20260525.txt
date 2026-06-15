@@ -1,0 +1,394 @@
+기술 블로그 감사 보고서
+작성일: 2026-05-25
+대상 워크스페이스: c:\_proj\python_workspace
+검토 대상 파일:
+- .blog/day0512_mysql_constraints.html
+- .blog/day0513_mysql_select_join.html
+- .blog/day0514_static_crawling.html
+- .blog/day0515_dynamic_crawling.html
+- .blog/day0520_numpy.html
+
+======================================================================
+1. 검토 기준
+======================================================================
+1) GUIDE.txt 규정
+- §2 글 구조 / 챕터 미시 구조 / bridge / 최종 결론
+- §3 HTML head 필수 태그
+- §12 검증 체크리스트
+- §17 레퍼런스 및 인라인 인용
+- §26 이미지 base64 규칙
+
+2) .study/notes 반영 여부
+- 직접 대응 노트 파일명
+- 핵심 질문/해결 포인트의 본문 반영 여부
+- mhtml 텍스트 추출 품질 한계 포함
+
+3) about.txt 정합성
+- 날짜별 프로젝트 경로 / 주제 / 강의자료 매핑
+
+4) .study/pdf 반영 여부
+- pypdf 로 텍스트 추출 가능한 PDF는 실제 헤더/목차/키워드 확인
+- 텍스트 추출이 거의 불가능한 PDF는 제목 수준 정합성만 판정
+
+======================================================================
+2. 방법 및 한계
+======================================================================
+- HTML 구조는 자동 검사 + 수동 line 확인으로 점검했다.
+- notes 는 mhtml 파싱으로 키워드/주제어를 읽어 비교했다.
+- PDF 는 pypdf 로 읽었다.
+- 한계:
+  - 웹크롤링이해와실습.pdf / 웹크롤러만들기.pdf 는 텍스트 추출이 거의 되지 않아 제목 수준 정합성 위주로 판정했다.
+  - 일부 notes mhtml 은 인코딩이 깨져 세부 문장 대조보다 주제/키워드 매칭 위주로 판정했다.
+
+======================================================================
+3. 총평
+======================================================================
+전체적으로 다섯 파일 모두 기본 골격(cover, toc, 챕터 h2, anchor, terminal 컴포넌트, 외부 img 제거)은 잘 갖춰져 있다.
+다만 GUIDE 기준으로 보면 다음 세 가지가 반복된다.
+
+A. 공통 위반
+- 5개 파일 모두 head 에 og:title / og:description / og:type / twitter:card / twitter:title / twitter:description 이 없다.
+- GUIDE §3 및 §12 의 SEO 메타 규정을 공통으로 위반한다.
+
+B. 자주 보이는 구조 위반
+- final section 에서 h3.step 을 "최종 결론" 으로 두지 않고 "최종 정리" 또는 다른 제목으로 마감하는 파일이 많다.
+- 중간 챕터 사이의 bridge 가 빠진 파일이 있다.
+- 일부 챕터는 "의문 → 가설" 또는 "테스트(실행 결과)" 단계가 생략되어 GUIDE §2 미시 구조를 완전히 따르지 못한다.
+
+C. 출처/인용 밀도 부족
+- GUIDE §17 은 챕터 본문에서 인라인 인용을 권장하고 사실상 근거 추적을 강하게 요구한다.
+- 실제로는 인용 수가 적어, 각 챕터 결론이 충분히 근거를 안고 내려오지 못하는 파일이 있다.
+
+======================================================================
+4. 공통 통과 항목
+======================================================================
+- cover / toc / h2.chap / anchor-link 구조: 5개 파일 모두 통과
+- Prism.js 스크립트 배치: 5개 파일 모두 통과
+- 외부 URL img src: 5개 파일 모두 0개
+- 상대경로 img src: 5개 파일 모두 0개
+- 본문 내 ref-chain 남발 없음: 5개 파일 모두 통과
+
+======================================================================
+5. 공통 위반 항목
+======================================================================
+1. SEO / 소셜 메타 누락
+GUIDE 근거:
+- .study/GUIDE.txt §3, §12
+
+실제 파일 근거:
+- day0512_mysql_constraints.html head: line 1-10 부근에 description 만 있고 og/twitter 메타 없음
+- day0513_mysql_select_join.html head: line 1-10 부근 동일
+- day0514_static_crawling.html head: line 1-10 부근 동일
+- day0515_dynamic_crawling.html head: line 1-10 부근 동일
+- day0520_numpy.html head: line 1-10 부근 동일
+
+판정: 공통 FAIL
+
+======================================================================
+6. 파일별 감사 결과
+======================================================================
+
+[1] day0512_mysql_constraints.html
+----------------------------------------------------------------------
+구조 자동 요약:
+- sections 6 / qbox 5 / keypoint 6 / bridges 5 / cites 2 / terminals 5
+
+GUIDE 준수 판정: 부분 준수
+
+통과:
+- 기본 서사 구조는 가장 안정적이다.
+- CH01~CH05 는 학습 → 의문 → 테스트 → 결론 흐름이 잘 살아 있다.
+- 최종 챕터는 "최종 정리" 다음에 "최종 결론" h3 를 별도로 두어, 다섯 파일 중 GUIDE에 가장 가깝다.
+- 프로젝트 코드 경로를 footer 에 남겼다: ../db_workspace/db_수업결과물/DAY2_constraint_alter.sql
+
+위반 / 약점:
+- CH05 끝에서 CH06 으로 넘어가는 bridge 가 없다.
+  근거:
+  - CH05 결론 종료: line 454-459 부근
+  - CH06 시작: line 463
+- 인라인 인용이 CH04, CH05 에만 있다. 6개 섹션 중 2개만 cite 를 사용했다.
+  근거:
+  - cite 위치: line 339, 417
+- 공통 위반인 SEO 메타 누락 존재
+
+notes 반영:
+- 직접 대응 노트는 약하다. 파이썬 MySQL 연결 문제 해결 방법 노트에서 PRIMARY KEY / FOREIGN KEY / UNIQUE / NOT NULL / CHECK 키워드는 확인되지만,
+  블로그처럼 ERROR 1048 / 1062 / 1452 / 3814 / 3819 와 ON DELETE/UPDATE 까지 단계적으로 해부한 수준은 notes 보다 훨씬 깊다.
+- 판정: 부분 반영. "제약조건" 주제는 맞지만 서사와 검증 수준은 블로그가 크게 확장했다.
+
+about.txt 정합성:
+- 날짜는 맞다 (0512).
+- 그러나 about.txt 의 0512 항목은 "SELECT문, DML문, TCL문 | MySQL_기본.pdf" 이다.
+- 이 파일은 실제로 제약조건(NOT NULL / UNIQUE / PK / CHECK / FK) 중심이라 DML/TCL 보다 DDL/무결성 규칙 쪽에 가깝다.
+- 따라서 날짜 정합성은 있으나 주제 정합성은 약하다.
+
+PDF 반영:
+- MYSQL_기본.pdf 에서 DDL / DML / SELECT BASIC / Constraints / Data Integrity 관련 헤더는 추출되었다.
+- 제목 수준과 초반 objective 기준으로는 파일 내용이 완전히 무관하지 않다.
+- 다만 제약조건 심화는 about.txt 의 0513 설명과 더 잘 맞는다.
+
+최종 판정:
+- GUIDE: 부분 준수
+- notes: 부분 반영
+- about: 주제 mismatch 주의
+- pdf: 부분 반영
+
+[2] day0513_mysql_select_join.html
+----------------------------------------------------------------------
+구조 자동 요약:
+- sections 6 / qbox 4 / keypoint 6 / bridges 5 / cites 2 / terminals 5
+
+GUIDE 준수 판정: 부분 준수
+
+통과:
+- CH01~CH04 는 GUIDE 미시 구조를 비교적 잘 따른다.
+- SQL 파일 경로를 footer 에 남겼다.
+  - ../db_workspace/db_수업결과물/DAY3_select.sql
+  - ../db_workspace/db_수업결과물/DAY3_select_function_etc-option.sql
+  - ../db_workspace/db_수업결과물/DAY3_select_root.sql
+- SELECT 실행 순서, WHERE 별칭 금지, JOIN, IFNULL 흐름은 서사적으로 좋다.
+
+위반 / 약점:
+- CH05 에 "의문 → 가설" qbox 가 없다.
+  근거:
+  - CH05 시작: line 383
+  - 학습 후 곧바로 테스트 진입: line 402
+- CH05 끝에서 CH06 으로 가는 bridge 가 없다.
+  근거:
+  - CH05 결론 종료: line 423-427 부근
+  - CH06 시작: line 432
+- final section 에서 keypoint 앞 h3.step 이 "최종 결론" 이 아니라 "최종 정리" 하나만 있다.
+  GUIDE §2 / §12 기준으로는 엄밀히 어긋난다.
+  근거:
+  - CH06 시작: line 432
+  - h3.step "최종 정리": line 437
+  - FINAL CONCLUSION keypoint: line 446 부근
+- 인용이 CH01, CH03 에만 있다.
+  근거:
+  - cite 위치: line 127, 268
+- 공통 위반인 SEO 메타 누락 존재
+
+notes 반영:
+- 직접 대응 notes 는 희박하다.
+- 일반 MySQL 노트에서 SELECT / JOIN 키워드는 잡히지만,
+  이 파일의 핵심인 "6절 실행 순서", "WHERE 에서 alias 불가", "INNER JOIN 22→19", "IFNULL 로 NULL 산술 복구" 같은 검증 서사는 notes 에서 직접 확인되지 않았다.
+- 판정: 부분 반영 이하. 블로그가 notes 보다 훨씬 구조화·심화되어 있다.
+
+about.txt 정합성:
+- 날짜는 맞다 (0513).
+- about.txt 0513 항목은 "DDL문, 데이터 형식, 조인, 서브쿼리 | MySQL_고급.pdf".
+- 이 파일은 JOIN 은 잘 반영하지만 DDL / 데이터 형식 / 서브쿼리는 거의 다루지 않는다.
+- 따라서 about 와는 부분 정합이다.
+
+PDF 반영:
+- MYSQL_고급.pdf 에서 SELECT Additional Option, Function, GROUP BY, HAVING, Subquery 관련 텍스트가 추출되었다.
+- 파일 내용은 그중 SELECT / JOIN / NULL 처리 쪽을 잘 반영하지만, 서브쿼리까지는 확장되지 않았다.
+
+최종 판정:
+- GUIDE: 부분 준수
+- notes: 반영 약함
+- about: 부분 정합
+- pdf: 부분 반영
+
+[3] day0514_static_crawling.html
+----------------------------------------------------------------------
+구조 자동 요약:
+- sections 5 / qbox 4 / keypoint 5 / bridges 4 / cites 1 / terminals 4
+
+GUIDE 준수 판정: 부분 준수
+
+통과:
+- 주제와 서사가 매우 선명하다.
+- static_crawling_project, dbConnectProject 경로를 footer 에 직접 남겼다.
+  근거:
+  - line 390-392
+- CH01~CH04 흐름은 학습 → 의문 → 테스트 → 결론 으로 자연스럽다.
+- 외부 데이터 → 선택자 → 속성 추출 → MySQL 저장으로 about 프로젝트 흐름과 잘 맞는다.
+
+위반 / 약점:
+- CH04 끝에서 final chapter(CH05) 로 가는 bridge 가 없다.
+  근거:
+  - CH04 결론/콜아웃 종료: line 337-349 부근
+  - CH05 시작: line 353
+- final section 에서 keypoint 앞 h3.step 이 "최종 결론" 이 아니라 "최종 정리" 이다.
+  근거:
+  - CH05 시작: line 353
+  - h3.step "최종 정리": line 356
+  - FINAL CONCLUSION keypoint: line 366 부근
+- cite 가 CH01 한 곳만 있다.
+  근거:
+  - cite 위치: line 125
+- 공통 위반인 SEO 메타 누락 존재
+
+notes 반영:
+- 파이썬 웹 크롤링 기본 원리 및 도구 note 에서 BeautifulSoup / select / Selenium / WebDriverWait 키워드가 확인되었다.
+- 이 파일은 그중 정적 측면(BeautifulSoup, find/find_all, CSS 선택자, HTML 트리, DB 저장)을 잘 꺼내 와 정리했다.
+- 판정: 반영 양호
+
+about.txt 정합성:
+- about.txt 0514 항목: static_crawling_project / dbConnectProject / 크롤링 기초, WEB 구조 / 웹크롤링이해와실습.pdf
+- 파일 내용과 프로젝트 경로, 주제가 매우 잘 맞는다.
+
+PDF 반영:
+- 웹크롤링이해와실습.pdf 는 pypdf 추출이 거의 불가능했다(텍스트 빈 페이지 다수).
+- 따라서 본문 수준 일치 여부는 확정할 수 없고, 제목 수준 정합성만 판정했다.
+- 제목 기준으로는 매우 잘 맞는다.
+
+최종 판정:
+- GUIDE: 부분 준수
+- notes: 반영 양호
+- about: 정합
+- pdf: 제목 수준 정합
+
+[4] day0515_dynamic_crawling.html
+----------------------------------------------------------------------
+구조 자동 요약:
+- sections 6 / qbox 5 / keypoint 6 / bridges 2 / cites 1 / terminals 3
+
+GUIDE 준수 판정: 미흡
+
+통과:
+- dynamic_crawling_project / auto_crawler / 3team 연결이 분명하다.
+- Selenium / WebDriverManager / waits / selector stabilization / APScheduler 까지 실제 프로젝트 흐름을 잘 반영한다.
+- footer 의 참고 코드 경로도 적절하다.
+  근거:
+  - line 405-406
+
+위반 / 약점:
+- intro bridge 와 CH01→CH02 bridge 를 제외하면 이후 bridge 가 없다.
+  근거:
+  - bridge 위치는 line 103, 169-170 뿐
+  - CH02 start: line 176
+  - CH03 start: line 226
+  - CH04 start: line 284
+  - CH05 start: line 332
+  - CH06 start: line 367
+- CH04 는 "테스트" heading 이 있지만 terminal 실행 결과가 없다. 코드 블록만 있고 검증 출력이 비어 있다.
+  근거:
+  - 테스트 heading: line 314
+  - terminal block 없음
+- CH05 는 학습 → 의문 → 결론만 있고 테스트 단계가 없다.
+  근거:
+  - CH05 시작: line 332
+  - 테스트 heading 없음
+- final section 에서 keypoint 앞 h3.step 이 "최종 결론" 이 아니라 "최종 정리" 이다.
+  근거:
+  - CH06 시작: line 367
+  - h3.step "최종 정리": line 372
+  - FINAL CONCLUSION keypoint: line 381 부근
+- cite 는 CH03 한 곳만 있다.
+  근거:
+  - cite 위치: line 247
+- 공통 위반인 SEO 메타 누락 존재
+
+notes 반영:
+- 파이썬 웹 크롤링 기본 원리 및 도구 note 에서 Selenium / WebDriverWait / BeautifulSoup 관련 키워드가 확인된다.
+- 이 파일은 note 의 주제를 실제 실습 서사(dynamic HTML, page_source, wait, selector 안정화, scheduler) 로 확장했다.
+- 판정: 반영 양호
+
+about.txt 정합성:
+- about.txt 0515 항목과 매우 잘 맞는다.
+  - dynamic_crawling_project
+  - auto_crawler
+  - 3team_1st_proj
+  - 크롤링 도구 / 선택자 / HTML 파싱 / 웹크롤러만들기.pdf
+
+PDF 반영:
+- 웹크롤러만들기.pdf 는 텍스트 추출이 거의 되지 않아 제목 수준 정합성만 판정했다.
+- 제목과 블로그 주제는 잘 맞는다.
+
+최종 판정:
+- GUIDE: 미흡
+- notes: 반영 양호
+- about: 정합
+- pdf: 제목 수준 정합
+
+[5] day0520_numpy.html
+----------------------------------------------------------------------
+구조 자동 요약:
+- sections 6 / qbox 5 / keypoint 6 / bridges 1 / cites 1 / terminals 4
+
+GUIDE 준수 판정: 미흡
+
+통과:
+- numpy 의 핵심 기능(벡터화, shape/reshape, boolean masking, 통계 함수, seed)을 폭넓게 다룬다.
+- test_numpy 코드 경로를 footer 에 남겼다.
+  근거:
+  - line 375-377
+- 외부 img 는 없고, 기본 스타일/anchor/toc 는 정돈되어 있다.
+
+위반 / 약점:
+- 전체 파일에서 bridge 가 intro 1개만 있다.
+  GUIDE §2 의 "각 결론이 다음 챕터의 의문을 만든다" 구조와 가장 멀다.
+  근거:
+  - bridge 유일 위치: line 101
+- CH03 는 학습 → 의문 → 결론만 있고 테스트 단계가 없다.
+  근거:
+  - CH03 시작: line 213
+  - 테스트 heading 없음
+- final section 에서 keypoint 앞 h3.step 이 "최종 결론" 도 "최종 정리" 도 아니고, "한 주의 흐름에서 numpy 의 위치" 라는 별도 제목이다.
+  GUIDE §12 자동 검사 기준으로도 keypoint heading 위반이다.
+  근거:
+  - CH06 시작: line 339
+  - h3.step: line 343
+  - FINAL CONCLUSION keypoint: line 355 부근
+- cite 는 CH01 한 곳뿐이다.
+  근거:
+  - cite 위치: line 125
+- 공통 위반인 SEO 메타 누락 존재
+
+notes 반영:
+- 0520 - 로지스틱 회귀 C 값의 의미 note 에서 NumPy / ndarray / reshape / percentile / random 키워드는 확인된다.
+- 블로그는 그 기반 개념을 더 넓게 풀었다.
+- 다만 note 자체가 numpy 입문 노트라기보다 머신러닝 맥락의 보조 설명이라, 블로그와 1:1 대응은 아니다.
+- 판정: 부분 반영
+
+about.txt 정합성:
+- about.txt 0520 항목(test_numpy / 데이터 분석 프로세스, 데이터 분석 도구 / 데이터분석_라이브러리.pdf) 과 잘 맞는다.
+- test_numpy 경로도 footer 에 직접 남겼다.
+
+PDF 반영:
+- 1_데이터분석_라이브러리.pdf 에서 NumPy, ndarray 관련 텍스트와 목차 일부가 추출되었다.
+- 블로그의 shape/reshape/통계/난수는 이 강의자료 방향성과 잘 맞는다.
+- 다만 추출 텍스트 기준으로는 mean/random/reshape 일부가 초반 5페이지에는 드러나지 않아 전면 확인까지는 못 했다.
+
+최종 판정:
+- GUIDE: 미흡
+- notes: 부분 반영
+- about: 정합
+- pdf: 부분 반영
+
+======================================================================
+7. 요약 표
+======================================================================
+파일                              GUIDE        notes        about        pdf
+--------------------------------------------------------------------------
+day0512_mysql_constraints.html    부분 준수    부분 반영    주의         부분 반영
+day0513_mysql_select_join.html    부분 준수    약함         부분 정합    부분 반영
+day0514_static_crawling.html      부분 준수    양호         정합         제목 수준 정합
+day0515_dynamic_crawling.html     미흡         양호         정합         제목 수준 정합
+day0520_numpy.html                미흡         부분 반영    정합         부분 반영
+
+======================================================================
+8. 우선순위 높은 개선 제안
+======================================================================
+1. 다섯 파일 공통
+- head 에 og:title / og:description / og:type / twitter:card / twitter:title / twitter:description 추가
+
+2. 구조 우선 수정
+- day0520: CH01~CH05 bridge 복원, CH03 테스트 추가, CH06 h3.step 을 "최종 결론" 체계로 정리
+- day0515: CH02~CH05 bridge 복원, CH04 실행 결과 terminal 추가, CH05 테스트 블록 추가, CH06 최종 결론 h3 정리
+- day0513: CH05 의문→가설(qbox)와 CH05→CH06 bridge 추가, CH06 h3.step 정리
+- day0514: CH04→CH05 bridge 추가, CH05 h3.step 정리
+- day0512: CH05→CH06 bridge 추가
+
+3. 인용 보강
+- 최소한 각 파일의 핵심 학습 챕터마다 1개 이상 cite 를 넣어 GUIDE §17 취지를 맞출 것
+
+======================================================================
+9. 결론
+======================================================================
+- 구조 품질만 보면 day0512 가 가장 안정적이다.
+- day0514 / day0515 는 about 프로젝트 흐름 반영이 가장 좋다.
+- day0520 는 주제 자체는 좋지만 GUIDE의 서사 사슬 규칙을 가장 약하게 따른다.
+- 0512 / 0513 은 날짜는 맞지만 about.txt 의 주제 정렬은 재검토가 필요하다.

@@ -1,0 +1,21 @@
+============================================================
+# 04_clf_importance
+============================================================
+[특성 중요도 — 내림차순]
+  flavanoids             0.4049  ################
+  color_intensity        0.3968  ################
+  proline                0.1066  ####
+  od280/od315_of_diluted_wines 0.0240  #
+  alcalinity_of_ash      0.0238  #
+  ash                    0.0229  #
+  malic_acid             0.0210  #
+  proanthocyanins        0.0000  
+  hue                    0.0000  
+  magnesium              0.0000  
+  total_phenols          0.0000  
+  nonflavanoid_phenols   0.0000  
+  alcohol                0.0000  
+
+루트 노드가 처음 가른 특성: color_intensity
+가장 중요한 특성        : flavanoids (0.4049)
+[chart] ch_importance_clf.png 저장

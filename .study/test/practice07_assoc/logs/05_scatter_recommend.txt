@@ -1,0 +1,15 @@
+============================================================
+# 05_scatter_recommend
+============================================================
+[chart] ch05_rules_scatter.png 저장
+
+[추천] 'whole milk' 를 산 고객에게 (lift 상위 5)
+  → yogurt                   confidence=0.219  lift=1.572
+  → other vegetables         confidence=0.293  lift=1.514
+  → rolls/buns               confidence=0.222  lift=1.205
+
+[추천] 'yogurt' 를 산 고객에게 (lift 상위 5)
+  → tropical fruit           confidence=0.210  lift=2.000
+  → other vegetables         confidence=0.311  lift=1.608
+  → whole milk               confidence=0.402  lift=1.572
+  → rolls/buns               confidence=0.246  lift=1.339

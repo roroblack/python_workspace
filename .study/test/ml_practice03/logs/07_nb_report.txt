@@ -1,0 +1,23 @@
+============================================================
+# 07_nb_report
+============================================================
+정확도 = 0.8720
+정밀도(macro) = 0.8825 · 재현율(macro) = 0.8717
+
+[classification_report]
+                 precision    recall  f1-score   support
+
+      rec.autos      0.820     0.955     0.882       396
+sci.electronics      0.945     0.789     0.860       393
+
+       accuracy                          0.872       789
+      macro avg      0.883     0.872     0.871       789
+   weighted avg      0.882     0.872     0.871       789
+
+[혼동행렬] 행=실제, 열=예측
+[[378  18]
+ [ 83 310]]
+
+[클래스별 특징 단어 TOP8 — log P(word=1|class) 기준]
+          rec.autos: car, like, just, don, cars, know, good, think
+    sci.electronics: use, like, know, don, used, does, just, good

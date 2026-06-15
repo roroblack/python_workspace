@@ -1,0 +1,51 @@
+=== run_all.py 시작 2026-05-10 00:48:15.118612 ===
+
+STEP 1: dict_runner.py 실행
+  → logs/*.txt 생성 완료
+
+STEP 2: 로그 파일 읽기
+  01_create.txt: 508 bytes
+  02_access.txt: 255 bytes
+  03_mutate.txt: 469 bytes
+  04_views.txt: 311 bytes
+  05_order.txt: 199 bytes
+  06_copy.txt: 332 bytes
+  07_merge.txt: 208 bytes
+  08_comprehension.txt: 248 bytes
+  09_hash_sizeof.txt: 732 bytes
+  10_employee.txt: 669 bytes
+  11_runtime_error.txt: 196 bytes
+
+STEP 3: dict.html 터미널 블록 교체
+  zero-width space 제거: 0개
+  [교체] §01 (01_create)
+  [교체] §02 (02_access)
+  [교체] §03 (03_mutate)
+  [교체] §04 (04_views)
+  [교체] §05 (05_order)
+  [교체] §06 (06_copy)
+  [교체] §07 (07_merge)
+  [교체] §08 (08_comprehension)
+  [교체] §10 (10_employee)
+  [교체] §11 (11_runtime_error)
+  [교체] §09 (09_hash_sizeof)
+  총 교체: 11개
+
+STEP 4: 잔여 orphan pre 정리
+  잔여 제거 (4칸): 11개  (0칸): 0개
+
+저장 완료: c:\_proj\python_workspace\.study\blog\dict.html
+
+=== 검증 ===
+✓ div.terminal=11  pre.terminal-body=11
+  §01_create: 'dict():      {'name': 'aman', 'age': 33,' → ✓
+  §02_access: 'd['a'] = 1' → ✓
+  §03_mutate: 'after set/add: {'a': 100, 'b': 2, 'c': 3' → ✓
+  §04_views: 'keys  : dict_keys(['a', 'b', 'c'])' → ✓
+  §05_order: 'insertion order : [('c', 99), ('a', 97),' → ✓
+  §06_copy: 'src    : {'name': '홍길동', 'ids': [1, 2, 3' → ✓
+  §07_merge: 'a | b : {'x': 1, 'y': 20, 'z': 30}' → ✓
+  §08_comprehension: 'squares: {1: 1, 2: 4, 3: 9, 4: 16, 5: 25' → ✓
+  §09_hash_sizeof: 'len -> sys.getsizeof(dict)' → ✓
+  §10_employee: '>> 전체 출력' → ✓
+  §11_runtime_error: 'RuntimeError: dictionary changed size du' → ✓

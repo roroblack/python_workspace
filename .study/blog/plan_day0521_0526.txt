@@ -1,0 +1,536 @@
+======================================================================
+ 블로그 글 작성 계획서 — DAY 0521 / 0522 / 0526
+ 교과목 2 · 단원 1 · 데이터 분석 (5주차)
+ 최초 작성 : 2026-05-28
+======================================================================
+
+ [ GUIDE.txt 준수 사항 요약 ]
+  §2   서사 사슬 : 도입bridge → CH01~N [학습→cite→의문가설→qbox→테스트→결론→bridge]
+                   → 최종챕터 [최종결론 + keypoint FINAL CONCLUSION]
+  §5   터미널 블록 : runner.py 실제 실행 결과만, PS> 프롬프트, 맥 dot ●●● 절대 금지
+  §7   챕터 수 : 최소 6개, 최대 18개 (기본 권장 8~12개) — 절대 6개로 고정 금지
+  §9   표지 필수 항목 : eyebrow, headline, deck, 메타(날짜·커리큘럼·환경)
+  §14  작업 전 체크리스트 : notes/ 파일 열람, workspace 파일 확인, 공식 문서 확인
+  §16  사전 고찰 필수 (§16-A~F 전부)
+  §17  blockquote.cite 챕터당 1~2개 / ref-chain 글 끝 1회
+  §18  부트캠프 글 → eyebrow = "Python · 5주차 · 교과목 2 · 데이터 분석"
+  §20  저장 경로 : .blog\<파일명>.html
+  §22  ASCII 박스 : ALL non-ASCII = 2× visual col (한글·박스문자 포함)
+  §24  t-label : "실행내용 — 확인내용" 형식 (DAY/섹션명 금지)
+  §25  코드 스타일 : 상단 경로 주석, 한국어 인라인 주석, if __name__=='__main__'
+  §26  이미지 : 반드시 base64 data URI 인라인 (외부 URL img 금지)
+
+======================================================================
+ 공통 환경 정보 (§0 기준)
+======================================================================
+
+  OS       : Windows 11 Pro 25H2
+  CPU/RAM  : AMD Ryzen 5 8600G · 24 GB LPDDR5
+  GPU      : RTX 4070 Super 12 GB
+  HW보드   : Asrock x600
+  Python   : 3.13.5 (.venv\Scripts\python.exe)
+  IDE      : VS Code 1.117.0
+  Shell    : PowerShell
+
+  runner 실행 명령 (공통):
+    c:\_proj\python_workspace\.venv\Scripts\python.exe <runner>.py
+
+======================================================================
+ ① DAY 0521 — 변수 변환 · 결측값 처리 (8챕터)
+======================================================================
+
+──────────────────────────────────────────────────────────────────────
+ 1. 파일 정보
+──────────────────────────────────────────────────────────────────────
+
+  파일명      : day0521_data_preprocessing.html
+  저장 경로   : c:\_proj\python_workspace\.blog\
+  참조 PDF    : 데이터전처리.pdf
+  참조 소스   :
+    test_pandas/pandas_test1.py   (Series·DataFrame 기초 — 0521)
+    test_pandas/pandas_test2.py   (Series 인덱싱·슬라이싱 — 0521)
+    test_numpy/numpy_test7.py     (dtype·NaN·Inf — 0521)
+    test_numpy/numpy_test8.py     (zeros/ones/shape — 0521)
+    test_numpy/numpy_test9.py     (벡터화 연산 성능 비교 — 0521)
+    test_numpy/numpy_test10.py    (배열 연결: hstack·vstack·dstack — 0521)
+    test_numpy/numpy_example.py   (행렬 곱, 연립방정식 — 0521)
+
+──────────────────────────────────────────────────────────────────────
+ 2. 표지(header.cover) 설계
+──────────────────────────────────────────────────────────────────────
+
+  eyebrow  : Python · 5주차 · 교과목 2 · 데이터 분석
+  headline : NumPy·Pandas로 배우는 변수 변환과 결측값 처리
+  deck     :
+    "이 글은 SK 네트웍스 AI Family 32기 부트캠프 5주차 수업 실습 기록이다.
+     NumPy ndarray의 dtype 탐지·변환에서 시작해 NaN·Inf 전파 규칙,
+     벡터화 연산 성능 이점, Pandas Series·DataFrame 인덱싱,
+     결측값 처리 전략 비교, 변수 변환(log·binning)까지
+     실제 실행 결과와 함께 8개 챕터로 정리한다."
+  도입 의문 : "데이터를 모델에 넣기 전에 무엇을 어떤 순서로 바꿔야 하는가?"
+
+──────────────────────────────────────────────────────────────────────
+ 3. 챕터 구성 (8개)
+──────────────────────────────────────────────────────────────────────
+
+  CH01 — ndarray 생성 · shape · dtype 탐지
+  ──────────────────────────────────────────
+  주제    : np.array, np.zeros, np.ones, ndarray.shape, ndim, dtype
+  코드    : numpy_test8.py (zeros/ones/shape 기반)
+  cite    : NumPy 공식 문서 — "Array creation routines"
+  의문가설: "dtype을 명시하지 않으면 NumPy가 어떻게 추론하는가?"
+  qbox    : 정수만 있으면 int64, 실수 하나라도 있으면 float64로 업캐스팅
+  테스트  : runner §01 — zeros/ones/arange 생성 후 shape·dtype 출력
+  결론    : dtype 명시가 메모리·연산 안전성을 보장하는 이유
+  bridge  : shape·dtype 확인 → NaN·Inf가 dtype과 어떻게 상호작용하나?
+
+  CH02 — NaN · Inf 전파 규칙과 탐지
+  ──────────────────────────────────────────
+  주제    : np.nan, np.inf, np.isnan, np.isinf, np.nan == np.nan → False
+            dtype='U3' 한글 잘림 현상
+  코드    : numpy_test7.py (dtype·NaN·Inf 기반)
+  cite    : NumPy 공식 문서 — "numpy.isnan / numpy.isinf"
+  의문가설: "NaN과 비교 연산이 항상 False인 이유는?"
+  qbox    : IEEE 754: NaN은 '값 미정의'이므로 자기 자신과도 같지 않음
+  테스트  : runner §02 — NaN 사칙연산 결과, isnan 탐지 출력
+  결론    : np.isnan()/np.isinf()만이 안전한 탐지 방법
+  bridge  : 개별 값 문제 해결 → 배열 전체를 빠르게 연산하려면?
+
+  CH03 — 벡터화 연산 vs 반복문 성능 비교
+  ──────────────────────────────────────────
+  주제    : for 루프 vs NumPy ufunc 성능 차이, timeit 측정
+  코드    : numpy_test9.py (1만 개 배열 연산 성능 비교)
+  cite    : NumPy 공식 문서 — "Universal functions (ufunc)"
+  의문가설: "for 루프보다 얼마나 빠른가? 실제로 측정해보면?"
+  qbox    : C 기반 연속 메모리 + BLAS → 캐시 히트율 차이
+  테스트  : runner §03 — timeit(for loop) vs timeit(np.sum) 비교 출력
+  결론    : 10만 원소 기준 벡터화가 50~100배 빠른 이유
+  bridge  : 1차원 배열 연산 → 여러 배열을 연결해 쌓을 때
+
+  CH04 — 배열 연결 · hstack · vstack · dstack
+  ──────────────────────────────────────────
+  주제    : np.hstack, np.vstack, np.dstack, shape 제약, concatenate
+  코드    : numpy_test10.py (배열 연결 기반)
+  cite    : NumPy 공식 문서 — "numpy.concatenate"
+  의문가설: "hstack과 vstack을 잘못 쓰면 shape 에러가 나는 이유는?"
+  qbox    : hstack → 열 방향(axis=1), vstack → 행 방향(axis=0)
+            → 연결 방향의 반대 축 크기가 일치해야 함
+  테스트  : runner §04 — shape 불일치 에러 재현 후 올바른 연결 출력
+  결론    : concatenate axis 파라미터가 hstack/vstack을 통합하는 일반화
+  bridge  : NumPy 배열 → Pandas로 넘어가 라벨 인덱스 필요성 확인
+
+  CH05 — Pandas Series · DataFrame 기초
+  ──────────────────────────────────────────
+  주제    : pd.Series, pd.DataFrame, index·columns, .values/.index/.columns
+            도시 인구 데이터 예제 (pandas_test1·3 기반)
+  코드    : pandas_test1.py / pandas_test3.py (발췌)
+  cite    : Pandas 공식 문서 — "Intro to data structures"
+  의문가설: "Series는 ndarray와 같은데 굳이 쓰는 이유는?"
+  qbox    : 라벨 인덱스 → 정렬 자동화, 연산 시 인덱스 alignment
+  테스트  : runner §05 — 도시 인구 DataFrame 생성·columns·index 출력
+  결론    : 라벨 인덱스가 데이터 오정렬(misalignment) 버그를 원천 차단
+  bridge  : 구조 이해 → 특정 행·열을 정확히 선택하려면?
+
+  CH06 — iloc · loc 인덱싱 비교
+  ──────────────────────────────────────────
+  주제    : .iloc(위치 기반), .loc(라벨 기반), 불리언 마스킹
+            pandas_test2.py (Series 인덱싱·슬라이싱) 기반
+  코드    : pandas_test2.py (발췌)
+  cite    : Pandas 공식 문서 — "Indexing and selecting data"
+  의문가설: "인덱스가 정수형 라벨일 때 iloc과 loc의 결과가 달라지나?"
+  qbox    : df.iloc[0] → 0번 위치 / df.loc[0] → 라벨이 0인 행
+            → 정수 라벨 DataFrame에서 혼동 발생
+  테스트  : runner §06 — 정수 라벨 DataFrame에서 iloc vs loc 비교 출력
+  결론    : 항상 iloc(위치) · loc(라벨) 구분 명시 → 가독성과 안전성 모두 확보
+  bridge  : 행·열 선택 완료 → DataFrame에 NaN이 있다면 어떻게 처리?
+
+  CH07 — 결측값 탐지 · fillna 전략 비교
+  ──────────────────────────────────────────
+  주제    : isna().sum(), fillna(0/mean/median), dropna()
+            titanic age 컬럼 기반 4전략 통계 비교
+  코드    : pandas_test5.py (결측값 처리 기반)
+  cite    : Pandas 공식 문서 — "Working with missing data"
+  의문가설: "fillna(0)이 가장 직관적인데 왜 금지 수준으로 피하는가?"
+  qbox    : fillna(0) → 나이=0으로 해석 → 평균·분산 심각 왜곡
+  테스트  : runner §07 — 4전략 후 mean/std/count 변화 비교 출력
+  결론    : 결측값 처리 전략은 도메인 지식이 필요한 결정 — 숫자만 보면 안 됨
+  bridge  : 결측값 채움 완료 → 변수 스케일·분포도 바꿔야 하나?
+
+  CH08 (최종) — 변수 변환 · FINAL CONCLUSION
+  ──────────────────────────────────────────
+  주제    : astype 타입 변환, np.log1p 왜도 보정, pd.cut 구간화
+            전처리 파이프라인 통합 ASCII 다이어그램
+  코드    : pandas_test5.py (astype·log·binning 기반)
+  keypoint: FINAL CONCLUSION
+    ① ndarray dtype 탐지·명시 → 메모리·연산 안전
+    ② NaN·Inf → isnan/isinf로만 탐지, 비교연산 금지
+    ③ 벡터화 연산 → for 루프 대신 ufunc
+    ④ iloc/loc 구분 → 정수 라벨 시 혼동 방지
+    ⑤ fillna 전략 → 도메인 지식 기반 선택
+    ⑥ 변환 순서 : dtype 확인 → 결측 처리 → 분포 보정(log) → 스케일링
+  ASCII    : 전처리 파이프라인 흐름도
+
+──────────────────────────────────────────────────────────────────────
+ 4. runner.py 구조 (day0521_runner.py)
+──────────────────────────────────────────────────────────────────────
+
+  §01  ndarray 생성·shape·dtype 탐지
+  §02  NaN·Inf 전파 규칙 탐지
+  §03  벡터화 연산 vs for 루프 성능 비교 (timeit)
+  §04  배열 연결 hstack/vstack shape 에러 재현
+  §05  Pandas Series·DataFrame 생성
+  §06  iloc vs loc 비교 (정수 라벨)
+  §07  fillna 4전략 통계 비교
+  §08  astype·log1p·pd.cut 변환
+
+======================================================================
+ ② DAY 0522 — 이상값 탐지 · 데이터 정규화 (9챕터)
+======================================================================
+
+──────────────────────────────────────────────────────────────────────
+ 1. 파일 정보
+──────────────────────────────────────────────────────────────────────
+
+  파일명      : day0522_outlier_normalization.html
+  저장 경로   : c:\_proj\python_workspace\.blog\
+  참조 PDF    : 데이터분석_통계.pdf
+  참조 소스   :
+    test_pandas/pandas_test3.py   (DataFrame 구조·컬럼·인덱스 — 0522)
+    test_pandas/pandas_test4.py   (MultiIndex·stack/unstack — 0521~0522)
+    test_pandas/pandas_test5.py   (count·describe·결측·스케일링 — 0522)
+
+──────────────────────────────────────────────────────────────────────
+ 2. 표지(header.cover) 설계
+──────────────────────────────────────────────────────────────────────
+
+  eyebrow  : Python · 5주차 · 교과목 2 · 데이터 분석
+  headline : Pandas로 배우는 이상값 탐지와 데이터 정규화
+  deck     :
+    "이 글은 SK 네트웍스 AI Family 32기 부트캠프 5주차 수업 실습 기록이다.
+     DataFrame 구조 탐색에서 시작해 MultiIndex, auto-mpg 기술 통계,
+     IQR·Z-score 이상값 탐지, 3가지 처리 전략, 상관행렬 분석,
+     MinMax·Standard 스케일링까지 9개 챕터로 정리한다."
+  도입 의문 : "이상값이 있는 데이터를 그냥 지우면 되지 않을까?"
+
+──────────────────────────────────────────────────────────────────────
+ 3. 챕터 구성 (9개)
+──────────────────────────────────────────────────────────────────────
+
+  CH01 — DataFrame 구조 탐색 · 인덱스·컬럼 조작
+  ──────────────────────────────────────────
+  주제    : df.values, df.columns, df.index, df.dtypes, df.shape
+            도시 인구 데이터 (pandas_test3 기반)
+  코드    : pandas_test3.py (발췌)
+  cite    : Pandas 공식 문서 — "DataFrame"
+  의문가설: "df.values는 numpy 배열인데, 그러면 Pandas가 NumPy를 내포하는 것인가?"
+  qbox    : Pandas DataFrame은 NumPy ndarray 위에 구축됨
+            → .values로 ndarray 추출 가능 (단, dtype 혼합 시 object 배열)
+  테스트  : runner §01 — 도시 데이터 DataFrame 속성 전체 출력
+  결론    : Pandas = NumPy + 라벨 인덱스 + 다양한 dtype 혼합 지원
+  bridge  : 단순 구조 → 행/열에 다중 계층 인덱스를 붙이면?
+
+  CH02 — MultiIndex · stack · unstack
+  ──────────────────────────────────────────
+  주제    : pd.MultiIndex.from_product, stack(level), unstack(level)
+            wide ↔ long format 전환
+  코드    : pandas_test4.py (발췌)
+  cite    : Pandas 공식 문서 — "MultiIndex / Advanced indexing"
+  의문가설: "stack()과 unstack()을 반복하면 원본으로 돌아올까?"
+  qbox    : 이론상 가능하지만 NaN 발생·열 순서 변경 시 완전 복원 불가
+  테스트  : runner §02 — MultiIndex DataFrame → stack → unstack shape 변화 출력
+  결론    : stack/unstack은 집계·시각화 목적에 맞게 포맷 전환하는 도구
+  bridge  : 구조 이해 완료 → 실제 분석 데이터로 통계 탐색
+
+  CH03 — auto-mpg 데이터 로드 · 기술 통계 탐색
+  ──────────────────────────────────────────
+  주제    : pd.read_csv(na_values=['?']), describe(), isna().sum()
+            horsepower '?' → NaN 변환 이슈
+  코드    : pandas_test5.py §describe 기반
+  cite    : Pandas 공식 문서 — "DataFrame.describe"
+  의문가설: "describe()에서 count < shape[0]이면 무조건 결측값인가?"
+  qbox    : 맞다. horsepower 결측값 6개 → count=392, shape=398
+  테스트  : runner §03 — describe() + isna().sum() 출력
+  결론    : 로드 단계 na_values 옵션이 모든 전처리의 출발점
+  bridge  : 분포 파악 → max=230이 이상값인지 어떻게 판정?
+
+  CH04 — 이상값 탐지 : IQR vs Z-score
+  ──────────────────────────────────────────
+  주제    : IQR = Q3-Q1, 하한/상한, Z-score |z|>3
+            오른쪽 꼬리 분포에서 IQR vs Z-score 탐지 차이
+  코드    : pandas_test8.py §IQR·Z-score 기반 (발췌)
+  cite    : scipy.stats 공식 문서 — "scipy.stats 개요"
+  의문가설: "IQR과 Z-score가 탐지하는 이상값이 다를 수 있을까?"
+  qbox    : IQR → 분포 무관 / Z-score → 정규분포 가정
+            → 오른쪽 꼬리 분포에서 IQR이 더 보수적
+  테스트  : runner §04 — IQR 10개 / Z-score 5개 탐지 결과 출력
+  결론    : 두 방법 공통 탐지값 = 신뢰도 높은 이상값
+  bridge  : 이상값 확인 → 지우기만 하면 되는가?
+
+  CH05 — 이상값 처리 3전략 : 제거 · 대체 · 캡핑
+  ──────────────────────────────────────────
+  주제    : boolean indexing drop, fillna(median), clip(lower, upper)
+            3전략 후 describe 비교
+  코드    : pandas_test8.py §outlier handling 기반
+  cite    : scipy.stats.mstats.winsorize — "캡핑(Winsorizing) 개념"
+  의문가설: "제거·대체·캡핑 중 어떤 전략이 평균을 가장 잘 보존하는가?"
+  qbox    : 캡핑은 n 유지 + 극단값 대신 상한값 대입 → 평균 가장 보존
+  테스트  : runner §05 — 3전략 후 count·mean·std·min·max 비교 출력
+  결론    : 데이터 크기·분포·분석 목적 3가지 기준으로 전략 선택
+  bridge  : 이상값 처리 완료 → 변수 간 관계는 어떤가?
+
+  CH06 — 상관행렬 분석 · 다중공선성 탐지
+  ──────────────────────────────────────────
+  주제    : df.corr(), 상관계수 해석, 강한 음의 상관(≤-0.8) 다중공선성
+            auto-mpg 변수 간 상관 분석
+  코드    : pandas_test5.py §corr 기반
+  cite    : Pandas 공식 문서 — "DataFrame.corr"
+  의문가설: "상관계수 -0.832는 왜 모델에 문제가 될 수 있는가?"
+  qbox    : 다중공선성 → 선형 모델에서 계수 추정 불안정
+            → VIF 검사 또는 PCA로 해소
+  테스트  : runner §06 — corr() 행렬 + |r|>0.7 변수 쌍 출력
+  결론    : 스케일링 전 corr() 확인은 피처 엔지니어링의 필수 단계
+  bridge  : 상관 분석 완료 → 스케일이 다른 변수를 같은 범위로 맞추려면?
+
+  CH07 — MinMax · StandardScaler 정규화
+  ──────────────────────────────────────────
+  주제    : MinMaxScaler [0,1], StandardScaler μ=0 σ=1
+            이상값 존재 시 MinMax 압축 문제
+  코드    : pandas_test5.py §scaler 기반
+  cite    : scikit-learn 공식 문서 — "Preprocessing data"
+  의문가설: "MinMax 정규화 후 정상 데이터가 0 근처로 압축되는 원인은?"
+  qbox    : MinMax는 max-min 범위에 의존 → 이상값이 max를 올리면
+            정상값들이 [0, 좁은 범위]로 압축
+  테스트  : runner §07 — 이상값 있을 때 vs 제거 후 MinMax 결과 비교 출력
+  결론    : 이상값 처리 후 MinMax, 이상값 잔존 시 Standard
+  bridge  : 스케일링 완료 → 수치 검증만으로 충분한가, 시각화가 필요한가?
+
+  CH08 — pandas 직접 계산 vs sklearn API 비교
+  ──────────────────────────────────────────
+  주제    : pandas로 직접 정규화 vs sklearn MinMaxScaler/StandardScaler
+            fit_transform vs 수동 수식 결과 동일성 검증
+  코드    : pandas_test5.py 전체
+  cite    : scikit-learn 공식 문서 — "MinMaxScaler"
+  의문가설: "sklearn scaler와 pandas 수동 계산 결과가 정확히 같은가?"
+  qbox    : fit()은 train 통계 저장, transform()은 그 통계로 변환
+            → train/test split 시 fit은 train에만 호출해야 데이터 누수 방지
+  테스트  : runner §08 — pandas 수동 계산 vs sklearn 결과 diff 출력
+  결론    : 수식 원리 이해 + API 활용이 모두 필요 — 원리 없는 API 사용은 위험
+  bridge  : 모든 전처리 완료 → 전체 파이프라인 통합·검증
+
+  CH09 (최종) — 이상값·정규화 파이프라인 · FINAL CONCLUSION
+  ──────────────────────────────────────────
+  keypoint: FINAL CONCLUSION
+    ① 이상값 탐지 : 오른쪽 꼬리 분포 → IQR, 정규 분포 → Z-score, 공통 탐지값 최우선
+    ② 이상값 처리 : 충분한 데이터 → 제거, 부족 → 중앙값 대체, 극단값 완화 → 캡핑
+    ③ 상관행렬 : 스케일링 전 |r|>0.7 변수 쌍 확인 → 다중공선성 사전 탐지
+    ④ 스케일링 : 이상값 제거 후 MinMax / 잔존 시 Standard / 분포 왜곡 심하면 Robust
+    ⑤ 파이프라인 순서 엄수 : 로드→탐색→결측→이상값→상관→스케일링→검증
+  ASCII    : 이상값·정규화 전처리 파이프라인 흐름도
+
+──────────────────────────────────────────────────────────────────────
+ 4. runner.py 구조 (day0522_runner.py)
+──────────────────────────────────────────────────────────────────────
+
+  §01  DataFrame 구조·속성 탐색
+  §02  MultiIndex → stack/unstack shape 변화
+  §03  auto-mpg describe·isna
+  §04  IQR vs Z-score 이상값 탐지 비교
+  §05  이상값 처리 3전략 통계 비교
+  §06  corr() 상관행렬 + |r|>0.7 필터
+  §07  MinMax 이상값 있을 때/없을 때 비교
+  §08  pandas 수동 vs sklearn diff 검증
+  §09  전처리 파이프라인 통합 실행
+
+======================================================================
+ ③ DAY 0526 — 데이터 시각화 (10챕터)
+======================================================================
+
+──────────────────────────────────────────────────────────────────────
+ 1. 파일 정보
+──────────────────────────────────────────────────────────────────────
+
+  파일명      : day0526_data_visualization.html
+  저장 경로   : c:\_proj\python_workspace\.blog\
+  참조 PDF    : 4_데이터시각화.pdf
+  참조 소스   :
+    test_numpy/numpy_test5.py     (linspace·sin 그래프, Figure·Axes — 0526)
+    test_pandas/pandas_test5.py   (seaborn.load_dataset titanic — 0526)
+    test_pandas/pandas_test6.py   (CSV I/O — 0526)
+    test_pandas/pandas_test7.py   (인터넷 데이터 읽기 — 0526)
+    test_pandas/pandas_test8.py   (시계열 DatetimeIndex — 0526)
+
+──────────────────────────────────────────────────────────────────────
+ 2. 표지(header.cover) 설계
+──────────────────────────────────────────────────────────────────────
+
+  eyebrow  : Python · 5주차 · 교과목 2 · 데이터 분석
+  headline : Matplotlib·Seaborn으로 배우는 데이터 시각화
+  deck     :
+    "이 글은 SK 네트웍스 AI Family 32기 부트캠프 5주차 수업 실습 기록이다.
+     Matplotlib Figure·Axes 구조부터 pyplot·OOP 두 인터페이스 비교,
+     분포·관계·범주·시계열 4종 시각화, CSV 파일 I/O, 인터넷 데이터 읽기,
+     DatetimeIndex 시계열까지 10개 챕터로 정리한다.
+     실제로 생성한 차트 이미지(base64)를 각 챕터에 내장했다."
+  도입 의문 : "표 가득한 숫자에서 '이상한 패턴'을 가장 빠르게 발견하는 차트는 무엇인가?"
+
+──────────────────────────────────────────────────────────────────────
+ 3. 챕터 구성 (10개)
+──────────────────────────────────────────────────────────────────────
+
+  CH01 — Matplotlib Figure · Axes 기초
+  ──────────────────────────────────────────
+  주제    : Figure, Axes, plt.subplots(nrows, ncols), tight_layout
+            matplotlib.use('Agg') 서버 환경 설정
+  코드    : numpy_test5.py (sin/cos 그래프 기반)
+  cite    : Matplotlib 공식 문서 — "Figure introduction"
+  의문가설: "plt.plot()과 ax.plot() 중 어느 것이 더 안전한가?"
+  qbox    : pyplot(전역) vs OOP(명시적 ax) — 서브플롯 여러 개일 때 pyplot이 혼동
+  테스트  : runner §01 — Figure(1,2) subplots sin/cos PNG 저장 → base64 출력
+  결론    : 실무에서는 ax 명시적 참조(OOP API) 사용
+  bridge  : 캔버스·축 이해 → pyplot vs OOP 인터페이스 차이를 더 깊게
+
+  CH02 — pyplot 인터페이스 vs 객체지향 인터페이스
+  ──────────────────────────────────────────
+  주제    : plt.figure(), plt.subplot() vs fig, ax = plt.subplots()
+            동일 결과를 두 방식으로 작성해 비교
+  코드    : numpy_test5.py 변형
+  cite    : Matplotlib 공식 문서 — "The explicit vs. implicit interfaces"
+  의문가설: "두 인터페이스가 결과는 같다면 어떤 상황에서 무엇을 선택해야 하는가?"
+  qbox    : 단일 차트 빠른 탐색 → pyplot / 복합 레이아웃·반복 생성 → OOP
+  테스트  : runner §02 — 동일 차트를 두 방식으로 생성, 코드 길이·가독성 비교
+  결론    : 협업·재사용을 위한 코드엔 OOP API 표준화 권장
+  bridge  : 인터페이스 결정 → 실제 데이터의 분포는 어떻게 시각화?
+
+  CH03 — 분포 시각화 : histogram · boxplot
+  ──────────────────────────────────────────
+  주제    : plt.hist(bins=), sns.histplot, sns.boxplot
+            auto-mpg mpg 분포 + 이상값 flier
+  코드    : day0526_runner.py §03
+  cite    : Seaborn 공식 문서 — "seaborn.boxplot"
+  의문가설: "boxplot 이상값 flier와 IQR 계산 이상값은 항상 일치하는가?"
+  qbox    : 일치. boxplot flier = IQR 1.5배 기준 밖 점 — 시각화와 수치가 동일 근거
+  테스트  : runner §03 — mpg histogram + boxplot PNG → base64 HTML 삽입
+  결론    : 시각화 탐색 후 IQR 수치 계산 → 시각·수치 병행이 원칙
+  bridge  : 단변수 분포 → 두 변수 간 관계는?
+
+  CH04 — 관계 시각화 : scatter plot · correlation heatmap
+  ──────────────────────────────────────────
+  주제    : plt.scatter, sns.scatterplot, sns.heatmap(df.corr())
+            auto-mpg mpg vs horsepower·weight 관계
+  코드    : day0526_runner.py §04
+  cite    : Seaborn 공식 문서 — "seaborn.heatmap"
+  의문가설: "상관계수 수치만 있으면 산점도는 불필요한가?"
+  qbox    : 앤스콤의 콰르텟 — 동일 상관계수여도 산점도 형태 전혀 다를 수 있음
+  테스트  : runner §04 — scatter + corr heatmap PNG → base64 HTML 삽입
+  결론    : 수치 상관과 시각 탐색은 서로 보완 관계 — 둘 다 필수
+  bridge  : 연속형 변수 관계 → 범주형 변수의 빈도·집계는?
+
+  CH05 — 범주형 시각화 : countplot · barplot
+  ──────────────────────────────────────────
+  주제    : sns.countplot(hue=), sns.barplot(estimator=, errorbar=)
+            titanic pclass·survived 분포
+  코드    : day0526_runner.py §05 (pandas_test5 titanic 기반)
+  cite    : Seaborn 공식 문서 — "seaborn.barplot"
+  의문가설: "barplot의 오차막대(errorbar)는 무엇을 의미하는가?"
+  qbox    : 기본값 = 95% 신뢰구간 (bootstrap 추정)
+            → 오차막대가 겹치면 두 그룹 차이가 통계적으로 유의미하지 않을 수 있음
+  테스트  : runner §05 — countplot + barplot PNG → base64 HTML 삽입
+  결론    : countplot = 빈도 탐색 / barplot = 통계 비교 (CI 해석 포함)
+  bridge  : 정적 범주 시각화 → 시간 축이 있는 데이터는?
+
+  CH06 — 시계열 시각화 : DatetimeIndex · line plot
+  ──────────────────────────────────────────
+  주제    : pd.to_datetime, pd.date_range, DatetimeIndex 기반 line plot
+            fig.autofmt_xdate() x축 날짜 레이블 포맷
+  코드    : pandas_test8.py + day0526_runner.py §06
+  cite    : Pandas 공식 문서 — "Time series / date functionality"
+  의문가설: "날짜가 문자열로 저장된 데이터를 plot()하면 왜 안 되는가?"
+  qbox    : 문자열 → x축 정렬·날짜 간격 계산 불가 → DatetimeIndex 변환 필수
+  테스트  : runner §06 — 2024 Q1 더미 시계열 PNG → base64 HTML 삽입
+  결론    : 시계열 분석의 첫 단계 = pd.to_datetime()으로 인덱스 변환
+  bridge  : 시각화 데이터 → 어디서 가져오는가? CSV I/O부터
+
+  CH07 — CSV 데이터 입출력 · 파일 포맷
+  ──────────────────────────────────────────
+  주제    : pd.read_csv(), df.to_csv(index=False), sep 옵션
+            pandas_test6.py CSV 입출력 기반
+  코드    : pandas_test6.py (발췌)
+  cite    : Pandas 공식 문서 — "IO tools (text, CSV, HDF5, …)"
+  의문가설: "to_csv(index=False)를 빠뜨리면 어떤 문제가 생기는가?"
+  qbox    : 기본값 index=True → Unnamed: 0 열이 저장됨
+            → 재로드 시 불필요한 컬럼 발생, 인덱스 중복
+  테스트  : runner §07 — CSV 저장(index=True vs False) 후 재로드 비교 출력
+  결론    : read_csv·to_csv 쌍을 쓸 때 index 옵션 명시는 필수 습관
+  bridge  : 로컬 CSV → 인터넷 상의 데이터를 실시간으로 읽어올 수도 있는가?
+
+  CH08 — 인터넷 데이터 읽기 · pandas-datareader
+  ──────────────────────────────────────────
+  주제    : pandas_datareader 개요, 지원 소스(FRED, World Bank 등)
+            실시간 데이터 → DataFrame 변환 흐름
+            pandas_test7.py 기반
+  코드    : pandas_test7.py (발췌)
+  cite    : pandas-datareader 공식 문서 — "Remote Data Access"
+  의문가설: "pandas-datareader로 FRED 데이터를 읽으면 바로 시각화 가능한가?"
+  qbox    : API 키 없이도 일부 소스(FRED 무료, World Bank 등) 접근 가능
+            → 읽은 즉시 DatetimeIndex DataFrame → matplotlib으로 시각화 연결
+  테스트  : runner §08 — pandas_datareader 설치 확인 + 사용 예시 출력
+            (네트워크 의존 → 코드 구조 설명 위주)
+  결론    : 인터넷 데이터 소스 + pandas_datareader = 실시간 분석 파이프라인의 입구
+  bridge  : 데이터 입수 경로 정리 → 모든 시각화 유형을 언제 어떻게 선택?
+
+  CH09 — subplot 레이아웃 · 다중 차트 배치
+  ──────────────────────────────────────────
+  주제    : fig, axes = plt.subplots(2,3), axes[r][c] 개별 제어
+            fig.suptitle(), GridSpec, tight_layout vs constrained_layout
+  코드    : day0526_runner.py §09 — 2×3 대시보드 레이아웃
+  cite    : Matplotlib 공식 문서 — "Arranging multiple Axes in a Figure"
+  의문가설: "subplots(2,3)으로 만든 axes는 배열인가?"
+  qbox    : axes는 2D numpy 배열 → axes[0,0], axes[0,1] … 로 접근
+            → 1행이면 1D 배열이 되어 axes[0], axes[1] 접근
+  테스트  : runner §09 — 2×3 subplot 대시보드 PNG → base64 HTML 삽입
+  결론    : 대시보드 레이아웃 = subplots + 개별 ax 제어 + suptitle
+  bridge  : 개별 차트·복합 레이아웃 완료 → 최종 가이드라인으로 마무리
+
+  CH10 (최종) — 시각화 선택 가이드 · FINAL CONCLUSION
+  ──────────────────────────────────────────
+  keypoint: FINAL CONCLUSION
+    ① 분포 파악       → histogram / boxplot (flier = IQR 이상값)
+    ② 변수 간 관계   → scatter / heatmap (앤스콤 사례 교훈: 수치+시각 병행)
+    ③ 범주 빈도·비교 → countplot(빈도) / barplot(집계+CI)
+    ④ 시간 추이       → line plot (DatetimeIndex 필수)
+    ⑤ 복합 레이아웃  → subplots(r,c) + axes[r][c] 명시
+    ⑥ 데이터 출처    → 로컬 CSV / 인터넷 pandas-datareader
+    ⑦ 인터페이스     → 단일 탐색 pyplot / 재사용·레이아웃 OOP
+  ASCII    : 데이터 종류 → 시각화 선택 가이드 표
+
+──────────────────────────────────────────────────────────────────────
+ 4. runner.py 구조 (day0526_runner.py)
+──────────────────────────────────────────────────────────────────────
+
+  §01  Figure·Axes sin/cos PNG (base64 저장)
+  §02  pyplot vs OOP 동일 차트 두 방식
+  §03  histogram + boxplot PNG (auto-mpg mpg)
+  §04  scatter + corr heatmap PNG (auto-mpg)
+  §05  countplot + barplot PNG (titanic pclass)
+  §06  시계열 라인차트 PNG (2024 Q1 더미)
+  §07  CSV 저장(index True/False) 재로드 비교
+  §08  pandas-datareader 설치·소스 확인
+  §09  2×3 subplot 대시보드 PNG
+
+======================================================================
+ 공통 사전 체크리스트 (§16 기반)
+======================================================================
+
+  [ ] GUIDE.txt §1~§27 전 항목 확인
+  [ ] about.txt 0521·0522·0526 항목 확인 완료
+  [ ] twitter:title / twitter:description 확인
+  [ ] @import url(...) CSS 블록 최상단 선언
+  [ ] --shadow: none CSS :root 포함
+  [ ] HW 정보 메타 행 포함
+  [ ] 모든 챕터 bridge → <strong>다음 챕터로 가는 다리</strong> — 패턴
+  [ ] 도입 bridge → <strong>도입</strong> 또는 해당 주제 패턴 (변경 금지)
+  [ ] 외부 img src="http..." 0개
+  [ ] Prism.js CDN body 닫기 직전
+  [ ] blockquote.cite 챕터당 1~2개
+  [ ] ref-chain 글 끝 1회
+  [ ] ASCII 다이어그램 visual column 검증

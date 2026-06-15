@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>파이썬 추상화 분석: ABC부터 Protocol까지, 인터페이스 없는 언어의 인터페이스 설계</title>
+  <meta name="description" content="파이썬 추상화(ABC, @abstractmethod, Protocol, 덕 타이핑)를 한 줄짜리 의문에서 시작해 학습→인용→가설→테스트→중간결론으로 이어지는 흐름으로 추적한다. ABCMeta 내부 동작, Protocol 구조적 서브타이핑, 결제 시스템 설계까지 Python 3.14 직접 실행으로 검증." />
+  <meta property="og:title" content="파이썬 추상화 분석: ABC부터 Protocol까지" />
+  <meta property="og:description" content="덕 타이핑부터 ABC·Protocol까지 — 인터페이스 없는 언어에서 인터페이스를 설계하는 법. Python 3.14.2 직접 실행 결과와 함께." />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="파이썬 추상화 분석: ABC부터 Protocol까지" />
+  <meta name="twitter:description" content="ABC, @abstractmethod, Protocol, 덕 타이핑까지 8챕터로 완전 정복." />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dee8;
+      --paper: #ffffff;
+      --surface: #ffffff;
+      --accent: #52A97E;
+      --accent-2: #E8875A;
+      --accent-3: #5B9BD5;
+      --accent-4: #9178C4;
+      --accent-soft: #EBF7F1;
+      --warn-soft: #FFF1E8;
+      --code-bg: #1e1e1e;
+      --code-ink: #e5e7eb;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+      line-height: 1.78;
+      font-size: 16px;
+    }
+    a { color: var(--accent-3); text-underline-offset: 3px; }
+    .page { width: min(880px, calc(100% - 32px)); margin: 0 auto; }
+
+    /* ------------ 표지 ------------ */
+    header.cover {
+      background: #ffffff;
+      border-bottom: 3px solid var(--ink);
+      padding: 64px 0 40px;
+    }
+    .cover .eyebrow {
+      border-top: 4px solid var(--accent);
+      padding-top: 10px;
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+    }
+    .cover h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+      line-height: 1.18;
+      letter-spacing: -0.01em;
+    }
+    .cover .deck {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-top: 30px;
+      padding-top: 18px;
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .meta-row strong { color: var(--ink); margin-right: 6px; }
+
+    /* ------------ 본문 일반 ------------ */
+    main { padding: 36px 0 60px; }
+    h2.chap {
+      border-top: 3px solid var(--ink);
+      padding-top: 16px;
+      margin: 56px 0 8px;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    h2.chap .num {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin-right: 10px;
+      padding: 2px 8px;
+      border: 2px solid var(--accent);
+      border-radius: 0;
+      vertical-align: middle;
+    }
+    h3.step {
+      margin: 26px 0 8px;
+      font-size: 1.08rem;
+      color: var(--ink);
+    }
+    h3.step::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 1.1em;
+      background: var(--accent);
+      margin-right: 8px;
+      vertical-align: text-bottom;
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { padding-left: 22px; margin: 6px 0 14px; }
+    li { margin-bottom: 6px; }
+
+    /* ------------ 인라인 코드 / 코드블록 ------------ */
+    code {
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+      font-size: 0.92em;
+    }
+    :not(pre) > code {
+      background: #EEF0F6;
+      border: 1px solid #d8e0ea;
+      border-radius: 0;
+      padding: 1px 6px;
+      color: #1f2933;
+    }
+    pre {
+      margin: 12px 0 18px;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 0;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      tab-size: 4;
+      box-shadow: none;
+    }
+    pre .comment { color: #6a9955; }
+    pre code.language-python { background: transparent; border: none; padding: 0; color: inherit; font-size: 1em; }
+
+    /* ------------ 터미널 출력 블록 ------------ */
+    .terminal {
+      margin: 14px 0 22px;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: none;
+      border: 1px solid #30363d;
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+    }
+    .terminal-header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 9px 16px;
+      font-size: 0.8rem;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .terminal-header::before {
+      content: 'PS>';
+      color: #4ec9b0;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .terminal-header .t-label { flex: 1; color: #8b949e; }
+    pre.terminal-body {
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 16px 20px;
+      border-radius: 0;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+      box-shadow: none;
+    }
+    .t-hdr { color: #484f58; }
+    .t-sec { color: #58a6ff; font-weight: 600; }
+    .t-err { color: #f85149; }
+
+    /* ------------ 챕터 앵커 링크 ------------ */
+    .anchor-link {
+      display: inline-block;
+      margin-left: 8px;
+      color: var(--accent);
+      text-decoration: none;
+      opacity: 0;
+      font-size: 0.75em;
+      vertical-align: middle;
+      font-weight: 400;
+      transition: opacity 0.15s;
+    }
+    h2.chap:hover .anchor-link { opacity: 1; }
+
+    /* ------------ 흐름 박스: 의문/결론 ------------ */
+    .qbox, .keypoint, .callout {
+      border-radius: 0;
+      padding: 16px 18px;
+      margin: 14px 0 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .qbox {
+      border-left: 4px solid var(--accent-3);
+      background: #EBF4FF;
+    }
+    .qbox .label {
+      display: block;
+      color: var(--accent-3);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .keypoint {
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+    }
+    .keypoint .label {
+      display: block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .callout {
+      border-left: 4px solid var(--accent-2);
+      background: var(--warn-soft);
+    }
+    .callout .label {
+      display: block;
+      color: var(--accent-2);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    /* ------------ 표 ------------ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: #EEF0F5;
+      color: #1f2933;
+      font-weight: 800;
+    }
+
+    /* ------------ ASCII 다이어그램 ------------ */
+    .ascii {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 16px 18px;
+      border-radius: 0;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 12px 0 18px;
+    }
+
+    /* ------------ TOC ------------ */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--ink);
+      border-radius: 0;
+      padding: 18px 22px;
+      margin: 24px 0 0;
+    }
+    .toc h4 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 20px;
+      counter-reset: tocitem;
+    }
+    .toc ol li { margin-bottom: 4px; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--accent-3); }
+
+    /* ------------ 푸터 ------------ */
+    footer {
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      padding: 26px 0 40px;
+      font-size: 0.9rem;
+    }
+    footer .refs { padding-left: 20px; margin: 8px 0 0; }
+    footer .refs li { margin-bottom: 6px; }
+
+
+    /* ------------ 근거 출처 체인 (ref-chain) ------------ */
+    .ref-chain {
+      border-left: 4px solid var(--accent-4);
+      background: #F7F5FD;
+      border: 1px solid #d8d0f0;
+      padding: 14px 18px;
+      margin: 14px 0 18px;
+    }
+    .ref-chain .ref-title {
+      font-weight: 800;
+      font-size: 0.82rem;
+      color: var(--accent-4);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+    }
+    .ref-chain ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .ref-chain ol li {
+      margin-bottom: 7px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .ref-chain ol li strong {
+      display: inline-block;
+      min-width: 110px;
+      color: var(--accent-4);
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .ref-chain a { color: var(--accent-3); }
+    .ref-chain code { font-size: 0.88em; }
+
+    /* ------------ 인라인 인용 (블록쿼트) ------------ */
+    blockquote.cite {
+      margin: 14px 0 16px;
+      padding: 12px 18px;
+      border-left: 3px solid var(--accent-4);
+      background: #F7F5FD;
+      color: #2c2735;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+    blockquote.cite .src {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+    }
+    blockquote.cite a { color: var(--accent-4); }
+
+    /* 챕터 본문 안 작은 노트 (왜 다음으로 이어지는가) */
+    .bridge {
+      margin: 18px 0 6px;
+      padding: 10px 14px;
+      border-left: 3px solid var(--muted);
+      color: var(--muted);
+      background: #fafbfc;
+      font-size: 0.92rem;
+    }
+    .bridge strong { color: var(--ink); }
+
+    /* ------------ 모바일 ------------ */
+    @media (max-width: 720px) {
+      header.cover { padding: 48px 0 32px; }
+      .meta-row { gap: 10px 18px; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     표지
+══════════════════════════════════════════════════════════════ -->
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">Python · 자습 노트(Self-Study) · OOP · Abstraction</p>
+    <h1>파이썬 추상화 분석<br>ABC부터 Protocol까지,<br>인터페이스 없는 언어의 인터페이스 설계</h1>
+    <p class="deck">
+      이 글은 부트캠프 커리큘럼 외에 추가로 자습하며 정리한 노트다.
+      덕 타이핑이 기본인 파이썬에서 "이 메서드는 반드시 구현해야 한다"를 강제하는 방법은?
+      <code>ABC</code>와 <code>@abstractmethod</code>의 내부 동작, <code>typing.Protocol</code>의
+      구조적 서브타이핑까지 — Python 3.14.2 직접 실행 결과로 검증한다.
+    </p>
+    <div class="meta-row">
+      <span><strong>Python</strong>3.14.2</span>
+      <span><strong>환경</strong>Windows 11 · PowerShell</span>
+      <span><strong>챕터</strong>8개</span>
+      <span><strong>참고 코드</strong><code>class_oop3.py</code> · <code>class_oop4.py</code></span>
+    </div>
+    <nav class="toc">
+      <h4>목차</h4>
+      <ol>
+        <li><a href="#ch0">C/C++ vtable vs Python — 왜 파이썬은 다른 방식을 선택했나</a></li>
+        <li><a href="#ch1">덕 타이핑 — 추상화 없이 쓰면 어떻게 되나</a></li>
+        <li><a href="#ch2">ABC로 인터페이스 강제하기</a></li>
+        <li><a href="#ch3">ABC로 컬렉션 인터페이스 강제하기</a></li>
+        <li><a href="#ch4">typing.Protocol — 구조적 서브타이핑</a></li>
+        <li><a href="#ch5">ABC vs Protocol — 언제 무엇을 쓰나</a></li>
+        <li><a href="#ch6">__abstractmethods__ 와 ABCMeta 내부</a></li>
+        <li><a href="#ch7">실전 — 결제 시스템 추상 계층 설계</a></li>
+        <li><a href="#ch8">워크스페이스 참조 코드와의 연결</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     본문
+══════════════════════════════════════════════════════════════ -->
+<main>
+<div class="page">
+
+
+<!-- ────────────────────────────────────────────────────────
+     도입 — 이 글이 추적하는 한 줄짜리 의문
+──────────────────────────────────────────────────────────── -->
+<section class="bridge">
+  이 글은 한 줄짜리 의문에서 시작한다 — <strong>"파이썬에는 <code>interface</code> 키워드가 없는데, 어떻게 인터페이스를 강제하는가?"</strong>
+  답을 찾기 위해 먼저 비교 대상이 되는 C/C++ 의 vtable 모델을 살펴본 뒤(CH00),
+  파이썬의 기본인 덕 타이핑이 어디서 낮아지는지 확인하고(CH01),
+  그 빈틈을 메우는 두 도구 — <code>ABC</code>(CH02·03·06)와 <code>Protocol</code>(CH04) — 을 차례로 추적한다.
+  그 둘이 어떻게 갈라지는지 결정하고(CH05) 실전 결제 시스템에 적용한 뒤(CH07),
+  워크스페이스 참조 코드 <code>class_oop4.py</code> 한 줄 — 주석 처리된 <code>Animal()</code> — 의 의미를 확정짓는다(CH08).
+</section>
+
+<!-- ────────────────────────────────────────────────────────
+     §0  C/C++ vtable vs Python 추상화 방식 비교
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch0">
+  <span class="num">CH 00</span>C/C++ vtable vs Python — 왜 파이썬은 다른 방식을 선택했나
+  <a class="anchor-link" href="#ch0">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  비교의 출발점은 C++ 다. 가상 함수(<code>virtual</code>)를 선언하면 컴파일러가 <strong>vtable(가상 함수 테이블)</strong>을 만들고,
+  클래스마다 함수 포인터 배열이 <strong>컴파일 타임에 고정</strong>된다. 런타임에는 포인터를 한 번 역참조해 메서드를 호출하므로 빠르고,
+  순수 가상 함수(<code>pure virtual</code>)를 구현하지 않으면 <strong>컴파일 오류</strong>가 난다 — 안전하지만 경직되어 있다.
+</p>
+<p>
+  파이썬은 정반대 방향을 선택했다. 파이썬 공식 데이터 모델은 메서드 호출이 어떻게 풀리는지 직접적으로 명시한다.
+</p>
+
+<blockquote class="cite">
+  The default behavior for attribute access is to get, set, or delete the attribute from an object's dictionary.
+  <span class="src">— <a href="https://docs.python.org/3/reference/datamodel.html#customizing-attribute-access" target="_blank" rel="noopener">docs.python.org/3/reference/datamodel.html § Customizing attribute access</a></span>
+</blockquote>
+
+<p>
+  즉 메서드 호출은 컴파일 타임에 박힌 포인터가 아니라 <strong>런타임에 객체의 <code>__dict__</code>를 뒤지는 동작</strong>이다.
+  여러 부모 클래스를 지나는 경우 그 탐색 순서를 정의하는 것이 <code>__mro__</code>(Method Resolution Order)이고,
+  파이썬은 그 순서를 C3 선형화 알고리즘으로 결정한다 —
+  <a href="https://docs.python.org/3/reference/datamodel.html#method-resolution-order" target="_blank" rel="noopener">Data Model § Method Resolution Order</a>가
+  이를 명시하고 있다. 실제 C 구현은 <code>Objects/typeobject.c</code>의 <code>_PyType_Lookup()</code>에서 확인할 수 있는데,
+  이 함수는 호출마다 MRO 튜플을 처음부터 순회하며 각 타입의 <code>tp_dict</code>에서 이름을 찾는다.
+  vtable처럼 한 번 굳혀 두는 것이 아니라 <strong>호출마다 새로 찾는다</strong>는 점이 핵심이다.</p>
+<p>
+  파이썬은 다르다. 메서드 호출은 <strong>런타임에 동적으로</strong> 이루어진다.
+  <code>obj.method()</code>를 호출하면 파이썬은 <code>__mro__</code>(Method Resolution Order) 순서로
+  각 클래스의 <code>__dict__</code>를 탐색해 해당 이름의 함수를 찾는다.
+  덕분에 상속 계층 없이도 다형성을 구현할 수 있고(<strong>덕 타이핑</strong>),
+  런타임에 메서드를 교체하는 것도 가능하다.
+  단, 구현 누락을 컴파일 타임에 잡지 못한다는 단점이 있어 <strong>ABC · Protocol</strong>로 보완한다.
+</p>
+
+<div class="ascii">  [C++ vtable — 컴파일 타임 고정]       [Python — 런타임 __mro__ 탐색]
+  ───────────────────────────────────   ──────────────────────────────────────
+  클래스 정의 시 vtable 생성            메서드 호출마다 __mro__ 순서 탐색
+  ┌─────────────┐                       obj.speak() 호출 시:
+  │   vtable    │                         1. obj.__dict__ 탐색
+  │ ─────────── │                         2. type(obj).__dict__ 탐색
+  │ speak → fn1 │                         3. 상위 클래스 순서대로 탐색
+  │ move  → fn2 │                         4. 찾지 못하면 AttributeError
+  └─────────────┘
+  런타임 교체 불가 (포인터 고정)         런타임 교체 가능 (dict 교체)
+  미구현 → 컴파일 오류                   미구현 → 런타임 AttributeError</div>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  공식 문서와 <code>_PyType_Lookup()</code>의 설명이 사실이라면, 파이썬에서는 다음 세 가지가 모두 가능해야 한다.
+  ① <code>__mro__</code>를 직접 출력해 탐색 순서를 눈으로 확인할 수 있다.
+  ② 상속 계층이 없는 두 클래스에 같은 이름의 메서드만 있으면 동일한 함수가 양쪽을 다 처리할 수 있다(덕 타이핑).
+  ③ 같은 인스턴스의 메서드를 <strong>실행 도중에 다른 함수로 교체</strong>할 수 있다 — vtable 모델에서는 불가능한 일이다.
+  세 가지가 모두 통과하면, 파이썬이 vtable이 아니라 동적 디스패치를 쓴다는 주장이 코드로 입증된다.
+</div>
+
+<p>
+  세 번째 항목의 메커니즘은 표준 라이브러리 <a href="https://docs.python.org/3/library/types.html#types.MethodType" target="_blank" rel="noopener"><code>types.MethodType</code></a>이다 —
+  "Bound method object" 를 즉석에서 만들어 인스턴스 속성으로 꽂아 넣는 공식 도구다. 이를 직접 써서 가설을 검증한다.
+</p>
+
+<h3 class="step">테스트 — MRO 탐색·덕 타이핑·런타임 메서드 교체</h3>
+<pre><code class="language-python">import types
+
+# ① MRO 탐색 순서 확인
+class Base:
+    def method(self): print("Base.method() 호출")
+
+class Child(Base):
+    def method(self): print("Child.method() 호출")
+
+print(f"Child.__mro__ : {[c.__name__ for c in Child.__mro__]}")
+print(f"'method' in Child.__dict__: {'method' in Child.__dict__}")
+print(f"'method' in Base.__dict__ : {'method' in Base.__dict__}")
+c = Child()
+c.method()   # Child.__dict__ 에서 먼저 발견 → Base 탐색 불필요
+
+# ② 덕 타이핑 — 상속 계층이 없는데도 같은 함수가 처리
+class Duck:
+    def quack(self): print("꽥꽥! (Duck)")
+
+class Person:
+    def quack(self): print("꽥꽥 흉내냄 (Person) — Duck 상속 없음")
+
+class Stone: pass  # quack 없음
+
+def make_it_quack(thing):
+    thing.quack()           # 타입 검사 없음 — 메서드 이름만 본다
+
+for obj in [Duck(), Person()]:
+    make_it_quack(obj)      # 둘 다 동작
+
+try:
+    make_it_quack(Stone())  # quack 없음 → 호출 시점에 터짐
+except AttributeError as e:
+    print(f"AttributeError: {e}")
+
+# ③ 런타임 메서드 교체 — vtable에서는 불가능
+class Robot:
+    def speak(self): print("로봇: 삐-뽀!")
+
+r = Robot()
+r.speak()                                      # 기본 구현
+r.speak = types.MethodType(
+    lambda self: print("로봇: 업그레이드됨!"), r)  # 이 인스턴스만 교체
+r.speak()
+Robot().speak()                                # 다른 인스턴스는 영향 없음</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">00_vtable_vs_python</span></div>
+  <pre class="terminal-body">Child.__mro__ : ['Child', 'Base', 'object']
+'method' in Child.__dict__: True
+'method' in Base.__dict__ : True
+Child.method() 호출
+꽥꽥! (Duck)
+꽥꽥 흉내냄 (Person) — Duck 상속 없음
+<span class="t-err">AttributeError: 'Stone' object has no attribute 'quack'</span>
+로봇: 삐-뽀!
+로봇: 업그레이드됨!
+로봇: 삐-뽀!</pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">PARTIAL — 가설 통과</span>
+  세 항목 모두 예측대로 동작했다. 파이썬은 vtable을 쓰지 않고 <strong>호출마다 <code>__mro__</code> 순서로 <code>__dict__</code>를 뒤진다</strong>.
+  이것이 덕 타이핑과 런타임 메서드 교체의 토대이며, 동시에 <strong>구현 누락을 컴파일 타임에 잡지 못한다</strong>는
+  심각한 단점의 출처이기도 하다 — <code>Stone</code>의 <code>AttributeError</code>가 그 단점을 그대로 노출했다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 이 단점이 실제 OOP 코드에서는 어떻게 드러날까?
+  워크스페이스 참조 파일 <code>python_oop/class_oop3.py</code>의 <code>Animal/Dog/Cat</code> 다형성 루프가
+  이 토대 위에서 어떻게 동작하는지, 그리고 어디서 낮아지는지를 CH01에서 직접 본다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §1  덕 타이핑
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch1">
+  <span class="num">CH 01</span>덕 타이핑 — 추상화 없이 쓰면 어떻게 되나
+  <a class="anchor-link" href="#ch1">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH00 의 결론 — "파이썬은 메서드 이름의 존재만 본다" — 이 워크스페이스 참조 코드에서 어떤 모습으로 드러나는지부터 본다.
+  <code>python_oop/class_oop3.py</code>는 <code>Animal / Dog / Cat</code>을 두고 다음과 같은 다형성 루프를 돌린다.
+</p>
+
+<pre><code class="language-python"># python_oop/class_oop3.py 발췌
+class Animal:
+    def speak(self): print("동물이 소리를 냅니다.")
+
+class Dog(Animal):
+    def speak(self): print("강아지가 멍멍 짖습니다.")
+
+class Cat(Animal):
+    def speak(self): print("고양이가 야옹 웁니다.")
+
+animals = [Dog(), Cat(), Animal()]
+for an in animals:
+    an.speak()</code></pre>
+
+<p>
+  이 루프가 동작하는 근거는 사실 상속이 아니라, 파이썬 용어집이 정의하는 <strong>덕 타이핑</strong>이다.
+</p>
+
+<blockquote class="cite">
+  Pythonic programming style that determines an object's type by inspection of its method or attribute signature
+  rather than by explicit relationship to some type object.
+  <span class="src">— <a href="https://docs.python.org/3/glossary.html#term-duck-typing" target="_blank" rel="noopener">Python Glossary § duck-typing</a></span>
+</blockquote>
+
+<p>
+  즉 <code>Animal</code>을 상속하든 안 하든, <code>speak()</code>가 있기만 하면 루프는 굴러간다.
+  그러나 인용문의 핵심 단어는 "by inspection" — <strong>실제 호출 시점에야 검사한다</strong>는 뜻이다.
+  CH00 의 <code>Stone</code> 사례가 그 점을 이미 보여줬다.
+</p>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  위 리스트에 <code>speak()</code>가 없는 <code>Snail</code>을 끼워 넣으면 — <strong>언제</strong> 에러가 나는가?
+  ① 클래스 정의 시점, ② 객체 생성 시점, ③ 메서드 호출 시점.
+  덕 타이핑 모델이 사실이라면 ③ 일 것이고, ABC가 풀어야 할 문제도 거기서 분명해진다.
+</div>
+
+<h3 class="step">테스트 — <code>class_oop3.py</code> 기반</h3>
+<pre><code class="language-python"># class_oop3.py 의 Animal/Dog/Cat 그대로 + Snail 추가
+class Animal:
+    def speak(self): print("동물이 소리를 냅니다.")
+
+class Dog(Animal):
+    def speak(self): print("강아지가 멍멍 짖습니다.")
+
+class Cat(Animal):
+    def speak(self): print("고양이가 야옹 웁니다.")
+
+animals = [Dog(), Cat(), Animal()]
+for an in animals:
+    an.speak()
+
+class Snail: pass             # 클래스 정의 — 에러 없음
+s = Snail()                   # 객체 생성 — 에러 없음
+try:
+    s.speak()                 # 메서드 호출 — 여기서 비로소 터진다
+except AttributeError as e:
+    print(f"AttributeError: {e}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">01_duck_typing</span></div>
+  <pre class="terminal-body">강아지가 멍멍 짖습니다.
+고양이가 야옹 웁니다.
+동물이 소리를 냅니다.
+<span class="t-err">AttributeError: 'Snail' object has no attribute 'speak'</span></pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">FAILURE → CLUE</span>
+  에러 발생 시점은 ③ <strong>메서드 호출</strong>이다. 클래스 정의도, 객체 생성도, 심지어 리스트에 담기는 것까지도 무사 통과한다.
+  운영 환경이라면 — 결제 함수가 호출되기 전까지 누구도 누락을 알아채지 못한다는 뜻이다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 그렇다면 에러 발생 시점을 ③ 호출 → ② 객체 생성으로
+  <strong>앞당기는 도구</strong>가 필요하다. 파이썬은 이를 위해 <code>abc</code> 모듈을 표준 라이브러리로 제공하고,
+  워크스페이스 코드 <code>class_oop4.py</code>가 바로 이 도구를 쓰고 있다 — 그런데 그 안에 <code>Animal()</code>을 직접 만드는
+  줄이 <em>왜 주석 처리</em>되어 있는지가 다음 의문이다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §2  ABC 기본
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch2">
+  <span class="num">CH 02</span>ABC로 인터페이스 강제하기
+  <a class="anchor-link" href="#ch2">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH01 의 다리에서 남은 의문 — "에러 시점을 호출 → 객체 생성으로 앞당기는 도구" 가 무엇이며,
+  <code>class_oop4.py</code>가 어떻게 그것을 쓰고 있는가. 정답은 <code>abc</code> 모듈이다.
+  파이썬 표준 라이브러리는 그 동작을 한 줄로 명시한다.
+</p>
+
+<blockquote class="cite">
+  A class that has a metaclass derived from ABCMeta cannot be instantiated unless all of its abstract methods
+  and properties are overridden.
+  <span class="src">— <a href="https://docs.python.org/3/library/abc.html" target="_blank" rel="noopener">docs.python.org/3/library/abc.html</a></span>
+</blockquote>
+
+<p>
+  이 문장이 도입된 배경은 <a href="https://peps.python.org/pep-3119/" target="_blank" rel="noopener">PEP 3119 — Introducing Abstract Base Classes</a> 다.
+  PEP 3119 는 "<code>hasattr()</code> 보다 강력한 인터페이스 검사" 가 필요하다고 지적하면서, 메타클래스 <code>ABCMeta</code>와
+  <code>@abstractmethod</code> 데코레이터의 조합으로 이를 해결한다고 명시한다.
+  <code>class_oop4.py</code>의 코드는 정확히 이 PEP 의 권장 형태를 따른다 — <code>class Animal(ABC)</code> + <code>@abstractmethod def speak()</code>.
+  그리고 그 파일에는 <code>Animal()</code> 을 직접 호출하는 줄이 <em>주석 처리</em>되어 있다. 풀어 실행하면 어떤 일이 벌어지는지 확인할 차례다.
+</p>
+
+<div class="ascii">  class_oop4.py → ABC 확장
+  ┌────────────────────────────────┐
+  │  Animal(ABC)                   │  ← 직접 인스턴스화 불가
+  │  @abstractmethod speak()       │  ← class_oop4.py 원본
+  │  @abstractmethod move()        │  ← 가설을 강화하기 위해 추가
+  │  def breathe()  ← 구현 포함   │
+  └──────────────┬─────────────────┘
+         ┌───────┴────────┐
+    ┌────┴────┐      ┌────┴────┐
+    │  Dog    │      │  Cat    │  ← 두 메서드 모두 구현
+    └─────────┘      └─────────┘
+    Fish → move() 누락 → 객체 생성 시점에 TypeError</div>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  PEP 3119 와 docs.python.org/abc 의 명세가 사실이라면 다음 두 가지가 모두 일어나야 한다.
+  ① 워크스페이스 파일에서 주석 처리된 <code>Animal()</code> 직접 생성을 풀면 — <strong>객체 생성 시점</strong>에 <code>TypeError</code>가 난다.
+  ② 추상 메서드를 <code>speak() · move()</code> 둘로 늘렸을 때, 한 쪽만 구현한 <code>Fish</code>도 <strong>같은 시점</strong>에 차단된다.
+  CH01 처럼 호출 직전까지 살아 있다가 터지는 것이 아니라야 한다.
+</div>
+
+<p>
+  이 차단을 실제로 수행하는 코드는 어디에 있을까. CPython 의 <code>Lib/abc.py</code> 안 <code>ABCMeta.__new__()</code>는
+  클래스 생성 시 <code>@abstractmethod</code>가 붙은 이름을 <code>__abstractmethods__</code> frozenset 에 모은다.
+  그리고 <code>Objects/typeobject.c</code>의 <code>object_new()</code>가 인스턴스 생성 시 그 frozenset 이 비어있지 않으면
+  <code>Py_TPFLAGS_IS_ABSTRACT</code> 플래그를 보고 <code>TypeError</code>를 던진다 — 게이트의 위치까지 내부에서 확인된 셈이다.
+  (CH06 에서 이 frozenset 을 직접 들여다본다.)
+</p>
+
+<h3 class="step">테스트 — <code>class_oop4.py</code> 기반 + <code>move()</code> 추가</h3>
+<pre><code class="language-python">from abc import ABC, abstractmethod
+
+# class_oop4.py 의 speak() 한 개 → 두 개로 확장
+class Animal(ABC):
+    @abstractmethod
+    def speak(self): pass
+
+    @abstractmethod
+    def move(self): pass
+
+    def breathe(self):              # 구현된 공통 메서드 — 상속됨
+        print("  (숨쉬는 중...)")
+
+class Dog(Animal):
+    def speak(self): print("강아지가 멍멍 짖습니다.")
+    def move(self):  print("강아지가 네 발로 달립니다.")
+
+class Cat(Animal):
+    def speak(self): print("고양이가 야옹 웁니다.")
+    def move(self):  print("고양이가 살금살금 걷습니다.")
+
+for a in [Dog(), Cat()]:
+    a.speak(); a.move(); a.breathe()
+
+# ① class_oop4.py 에서 주석 처리된 줄을 풀면?
+try:
+    Animal()
+except TypeError as e:
+    print(f"TypeError: {e}")
+
+# ② 추상 메서드 두 개 중 하나만 빼먹은 Fish 는?
+class Fish(Animal):
+    def speak(self): print("물고기는 소리가 없습니다.")
+    # move() 누락
+try:
+    Fish()
+except TypeError as e:
+    print(f"TypeError: {e}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">02_abc_basic</span></div>
+  <pre class="terminal-body">강아지가 멍멍 짖습니다.
+강아지가 네 발로 달립니다.
+  (숨쉬는 중...)
+고양이가 야옹 웁니다.
+고양이가 살금살금 걷습니다.
+  (숨쉬는 중...)
+<span class="t-err">TypeError: Can't instantiate abstract class Animal without an implementation for abstract methods 'move', 'speak'</span>
+<span class="t-err">TypeError: Can't instantiate abstract class Fish without an implementation for abstract method 'move'</span></pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">KEY POINT — 가설 통과</span>
+  워크스페이스 파일에서 주석 처리되어 있던 <code>Animal()</code> 직접 생성이 왜 그렇게 되어 있었는지 확정됐다 — 풀면 <code>TypeError</code>다.
+  그리고 한 메서드만 빠진 <code>Fish</code>도 동일하게 <strong>객체 생성 시점</strong>에 차단되며, 메시지가 어떤 메서드가 미구현인지 정확히 알려준다.
+  CH01 의 ③ 호출 시점 → ② 객체 생성 시점으로 검출이 앞당겨졌다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 그런데 인터페이스가 강제해야 할 메서드는
+  <code>speak()</code> 같은 일반 메서드뿐이 아니다. 컬렉션 클래스라면 <code>__len__</code>·<code>__contains__</code>·<code>__getitem__</code> 같은
+  매직 메서드가 핵심이다. 워크스페이스 파일 <code>class_oop2.py</code>의 <code>MyBox / MyList</code>가 그 예인데,
+  ABC 가 매직 메서드까지 강제할 수 있는지 — CH03 에서 본다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §3  ABC + 컬렉션 인터페이스
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch3">
+  <span class="num">CH 03</span>ABC로 컬렉션 인터페이스 강제하기
+  <a class="anchor-link" href="#ch3">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH02 의 다리에서 던진 질문 — "ABC 가 매직 메서드까지 강제할 수 있는가" — 의 답은 표준 라이브러리 자체가 이미 보여주고 있다.
+  <code>collections.abc</code> 모듈이 그 증거다.
+</p>
+
+<blockquote class="cite">
+  This module provides abstract base classes that can be used to test whether a class provides a particular interface;
+  for example, whether it is hashable or whether it is a mapping. … <code>__contains__</code>, <code>__iter__</code>,
+  <code>__len__</code>, <code>__getitem__</code> 등이 abstract method 로 등록되어 있다.
+  <span class="src">— <a href="https://docs.python.org/3/library/collections.abc.html" target="_blank" rel="noopener">docs.python.org/3/library/collections.abc</a></span>
+</blockquote>
+
+<p>
+  즉 파이썬 자체가 <code>Sequence</code>·<code>Mapping</code> 등의 인터페이스를 매직 메서드 단위로 ABC 로 정의하고 있고,
+  <a href="https://docs.python.org/3/library/abc.html#abc.abstractmethod" target="_blank" rel="noopener"><code>@abstractmethod</code></a>
+  는 메서드 이름이 무엇이든 — 던더(magic) 이든 일반이든 — 동일하게 동작한다고 명시한다.
+  워크스페이스 파일 <code>python_oop/class_oop2.py</code>의 <code>MyBox · MyList · MyNumber</code>는 각자
+  <code>__len__</code>·<code>__contains__</code>를 구현하지만 공통 부모가 없다 — 이 셋을 ABC 한 곳으로 묶을 수 있는지 직접 확인할 차례다.
+</p>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  <code>AbstractCollection(ABC)</code> 에 <code>__len__</code>·<code>__contains__</code>·<code>__getitem__</code> 셋을
+  <code>@abstractmethod</code> 로 묶으면, <code>__getitem__</code> 만 빠뜨린 서브클래스도 <strong>객체 생성 시점</strong>에
+  CH02 와 동일한 메커니즘으로 차단되어야 한다. 동시에 ABC 안에 작성한 공통 메서드(<code>describe()</code>)는
+  서브클래스가 별다른 코드 없이 자동으로 사용할 수 있어야 한다.
+</div>
+
+<h3 class="step">테스트 — <code>class_oop2.py</code> MyBox·MyList 기반 ABC</h3>
+<pre><code class="language-python">from abc import ABC, abstractmethod
+
+class AbstractCollection(ABC):
+    @abstractmethod
+    def __len__(self) -> int: pass
+    @abstractmethod
+    def __contains__(self, item) -> bool: pass
+    @abstractmethod
+    def __getitem__(self, index): pass
+
+    def describe(self):                # 공통 구현 — 자동 상속
+        print(f"  항목 수: {len(self)}")
+
+# class_oop2.py 의 MyBox 에 __getitem__ 추가하여 ABC 만족
+class MyBox(AbstractCollection):
+    def __init__(self, items):    self.items = items
+    def __len__(self):            return len(self.items)
+    def __contains__(self, item): return item in self.items
+    def __getitem__(self, index): return self.items[index]
+
+# class_oop2.py 의 MyList 도 동일하게 ABC 만족
+class MyList(AbstractCollection):
+    def __init__(self, data):     self.data = data
+    def __len__(self):            return len(self.data)
+    def __contains__(self, item): return item in self.data
+    def __getitem__(self, index): return self.data[index]
+    def __str__(self):            return str(self.data)
+
+box = MyBox([10, 20, 30])
+lst = MyList(['a', 'b', 'c'])
+
+for col in [box, lst]:
+    col.describe()                                  # ABC 의 공통 구현 사용
+    print(f"  {type(col).__name__}[0] = {col[0]}")
+
+print(f"20 in box: {20 in box}")
+print(f"'b' in lst: {'b' in lst}")
+print(f"str(lst)  = {lst}")
+
+# __getitem__ 만 빠뜨리면?
+class IncompleteCol(AbstractCollection):
+    def __len__(self): return 0
+    def __contains__(self, item): return False
+    # __getitem__ 누락
+try:
+    IncompleteCol()
+except TypeError as e:
+    print(f"TypeError: {e}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">03_abc_decorators</span></div>
+  <pre class="terminal-body">  항목 수: 3
+  MyBox[0] = 10
+  항목 수: 3
+  MyList[0] = a
+20 in box: True
+'b' in lst: True
+str(lst)  = ['a', 'b', 'c']
+<span class="t-err">TypeError: Can't instantiate abstract class IncompleteCol without an implementation for abstract method '__getitem__'</span></pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">KEY POINT</span>
+  매직 메서드도 일반 메서드와 완전히 동일하게 강제된다 — 메시지조차 같은 형식이다.
+  덤으로 ABC 한 곳에 적은 <code>describe()</code> 가 두 서브클래스 모두에서 자동으로 동작하면서, <strong>"공통 구현 + 강제 인터페이스"</strong>
+  가 한 도구로 해결된다는 점이 확인된다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 그러나 ABC 의 전제는 <strong>명시적 상속</strong>이다.
+  외부 라이브러리에서 가져온 클래스에는 우리가 ABC 를 끼워 넣을 수 없다. 그렇다면 "상속 없이도
+  인터페이스로 묶고 싶다" 는 요구를 어떻게 풀까 — Python 3.8 의 <code>typing.Protocol</code> 이 답이다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §4  Protocol
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch4">
+  <span class="num">CH 04</span>typing.Protocol — 구조적 서브타이핑
+  <a class="anchor-link" href="#ch4">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH03 의 다리 — "상속 없이도 인터페이스로 묶고 싶다" — 의 답은
+  <a href="https://peps.python.org/pep-0544/" target="_blank" rel="noopener">PEP 544</a> 가 도입한 <code>typing.Protocol</code> 이다.
+  PEP 544 의 부제는 <em>Protocols: Structural subtyping (static duck typing)</em> 이고, 도입 동기는 다음과 같이 적혀 있다.
+</p>
+
+<blockquote class="cite">
+  Currently, PEP 484 and the typing module define abstract base classes for several common Python protocols
+  such as <code>Iterable</code> and <code>Sized</code>. The problem with them is that a class has to be explicitly marked
+  to support them, which is unpythonic and unlike what one normally does in idiomatic dynamically typed Python code.
+  <span class="src">— <a href="https://peps.python.org/pep-0544/#abstract" target="_blank" rel="noopener">PEP 544 § Abstract</a></span>
+</blockquote>
+
+<p>
+  요컨대 ABC 의 "명시적 상속" 요건이 파이썬답지 않다는 문제 제기다. 그 대안인 Protocol 의 동작은
+  <a href="https://docs.python.org/3/library/typing.html#typing.Protocol" target="_blank" rel="noopener">typing.Protocol</a>
+  공식 문서에 한 줄로 정리되어 있다.
+</p>
+
+<blockquote class="cite">
+  Class is a protocol class that is checked at runtime via <code>isinstance()</code> when decorated with
+  <code>@runtime_checkable</code>. … Such classes are primarily used with static type checkers that recognize
+  <strong>structural subtyping</strong> (static duck typing).
+  <span class="src">— <a href="https://docs.python.org/3/library/typing.html#typing.Protocol" target="_blank" rel="noopener">docs.python.org/3/library/typing § Protocol</a></span>
+</blockquote>
+
+<p>
+  <code>@runtime_checkable</code> 의 검사 깊이는 CPython <code>Lib/typing.py</code> 의 <code>_ProtocolMeta.__instancecheck__()</code>
+  구현에서 확인할 수 있다 — 객체에 <strong>해당 이름의 어트리뷰트가 있는지</strong> 만 본다. 시그니처(파라미터 개수·타입)는 검사하지 않는다.
+  같은 함서의 PEP 544 § Runtime checkable protocols 가 그 한계를 명시한다.
+  CH01 의 <code>class_oop3.py</code> 를 다시 끌고 와 — Protocol 이 그 덕 타이핑을 어디까지 표현할 수 있는지 본다.
+</p>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  Protocol 이 구조적 서브타이핑이라면 다음 셋이 모두 만족돼야 한다.
+  ① <code>class_oop3.py</code> 의 <code>Animal / Dog / Cat</code> 은 <code>speak()</code> 가 있으므로 모두 <code>Speakable</code> 로 인식된다.
+  ② <code>Animal</code> 을 <strong>전혀 상속하지 않은</strong> <code>Robot</code> 도 <code>speak()</code> 만 있으면 <code>Speakable</code> 로 인식된다.
+  ③ <code>speak()</code> 가 없는 <code>Snail</code> 은 <code>False</code> 가 나와야 하고, 타입 힌트를 무시하고 호출하면
+    CH01 의 호출 시점 <code>AttributeError</code> 와 동일한 결과가 나와야 한다 (Protocol 은 런타임 차단 도구가 아니므로).
+</div>
+
+<h3 class="step">테스트 — <code>class_oop3.py</code> Animal·Dog·Cat 기반 Speakable Protocol</h3>
+<pre><code class="language-python">from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Speakable(Protocol):
+    def speak(self) -> None: ...
+
+# class_oop3.py 원본 그대로
+class Animal:
+    def speak(self): print("동물이 소리를 냅니다.")
+class Dog(Animal):
+    def speak(self): print("강아지가 멍멍 짖습니다.")
+class Cat(Animal):
+    def speak(self): print("고양이가 야옹 웁니다.")
+
+# Animal 상속 없이 speak() 만 있는 Robot
+class Robot:
+    def speak(self): print("삐-뽀-삐-뽀!")
+
+class Snail: pass   # speak() 없음
+
+for obj in [Animal(), Dog(), Cat(), Robot(), Snail()]:
+    print(f"{type(obj).__name__:8} isinstance Speakable: {isinstance(obj, Speakable)}")
+
+print("--- make_noise() ---")
+def make_noise(thing: Speakable):       # 타입 힌트는 정적 검사용
+    thing.speak()                       # 런타임은 여전히 덕 타이핑
+
+for thing in [Dog(), Cat(), Robot()]:
+    make_noise(thing)
+try:
+    make_noise(Snail())
+except AttributeError as e:
+    print(f"AttributeError: {e}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">04_protocol</span></div>
+  <pre class="terminal-body">Animal   isinstance Speakable: True
+Dog      isinstance Speakable: True
+Cat      isinstance Speakable: True
+Robot    isinstance Speakable: True
+Snail    isinstance Speakable: False
+--- make_noise() ---
+강아지가 멍멍 짖습니다.
+고양이가 야옹 웁니다.
+삐-뽀-삐-뽀!
+<span class="t-err">AttributeError: 'Snail' object has no attribute 'speak'</span></pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">KEY POINT</span>
+  세 가설이 그대로 통과했다. <strong>Protocol 은 상속 계층이 아니라 메서드의 존재로 판단한다</strong> — <code>Robot</code> 이 그 증거.
+  <code>Snail</code> 호출이 여전히 <code>AttributeError</code> 라는 점에서 — Protocol 은 <strong>"인터페이스를 강제"</strong> 하는 도구가 아니라
+  <strong>"덕 타이핑을 타입 시스템에 표현"</strong> 하는 도구임이 명확해진다. 강제는 ABC, 표현은 Protocol — 역할이 다르다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 그렇다면 실제 코드에서 둘을 어떻게 갈라 쓸 것인가.
+  CH05 에서 동일한 코드베이스에 ABC 와 Protocol 을 함께 두고, 각각이 잘 맞는 상황을 한 번에 비교한다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §5  ABC vs Protocol
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch5">
+  <span class="num">CH 05</span>ABC vs Protocol — 언제 무엇을 쓰나
+  <a class="anchor-link" href="#ch5">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH02·03 와 CH04 의 결과를 모아 한 표로 정리한다. 결정 기준은 두 가지 — <strong>"공통 구현을 공유하고 싶은가?"</strong> 와
+  <strong>"기존 클래스를 수정 없이 호환시키고 싶은가?"</strong> 다. 각각의 답이 ABC·Protocol 을 가른다.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>기준</th>
+      <th>ABC (CH02·03)</th>
+      <th>Protocol (CH04)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>서브타이핑 방식</td><td>명시적 상속 필요</td><td>구조만 맞으면 OK (상속 불필요)</td></tr>
+    <tr><td>공통 구현 포함</td><td>가능 (<code>describe()</code>, <code>breathe()</code>)</td><td>불가 (선언만 권장)</td></tr>
+    <tr><td>기존 클래스 호환</td><td>상속해야 호환</td><td>수정 없이 호환 가능</td></tr>
+    <tr><td>런타임 검사</td><td><code>isinstance</code> 기본 지원</td><td><code>@runtime_checkable</code> 필요 + 이름만 검사</td></tr>
+    <tr><td>차단 시점</td><td>객체 생성 시 (<code>TypeError</code>)</td><td>차단 안 함 — 정적 검사용</td></tr>
+    <tr><td>적합한 상황</td><td>클래스 계층 설계, 공통 로직 공유</td><td>외부 라이브러리·덕 타이핑 타입 힌트</td></tr>
+  </tbody>
+</table>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  표가 정확하다면, 한 코드베이스 안에 두 도구를 동시에 넣고 — <strong>서로 다른 시나리오</strong>에서 — 각자의 강점이
+  드러나게 만들 수 있어야 한다. ① <code>Serializable(ABC)</code> 는 <code>save()</code> 공통 로직을 상속시키고
+  <code>to_json()</code> 만 강제한다. ② <code>Closeable(Protocol)</code> 은 <code>FileHandle / DBConnection</code> 같은
+  서로 무관한 클래스를 <strong>상속 변경 없이</strong> 같은 함수로 받을 수 있게 한다.
+</div>
+
+<h3 class="step">테스트</h3>
+<pre><code class="language-python">from abc import ABC, abstractmethod
+from typing import Protocol
+
+# ① ABC — 공통 구현 + 강제
+class Serializable(ABC):
+    @abstractmethod
+    def to_json(self) -> str: ...
+
+    def save(self, path: str):                   # 공통 로직
+        print(f"  → {path} 에 저장: {self.to_json()}")
+
+class User(Serializable):
+    def __init__(self, name): self.name = name
+    def to_json(self): return f'{{"name":"{self.name}"}}'
+
+User("Alice").save("users.json")
+
+# ② Protocol — 상속 변경 없이 두 클래스를 같은 함수에 통과
+class Closeable(Protocol):
+    def close(self) -> None: ...
+
+class FileHandle:                                # 어떤 ABC 도 상속 안 함
+    def close(self): print("  FileHandle.close()")
+
+class DBConnection:                              # 어떤 ABC 도 상속 안 함
+    def close(self): print("  DBConnection.close()")
+
+def cleanup(resource: Closeable):
+    resource.close()
+
+for r in [FileHandle(), DBConnection()]:
+    cleanup(r)</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">05_abc_vs_protocol</span></div>
+  <pre class="terminal-body">  → users.json 에 저장: {"name":"Alice"}
+  FileHandle.close()
+  DBConnection.close()</pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">KEY POINT</span>
+  <strong>ABC</strong> = 계층을 직접 설계하고 공통 로직을 공유하는 자리.
+  <strong>Protocol</strong> = 외부 클래스를 수정 없이 인터페이스로 묶는 자리.
+  두 도구는 배타적이지 않고, 같은 코드베이스에서 용도에 맞게 공존한다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 여기까지의 결론은 모두 "ABC 가 객체 생성을 차단한다" 는 한 가설 위에 서 있다.
+  CPython 이 그것을 어떻게 구현하는지 — <code>__abstractmethods__</code> frozenset 과 <code>ABCMeta</code> 메타클래스를
+  CH06 에서 직접 들여다본다. 가설이 내부 동작과 일치해야 결론이 굳는다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §6  내부 동작 (__abstractmethods__, ABCMeta)
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch6">
+  <span class="num">CH 06</span>__abstractmethods__와 ABCMeta 내부
+  <a class="anchor-link" href="#ch6">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH02 의 다리에서 미리 언급했던 게이트의 위치 — <code>__abstractmethods__</code> frozenset 과 <code>ABCMeta</code> 메타클래스 — 를
+  이번 챕터에서 직접 들여다본다. 공식 문서는 <code>ABC</code> 와 <code>ABCMeta</code> 의 관계를 한 줄로 명시한다.
+</p>
+
+<blockquote class="cite">
+  <code>class abc.ABC</code> — A helper class that has <code>ABCMeta</code> as its metaclass. With this class, an
+  abstract base class can be created by simply deriving from <code>ABC</code> avoiding sometimes confusing
+  metaclass usage. … <code>ABC</code> is equivalent to <code>class ABC(metaclass=ABCMeta): pass</code>.
+  <span class="src">— <a href="https://docs.python.org/3/library/abc.html#abc.ABC" target="_blank" rel="noopener">docs.python.org/3/library/abc § ABC</a></span>
+</blockquote>
+
+<p>
+  즉 <code>class Animal(ABC)</code> 는 <code>class Animal(metaclass=ABCMeta)</code> 의 단순한 별칭이다.
+  실제 게이트의 동작은 두 곳에 나뉘어 있다.
+  ① <strong><code>Lib/abc.py</code> 의 <code>ABCMeta.__new__()</code></strong> — 클래스 생성 시점에
+    <code>@abstractmethod</code>가 붙은 이름들을 모아 <code>cls.__abstractmethods__ = frozenset({...})</code> 로 굳혀 둔다.
+  ② <strong><code>Objects/typeobject.c</code> 의 <code>object_new()</code></strong> — 인스턴스 생성 시점에
+    이 frozenset 이 비어있지 않으면 <code>Py_TPFLAGS_IS_ABSTRACT</code> 플래그를 보고 <code>TypeError</code> 를 던진다.
+  CH02 에서 본 에러 메시지("Can't instantiate abstract class … without …")가 바로 이 ② 에서 만들어진 문자열이다.
+</p>
+
+<div class="ascii">  ABCMeta.__new__()  →  cls.__abstractmethods__ = frozenset({'speak', 'flush'})
+                                                   │
+                                                   ▼
+  object_new()       →  if cls.__abstractmethods__:
+                            raise TypeError("Can't instantiate ...")</div>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  공식 문서와 <code>Lib/abc.py</code> 의 설명이 사실이라면 — ① 추상 메서드를 가진 <code>ILogger</code> 의
+  <code>__abstractmethods__</code> 는 그 이름들이 들어 있는 frozenset 이다.
+  ② 모두 구현한 <code>FileLogger</code> 의 같은 속성은 <strong><code>frozenset()</code> (공집합)</strong> 이다.
+  ③ <code>metaclass=ABCMeta</code> 를 직접 쓴 클래스도 ABC 와 동일하게 동작하며 <code>type()</code> 결과가 <code>ABCMeta</code> 다.
+</div>
+
+<h3 class="step">테스트</h3>
+<pre><code class="language-python">from abc import ABC, abstractmethod, ABCMeta
+
+class ILogger(ABC):
+    @abstractmethod
+    def log(self, msg: str): pass
+    @abstractmethod
+    def flush(self): pass
+
+print(f"ILogger.__abstractmethods__ = {ILogger.__abstractmethods__}")
+
+class FileLogger(ILogger):
+    def log(self, msg): print(f"  [FILE] {msg}")
+    def flush(self):    print("  [FILE] flush")
+
+print(f"FileLogger.__abstractmethods__ = {FileLogger.__abstractmethods__}")
+
+fl = FileLogger()
+fl.log("테스트 메시지"); fl.flush()
+
+# ABCMeta 직접 사용 — ABC 상속과 동등해야 함
+class IWriter(metaclass=ABCMeta):
+    @abstractmethod
+    def write(self, data): pass
+
+print(f"IWriter.__abstractmethods__ = {IWriter.__abstractmethods__}")
+print(f"type(IWriter) = {type(IWriter)}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">06_internals</span></div>
+  <pre class="terminal-body">ILogger.__abstractmethods__ = frozenset({'flush', 'log'})
+FileLogger.__abstractmethods__ = frozenset()
+  [FILE] 테스트 메시지
+  [FILE] flush
+IWriter.__abstractmethods__ = frozenset({'write'})
+type(IWriter) = &lt;class 'abc.ABCMeta'&gt;</pre>
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">KEY POINT</span>
+  세 가설 모두 통과 — 이론(공식 문서) 과 내부(<code>Lib/abc.py</code> + <code>typeobject.c</code>) 가 그대로 일치한다.
+  ABC 의 차단은 특별한 비법이 아니라 단지 <strong><code>__abstractmethods__</code> frozenset 이 비어있는지 검사</strong>하는 한 줄이다.
+  공집합이 되는 순간 게이트가 열린다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 메커니즘이 확정됐으니 실전 시스템에 적용한다.
+  CH07 에서 결제 게이트웨이 추상 계층을 설계하고, CH06 의 결과 — "객체 생성 시점 차단" — 가
+  <strong>"불완전한 결제 수단을 프로덕션에 못 띄운다"</strong> 는 설계 안전성으로 어떻게 직결되는지 본다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §7  실전 — 결제 시스템
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch7">
+  <span class="num">CH 07</span>실전 — 결제 시스템 추상 계층 설계
+  <a class="anchor-link" href="#ch7">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  CH06 까지의 결과를 한 줄로 모으면 — "ABC 는 미구현 메서드를 frozenset 으로 모아 두고 객체 생성 시점에 차단한다." 이 메커니즘이
+  실제 시스템에서 어떤 가치를 만드는지 결제 게이트웨이 설계로 검증한다.
+</p>
+<p>
+  추상 클래스 <code>PaymentGateway(ABC)</code> 에 <code>charge()</code>·<code>refund()</code> 두 추상 메서드를 두고,
+  공통 처리 흐름인 <code>process()</code> 를 구체 메서드로 둔다 — 추상이 단계의 <strong>뼈대</strong>를 정하고 서브클래스가 <strong>세부</strong>를 채우는 형태,
+  즉 GoF 의 Template Method 패턴이다.
+  abc 모듈 문서가 이 사용 패턴을 직접적으로 허용한다.
+</p>
+
+<blockquote class="cite">
+  Abstract methods can be called using any of the normal 'super' call mechanisms. … This makes it possible to provide
+  default implementations in the abstract class, while still requiring subclasses to override them.
+  <span class="src">— <a href="https://docs.python.org/3/library/abc.html#abc.abstractmethod" target="_blank" rel="noopener">docs.python.org/3/library/abc § abstractmethod</a></span>
+</blockquote>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설</span>
+  <code>BrokenGateway</code> 가 <code>charge()</code> 만 구현하고 <code>refund()</code> 를 빼먹었다고 하자.
+  CH06 의 결론이 사실이라면 — 에러는 <code>process()</code> 호출 시점도, 환불 시도 시점도 아닌 — 단순히
+  <strong><code>BrokenGateway()</code> 를 부르는 그 자리</strong> 에서 나야 한다.
+  그래야 "불완전한 결제 수단을 프로덕션에 띄우는 것" 자체가 막힌다.
+</div>
+
+<h3 class="step">테스트</h3>
+<pre><code class="language-python">from abc import ABC, abstractmethod
+import datetime
+
+class PaymentGateway(ABC):
+    @abstractmethod
+    def charge(self, amount: int) -> bool: ...
+    @abstractmethod
+    def refund(self, amount: int) -> bool: ...
+
+    def process(self, amount: int):                 # Template Method
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        ok = self.charge(amount)
+        status = "성공" if ok else "실패"
+        print(f"  [{ts}] {type(self).__name__} {amount:,}원 결제 {status}")
+
+class CreditCard(PaymentGateway):
+    def __init__(self, card_no): self.card_no = card_no[-4:]
+    def charge(self, amount):
+        print(f"    카드 *{self.card_no}: {amount:,}원 청구"); return True
+    def refund(self, amount):
+        print(f"    카드 *{self.card_no}: {amount:,}원 취소"); return True
+
+class BankTransfer(PaymentGateway):
+    def __init__(self, acct): self.acct = acct[-4:]
+    def charge(self, amount):
+        print(f"    계좌 {self.acct}: {amount:,}원 이체"); return True
+    def refund(self, amount):
+        print(f"    계좌 {self.acct}: 환불은 수동 처리"); return False
+
+for gw in [CreditCard("1234-5678-9012-3456"), BankTransfer("110-123-456789")]:
+    gw.process(50000)
+
+# refund() 누락한 결제 수단을 프로덕션에 올리려고 시도
+class BrokenGateway(PaymentGateway):
+    def charge(self, amount): return False
+    # refund() 누락
+try:
+    BrokenGateway()                                 # 객체 생성 시점에 차단되어야 함
+except TypeError as e:
+    print(f"TypeError: {e}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">07_payment_system</span></div>
+  <pre class="terminal-body">    카드 *3456: 50,000원 청구
+  [16:24:58] CreditCard 50,000원 결제 성공
+    계좌 6789: 50,000원 이체
+  [16:24:58] BankTransfer 50,000원 결제 성공
+<span class="t-err">TypeError: Can't instantiate abstract class BrokenGateway without an implementation for abstract method 'refund'</span></pre>
+</div>
+
+<div class="callout">
+  <span class="label">NOTE — 타임스탬프</span>
+  출력의 <code>[16:24:58]</code> 는 <code>process()</code> 안에서 <code>datetime.datetime.now()</code> 를 호출하므로 실행마다 달라진다.
+</div>
+
+<h3 class="step">결론(중간)</h3>
+<div class="keypoint">
+  <span class="label">KEY POINT — 가설 통과</span>
+  에러는 <strong><code>BrokenGateway()</code> 한 줄</strong> 에서 났다 — <code>process()</code> 호출이나 환불 시도 이전이다.
+  CH06 의 frozenset 게이트가 실전 시스템 차원에서 <strong>"불완전한 구현체의 배포 자체를 막는 안전 장치"</strong> 로 동작함이 확인된다.
+  추상화가 가져다주는 가치는 추상적인 정리가 아니라, 이런 구체적인 차단이다.
+</div>
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — CH00 ~ CH07 이 쌓아 올린 결과를 가지고, 출발점이었던 워크스페이스 참조 파일
+  <code>class_oop4.py</code> 한 줄짜리 의문 — "주석 처리된 <code>Animal()</code> 은 왜 그 자리에 있나" — 으로 돌아간다.
+  CH08 이 그 답을 확정한다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     §8  워크스페이스 참조 코드와의 연결
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" id="ch8">
+  <span class="num">CH 08</span>워크스페이스 참조 코드와의 연결 — 출발점으로 돌아오기
+  <a class="anchor-link" href="#ch8">#</a>
+</h2>
+
+<h3 class="step">학습</h3>
+<p>
+  이 글의 출발점이었던 의문 — "<code>class_oop4.py</code> 안의 <code>Animal()</code> 직접 생성 줄은 왜 주석 처리되어 있나" — 으로 돌아온다.
+  CH02 ~ CH06 의 결과를 통해 답은 이미 분명하다. 그러나 한 가지 남은 의문이 있다 — 그렇다면 <code>Dog</code>·<code>Cat</code> 의
+  부모 자격(<code>isinstance(Dog(), Animal)</code>) 은 어떻게 되는가? 직접 생성은 막히지만 자식의 부모 인식은 살아 있어야 일관된 설계다.
+</p>
+
+<blockquote class="cite">
+  <code>isinstance(object, classinfo)</code> — Return True if the object argument is an instance of the classinfo argument,
+  or of a (direct, indirect, or virtual) subclass thereof.
+  <span class="src">— <a href="https://docs.python.org/3/library/functions.html#isinstance" target="_blank" rel="noopener">docs.python.org/3/library/functions § isinstance</a></span>
+</blockquote>
+
+<p>
+  공식 문서는 "subclass 의 인스턴스도 True" 라고 명시한다 — ABC 라고 해서 예외는 아니다. 즉
+  <strong>"부모 직접 생성은 막히되, 자식의 부모 인식은 통과"</strong> 가 동시에 성립해야 일관된다. 두 결과를 한 스크립트에서 같이 본다.
+</p>
+
+<h3 class="step">의문 → 가설</h3>
+<div class="qbox">
+  <span class="label">가설(최종)</span>
+  ① <code>Dog()</code>·<code>Cat()</code> 은 정상 생성되고 다형성 루프가 동작한다 (CH01·CH02 결과).
+  ② <code>Animal()</code> 직접 생성은 <code>TypeError</code> (CH02·CH06).
+  ③ 그럼에도 <code>isinstance(Dog(), Animal)</code>·<code>issubclass(Dog, Animal)</code> 은 모두 <code>True</code> —
+  ABC 가 인식 자체를 끊지는 않는다.
+</div>
+
+<h3 class="step">테스트</h3>
+<pre><code class="language-python">from abc import ABC, abstractmethod
+
+# class_oop4.py 핵심 그대로
+class Animal(ABC):
+    @abstractmethod
+    def speak(self): pass
+
+class Dog(Animal):
+    def speak(self): print("강아지가 멍멍 짖습니다.")
+
+class Cat(Animal):
+    def speak(self): print("고양이가 야옹 웁니다.")
+
+# ① 다형성 루프
+for an in [Dog(), Cat()]:
+    an.speak()
+
+# ② 워크스페이스 파일에서 주석 처리되어 있던 줄
+try:
+    Animal()
+except TypeError as e:
+    print(f"TypeError: {e}")
+
+# ③ ABC 계층의 인식
+d = Dog()
+print(f"isinstance(Dog(), Animal): {isinstance(d, Animal)}")
+print(f"issubclass(Dog, Animal):   {issubclass(Dog, Animal)}")</code></pre>
+
+<div class="terminal">
+  <div class="terminal-header"><span class="t-label">08_workspace_link</span></div>
+  <pre class="terminal-body">강아지가 멍멍 짖습니다.
+고양이가 야옹 웁니다.
+<span class="t-err">TypeError: Can't instantiate abstract class Animal without an implementation for abstract method 'speak'</span>
+isinstance(Dog(), Animal): True
+issubclass(Dog, Animal):   True</pre>
+</div>
+
+<h3 class="step">최종 결론</h3>
+<div class="keypoint">
+  <span class="label">FINAL CONCLUSION</span>
+  세 결과가 모두 예측대로 통과했다. 이 글이 따라온 의문 — "파이썬에는 <code>interface</code> 키워드가 없는데 어떻게 인터페이스를 강제하는가" — 의 답이
+  최종적으로 정리된다.<br><br>
+  ① 파이썬은 vtable 대신 <strong>런타임 <code>__mro__</code> 탐색</strong> 으로 메서드를 찾는다 (CH00).
+  덕분에 덕 타이핑이 가능하지만, 구현 누락은 호출 시점에야 드러난다 (CH01).<br>
+  ② 그 약점을 보완하는 두 도구는 — <strong>ABC</strong> 가 객체 생성 시점에 차단(CH02·03·07)하고,
+  <strong>Protocol</strong> 이 상속 변경 없이 구조적 호환을 표현(CH04)한다. 둘은 배타적이지 않다(CH05).<br>
+  ③ ABC 의 차단은 특별한 비법이 아니라 <code>__abstractmethods__</code> frozenset 한 줄짜리 검사다(CH06).<br>
+  ④ 그래서 <code>class_oop4.py</code> 의 <code>Animal()</code> 줄이 <strong>주석 처리되어야만 했던 것</strong> 이고,
+  그 주석은 ABC 의 본체 — "부모 직접 생성 차단, 자식 인식은 유지" — 의 결과다.<br>
+  요컨대 인터페이스 키워드의 부재는 결함이 아니라 설계 선택이며, 그 빈자리는 <strong>ABC 와 Protocol 두 도구의 조합</strong> 으로 메워진다.
+</div>
+
+<!-- ────────────────────────────────────────────────────────
+     전체 요약
+──────────────────────────────────────────────────────────── -->
+<h2 class="chap" style="margin-top:64px">전체 요약</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>챕터</th>
+      <th>핵심 포인트</th>
+      <th>에러 발생 시점</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CH00 · vtable vs Python</td>
+      <td>vtable 대신 런타임 <code>__mro__</code> 탐색 — 유연성과 동적 디스패치의 토대</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>CH01 · 덕 타이핑</td>
+      <td>메서드 있으면 OK, 없으면 <code>AttributeError</code></td>
+      <td>메서드 호출 시</td>
+    </tr>
+    <tr>
+      <td>CH02 · ABC 기본</td>
+      <td>미구현 추상 메서드 하나라도 있으면 <code>TypeError</code></td>
+      <td>객체 생성 시</td>
+    </tr>
+    <tr>
+      <td>CH03 · 컬렉션 ABC</td>
+      <td>매직 메서드(<code>__len__</code>·<code>__getitem__</code>)도 동일하게 강제</td>
+      <td>객체 생성 시</td>
+    </tr>
+    <tr>
+      <td>CH04 · Protocol</td>
+      <td>상속 없이 구조만 맞으면 OK, <code>@runtime_checkable</code> 필요</td>
+      <td>차단 안 함 (정적 검사용)</td>
+    </tr>
+    <tr>
+      <td>CH05 · ABC vs Protocol</td>
+      <td>계층 설계 → ABC, 외부 클래스 호환 → Protocol</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>CH06 · ABCMeta 내부</td>
+      <td><code>__abstractmethods__</code> frozenset; 공집합이면 게이트 통과</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>CH07 · 결제 시스템</td>
+      <td>Template Method — 불완전한 구현체의 배포 자체를 차단</td>
+      <td>객체 생성 시</td>
+    </tr>
+    <tr>
+      <td>CH08 · 워크스페이스 연결</td>
+      <td><code>Animal()</code> 차단 + <code>isinstance(Dog(), Animal)</code> True 가 동시에 성립</td>
+      <td>객체 생성 시</td>
+    </tr>
+  </tbody>
+</table>
+
+</div><!-- .page -->
+</main>
+
+<!-- ══════════════════════════════════════════════════════════
+     푸터
+══════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="page">
+    <p><strong>참고 자료</strong></p>
+    <ul class="refs">
+      <li><a href="https://docs.python.org/3/library/abc.html" target="_blank" rel="noopener">Python 공식 문서 — abc — Abstract Base Classes</a></li>
+      <li><a href="https://docs.python.org/3/library/typing.html#typing.Protocol" target="_blank" rel="noopener">Python 공식 문서 — typing.Protocol (PEP 544)</a></li>
+      <li><a href="https://peps.python.org/pep-3119/" target="_blank" rel="noopener">PEP 3119 — Introducing Abstract Base Classes</a></li>
+      <li><a href="https://peps.python.org/pep-0544/" target="_blank" rel="noopener">PEP 544 — Protocols: Structural subtyping (static duck typing)</a></li>
+      <li>워크스페이스 참조 코드: <code>python_oop/class_oop3.py</code>, <code>python_oop/class_oop4.py</code></li>
+    </ul>
+    <p style="margin-top:20px; color: var(--muted);">Python 3.14.2 · Windows 11 · PowerShell</p>
+
+    <p style="margin-top:18px"><strong>소스 코드</strong></p>
+    <ul class="refs" style="margin-top:4px">
+      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub — roroblack/python_workspace (소스 저장소)</a></li>
+      <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages — 블로그 목록</a></li>
+    </ul>
+  </div>
+</footer>

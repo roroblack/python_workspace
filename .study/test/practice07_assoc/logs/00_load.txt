@@ -1,0 +1,13 @@
+============================================================
+# 00_load
+============================================================
+[데이터] shop_groceries.csv
+전체 거래 수(영수증): 9835
+전체 품목 수(고유)  : 169
+바구니 크기 — 최소 1 / 최대 32 / 평균 4.41
+one-hot 인코딩 행렬 shape: (9835, 169)
+
+거래 예시 3건:
+  - citrus fruit, semi-finished bread, margarine, ready soups
+  - tropical fruit, yogurt, coffee
+  - whole milk

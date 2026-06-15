@@ -1,0 +1,11 @@
+int 배열  dtype : int64
+float 배열 dtype : float64
+dtype='f'  → float32  값=[1. 2. 3.]
+dtype='U3' → <U3  값=['서울' '부산경']  (4글자 '부산경남' → 잘림)
+0/0, 1/0, -1/0 나누기 결과 : [  0.  inf -inf  nan]
+np.log(0) = -inf
+NaN 포함 배열 합 : [11. nan 13.]
+nan == nan : False
+np.isnan() 탐지 : [False  True False]
+np.isinf() 탐지 : [ True  True False False]
+np.isfinite() 탐지 : [False False  True  True]

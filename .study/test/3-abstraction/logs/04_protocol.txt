@@ -1,0 +1,13 @@
+============================================================
+# 04_protocol
+============================================================
+Animal   isinstance Speakable: True
+Dog      isinstance Speakable: True
+Cat      isinstance Speakable: True
+Robot    isinstance Speakable: True
+Snail    isinstance Speakable: False
+--- make_noise() ---
+강아지가 멍멍 짖습니다.
+고양이가 야옹 웁니다.
+삐-뽀-삐-뽀!
+AttributeError: 'Snail' object has no attribute 'speak'

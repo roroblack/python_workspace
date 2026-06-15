@@ -1,0 +1,19 @@
+============================================================
+# 04_rf
+============================================================
+모델: RandomForestRegressor(n_estimators=300)  특성: ['visibility', 'precipitation', 'temperature', 'month', 'actual_dow', 'day', 'stat_idx']
+train R2 = 0.9557
+test  R2 = 0.7063   ← 기대와 달리 선형(0.855)보다 떨어졌다 (?!)
+test RMSE = 958.7명
+
+[특성 중요도]
+     temperature: 0.7276
+   precipitation: 0.1085
+      visibility: 0.0556
+             day: 0.0402
+           month: 0.0295
+      actual_dow: 0.0211
+        stat_idx: 0.0175
+train R2 0.956 ≫ test R2 0.706 — 격차 +0.249. 과대적합 신호.
+→ 더 강한 모델로 바꿨는데 점수가 내려갔다. '왜 더 낮아졌나'의 정체를 다음에서 잡는다.
+[chart] ch_importance.png 저장

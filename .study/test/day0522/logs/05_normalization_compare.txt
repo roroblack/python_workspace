@@ -1,0 +1,19 @@
+--- MinMax 정규화 (pandas 직접 계산) ---
+mpg             min=0.0000  max=1.0000  mean=0.3842
+horsepower      min=0.0000  max=1.0000  mean=0.3178
+weight          min=0.0000  max=1.0000  mean=0.3869
+
+--- 표준화(StandardScaler) (pandas 직접 계산) ---
+mpg             mean=0.0000  std=1.0000  min=-1.851  max=2.967
+horsepower      mean=-0.0000  std=1.0000  min=-1.519  max=3.261
+weight          mean=0.0000  std=1.0000  min=-1.607  max=2.546
+
+--- sklearn MinMaxScaler 결과 (앞 3행) ---
+  0.2394  0.4565  0.5361
+  0.1596  0.6467  0.5897
+  0.2394  0.5652  0.5169
+
+--- sklearn StandardScaler 결과 (앞 3행) ---
+  -0.6986  0.6641  0.6205
+  -1.0835  1.5746  0.8433
+  -0.6986  1.1844  0.5404

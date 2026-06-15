@@ -1,0 +1,10 @@
+--- pclass 빈도 ---
+  1등석 : 216명
+  2등석 : 184명
+  3등석 : 491명
+
+--- pclass별 생존율 ---
+  1등석 : 63.0%
+  2등석 : 47.3%
+  3등석 : 24.2%
+PNG 저장 : c:\_proj\python_workspace\.study\write\tmp\..\..\test\day0523\logs\04_countplot_barplot.png  (base64 길이: 21388 문자)

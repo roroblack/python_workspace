@@ -1,0 +1,5 @@
+--- 이상값 처리 전략별 통계 ---
+원본(이상값 포함)            count=392  mean=104.47  std=38.49  min=46.0  max=230.0
+제거(dropna/mask)       count=382  mean=101.48  std=34.16  min=46.0  max=200.0
+중앙값 대체                count=392  mean=101.27  std=33.75  min=46.0  max=200.0
+캡핑(Winsorize)         count=392  mean=104.05  std=37.30  min=46.0  max=202.5

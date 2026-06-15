@@ -1,0 +1,18 @@
+============================================================
+# 05_feature_importance
+============================================================
+중요도 합계 = 1.0000  (전체 특성 중요도의 합은 1)
+
+ 순위 | 특성                       |      중요도
+--------------------------------------------
+  1 | worst perimeter          |   0.1457
+  2 | worst area               |   0.1441
+  3 | worst concave points     |   0.1146
+  4 | mean concave points      |   0.0983
+  5 | worst radius             |   0.0724
+  6 | mean radius              |   0.0607
+  7 | mean perimeter           |   0.0560
+  8 | mean concavity           |   0.0452
+  9 | mean area                |   0.0368
+ 10 | worst concavity          |   0.0282
+[chart] ch_feature_importance.png 저장

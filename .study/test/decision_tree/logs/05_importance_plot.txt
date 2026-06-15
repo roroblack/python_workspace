@@ -1,0 +1,12 @@
+============================================================
+# 05_importance_plot
+============================================================
+feature_importances_ (불순도 감소 기여도, 합=1):
+  petal length (cm)    0.5856 ███████████████████████
+  petal width (cm)     0.4144 █████████████████
+  sepal width (cm)     0.0000 
+  sepal length (cm)    0.0000 
+
+가장 중요한 특성: petal length (cm) (importance=0.5856)
+[chart] ch05_importance.png 저장
+[chart] ch05_tree.png 저장

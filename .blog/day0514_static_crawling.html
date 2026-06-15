@@ -221,7 +221,7 @@ None
   <div class="keypoint">
     <span class="label">KEY POINT</span>
     <code>find</code> 는 "있다고 믿고 꺼내기" → <code>if tag:</code> 가드 필요. <code>find_all</code> 은 "있는 만큼 순회"
-    → 가드 불필요, 빈 리스트가 자연 종료를 보장. 두 함수는 "0 개 가능성" 을 다른 방식으로 표현하기에 코드 패턴이 갈린다.
+    → 가드 불필요, 빈 리스트가 자연 종료를 보장. 두 함수는 "0 개 가능성" 을 다른 방식으로 표현하기에 코드 패턴이 나뉜다.
   </div>
   <div class="bridge">
     <strong>다음 챕터로 가는 다리</strong> — 그러면 태그의 속성(href, src, class 등) 은 어떻게 꺼내는가. 그리고 네이버 같은
@@ -261,7 +261,7 @@ soup<span class="token punctuation">.</span>select<span class="token punctuation
   <div class="qbox">
     <span class="label">가설</span>
     네이버는 빌드마다 CSS 클래스명에 해시(<code>TopPoiItem-MgXeO</code>) 를 붙인다. 따라서 클래스명 의존 선택자는
-    배포 1주일 후면 깨진다. 반면 <code>data-otb_lsra-doc-id</code> 같은 데이터 식별 속성은 의미 있는 이름이라
+    배포 1주일 후면 성립하지 않는다. 반면 <code>data-otb_lsra-doc-id</code> 같은 데이터 식별 속성은 의미 있는 이름이라
     배포에 무관하게 유지될 가능성이 높다. <strong>"클래스보다 data 속성, data 속성보다 태그 구조"</strong> 순으로
     안정성이 높아야 한다.
   </div>
@@ -366,7 +366,7 @@ values (%s, %s, %s, %s, %s, %s)
   <div class="callout">
     <span class="label">CAUTION</span>
     <code>rank</code>, <code>order</code>, <code>group</code>, <code>desc</code> 같은 SQL 예약어를 컬럼명으로 쓰면 백틱(<code>`</code>) 으로 감싸야 한다.
-    이 백틱은 작은따옴표(문자열) 와 전혀 다른 토큰 — 식별자 인용 부호다.
+    이 백틱은 작은따옴표(문자열) 와 다른 토큰 — 식별자 인용 부호다.
   </div>
   <div class="bridge">
     <strong>다음 첵터로 가는 다리</strong> — 크롤링 → 파싱 → DB 저장의 전 스택을 함께 쳐듳어보았다.

@@ -1,0 +1,4 @@
+email,password,name
+admin@example.com,1234,관리자
+student@example.com,pass123,수강생
+teacher@example.com,teach123,강사

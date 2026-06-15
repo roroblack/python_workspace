@@ -1,0 +1,844 @@
+# 기술 블로그 HTML 작성 AI 가이드
+# Python 기술 블로그 · 작성 규칙 전집
+# — dict.html 프로젝트를 통해 확립된 모든 규칙 —
+# 파일 위치: c:\_proj\python_workspace\.study\blog\GUIDE.txt
+
+======================================================================
+ 0. 환경 정보 (하드코딩해야 할 값들)
+======================================================================
+  HW   : Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB
+  OS   : 윈도우 11 Pro 25H2
+  IDE  : VS Code 1.117.0
+  Py   : Python 3.14.2
+  Shell: PowerShell (NOT Mac Terminal, NOT bash)
+  venv : c:\_proj\python_workspace\.venv\Scripts\python.exe
+
+======================================================================
+ 1. 파일 레이아웃
+======================================================================
+  blog/
+    <주제>.html          ← 완성본
+    tmp/
+      <주제>_runner.py   ← 섹션별 테스트 실행기
+      <01_xxx>.txt ...   ← 섹션별 실행 로그 (runner가 생성)
+      full_output.txt    ← 전체 합산 로그
+      run_all.py         ← 사용자가 직접 실행 가능한 통합 재생성 스크립트
+      run_all_log.txt    ← run_all.py 실행 기록
+  test/<주제>/
+    <주제>_runner.py     ← 원본 테스트 실행기
+    logs/
+      <01_xxx>.txt ...   ← runner가 여기에도 저장
+
+======================================================================
+ 2. 글 구조 — 서사 사슬(Narrative Chain) 방식 (필수 준수)
+======================================================================
+
+  ※ 이 항목은 abstraction.html 재작성(2026-05-10)을 통해 확립됨.
+    이전의 "학습/의문/테스트/결론" 단순 4단 구조를 폐기하고,
+    interpreter.html 처럼 "한 줄짜리 출발 의문 → 챕터 사슬 → 최종 결론" 형태로
+    글 전체가 한 권의 책처럼 이어지도록 작성한다.
+
+  ─────────────────────────────────
+  A. 글 전체의 거시 구조 (반드시 이 형태)
+  ─────────────────────────────────
+    [도입]   한 줄짜리 출발 의문(workspace 의 실제 코드 한 줄)
+              ↓
+    [CH00]   학습 A → 의문 B 가 발생
+              ↓ (다리: B 는 C 를 묻는 형태로 다음 챕터에 전달)
+    [CH01]   학습 → 인용 → 가설 C → 테스트 → 중간결론 D
+              ↓ (다리: D 가 통하면 E 가 가능한가? → 다음 챕터)
+    [CH02..N] 같은 형태로 사슬이 이어지며, 각 결론이 다음 챕터의 의문을 만든다
+              ↓
+    [최종]   출발 의문(도입의 한 줄)으로 회수 + 모든 사슬을 통합한 최종 결론 O
+
+  반드시 도입 직후에 <div class="bridge"> 형태로 글 전체가 추적할
+  "한 줄짜리 출발 의문 + 사슬 개요" 를 한 단락으로 제시한다.
+
+  ─────────────────────────────────
+  B. 챕터 한 개의 미시 구조
+  ─────────────────────────────────
+    <h3 class="step">학습</h3>
+        본문 안에 인용이 필요한 자리에 인라인 <blockquote class="cite"> 삽입.
+        "맨 끝에 ref-chain 묶음" 금지 — 인용은 주장이 등장하는 그 자리에서.
+
+    <h3 class="step">의문 → 가설</h3>
+        <div class="qbox"><span class="label">가설</span>...</div>
+        단순 질문(Q)이 아니라 "통과하려면 ① ② ③ 이 모두 일어나야 한다"
+        형태의 검증 가능한 가설로 작성. 이 가설이 곧 테스트 코드의 목적.
+
+    <h3 class="step">테스트</h3>
+        가설을 직접 검증하는 코드 + 실제 실행 터미널 결과.
+        본문 도입 한 문장으로 "왜 이 코드를 돌리는가" 를 명시.
+
+    <h3 class="step">결론(중간)</h3>
+        <div class="keypoint"><span class="label">KEY POINT — 가설 통과</span> ...</div>
+        라벨은 "PARTIAL OK / FAILURE → CLUE / KEY POINT" 중 상황에 맞게.
+        가설이 깨졌다면 그 깨짐 자체가 다음 챕터의 의문이 된다.
+
+    <div class="bridge">
+        <strong>다음 챕터로 가는 다리</strong> — 직전 결론에서 어떤 새 의문이
+        파생되어 다음 챕터로 넘어가는지 한 단락으로 명시.
+    </div>
+
+  마지막 챕터만 "결론(중간)" 대신 "최종 결론" 라벨 + 도입 의문 회수 단락.
+
+  ─────────────────────────────────
+  C. 인용 배치 규칙 (인라인 vs 묶음)
+  ─────────────────────────────────
+  ✓ 학습 본문 안 주장 등장 자리에 <blockquote class="cite"> 로 인라인 인용
+       <blockquote class="cite">
+         "원문 인용..."
+         <span class="src">— <a href="...">출처 링크</a></span>
+       </blockquote>
+  ✓ 한 챕터의 인용은 보통 1~2개. 주장→인용→가설로 자연스럽게 이어지도록.
+  ✗ 챕터 끝부분에 ".ref-chain" 박스로 출처 4~5개를 한꺼번에 나열 (구버전 폐기)
+       → 흐름이 끊기고 각주 없는 인용 덤프처럼 보인다. §17 의 ref-chain 은
+         부록/총정리용으로만 사용하고 챕터 본문에서는 사용하지 않는다.
+
+  ─────────────────────────────────
+  D. 금지사항
+  ─────────────────────────────────
+  ✗ qbox 앞에 h3.step "의문 → 가설" 없는 구조
+  ✗ keypoint 앞에 h3.step "결론(중간)" 또는 "최종 결론" 없는 구조
+  ✗ 챕터들 모두 학습만 모아두고 결론만 모아두는 구조
+  ✗ 챕터들이 서로 끊어져 다음 챕터와의 연결 다리(bridge)가 없는 구조
+  ✗ 흐름 없이 기능 나열식 문체
+  ✗ 의문을 단순 "Q" 로만 표기 (반드시 검증 가능한 가설로)
+  ✓ 마치 잘 짜인 책처럼 읽히도록, 글 전체가 출발 의문 회수까지 사슬로 이어짐
+
+======================================================================
+ 3. HTML 헤드 필수 태그
+======================================================================
+  ※ 아래는 GitHub Pages 서빙용 완전 독립 HTML(<head> 포함) 형식이다.
+     구글 블로그(Blogger) 포스트 에디터 붙여넣기용(_base64.html)은
+     §21 의 Blogger 업로드 형식을 따른다.
+
+  <title>파이썬 {주제} 완전 분석: {부제}</title>
+  <meta name="description" content="..." />
+  <meta property="og:title" content="..." />
+  <meta property="og:description" content="..." />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="..." />
+  <meta name="twitter:description" content="..." />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <!-- body 닫기 직전 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+======================================================================
+ 4. CSS 변수 팔레트 (§15 파스텔 4색 팔레트로 통일 — 변경 금지)
+======================================================================
+  :root {
+    --ink: #1f2933;        /* 본문 글자 */
+    --muted: #667085;      /* 보조 글자 */
+    --line: #d7dee8;       /* 구분선 */
+    --paper: #ffffff;      /* 페이지 배경 */
+    --surface: #ffffff;    /* 카드 배경 */
+    --accent:   #52A97E;   /* 파스텔 초록 — 챕터번호·keypoint */
+    --accent-2: #E8875A;   /* 파스텔 오랜지 — callout·경고 */
+    --accent-3: #5B9BD5;   /* 파스텔 파랑 — qbox·링크 */
+    --accent-4: #9178C4;   /* 파스텔 보라 — 추가 강조 */
+    --accent-soft: #EBF7F1;
+    --warn-soft:   #FFF1E8;
+    --code-bg: #1e1e1e;
+    --code-ink: #e5e7eb;
+    --shadow: none;         /* Swiss style: shadow 없음 */
+  }
+  ※ §15 디자인 스타일 가이드와 동일한 팔레트 사용 (구버전 #0f766e 금지)
+
+======================================================================
+ 5. 터미널 블록 규칙 (가장 중요)
+======================================================================
+  ① 절대 값을 직접 작성하지 않는다.
+     → 반드시 실제로 Python 코드를 실행하고 stdout을 그대로 사용한다.
+
+  ② 생성 순서:
+     a. <주제>_runner.py 작성  (섹션별 함수 + run_section 호출)
+     b. 실제 실행:
+        Set-Location "c:\_proj\python_workspace\.study\test\<주제>"
+        & "c:\_proj\python_workspace\.venv\Scripts\python.exe" "<주제>_runner.py"
+     c. logs/<섹션명>.txt 내용을 읽어 HTML에 삽입
+
+  ③ 터미널 블록 HTML 형식:
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="t-label">{주제}_runner.py §{NN} · Python 3.14.2 · PowerShell</span>
+      </div>
+      <pre class="terminal-body">{실행 결과}</pre>
+    </div>
+
+  ④ terminal-body 내부 스팬 규칙:
+    ============ 줄 → <span class="t-hdr">...</span>  (회색)
+    # 섹션명 줄  → <span class="t-sec">...</span>  (파란색)
+    TypeError/RuntimeError/KeyError: 포함 줄 → <span class="t-err">...</span>  (빨간색)
+
+  ⑤ 헤더 스타일: 맥 dot(●●●) 사용 금지!
+     CSS ::before { content: 'PS>'; } 로 PowerShell 표시
+     맥 스타일 dot span (.t-dot-r/.t-dot-y/.t-dot-g) 사용 금지
+
+  ⑥ zero-width space(U+200B) 주의:
+     § 기호 뒤에 이 문자가 숨어드는 경우가 있다.
+     교체 스크립트 실행 전 html.replace('\u200b', '') 필수
+
+  ⑦ 잔여 pre 버그 방지:
+     터미널 블록 교체 시 non-greedy 정규식이 첫 </div>에서 끊겨
+     기존 <pre>가 div 밖에 남아 2개로 표시되는 버그가 발생한다.
+     run_all.py 내에서 orphan pre 정리 루틴을 반드시 포함:
+       re.sub(r'  </div>\n    <pre class="terminal-body">.*?</pre>\n  </div>', '  </div>', html, flags=DOTALL)
+       re.sub(r'  </div>\n<pre class="terminal-body">.*?</pre>\n  </div>', '  </div>', html, flags=DOTALL)
+
+======================================================================
+ 6. 코드 블록 규칙
+======================================================================
+  ① Python 코드: <pre><code class="language-python">...</code></pre>
+  ② C/기타 코드: <pre><code>...</code></pre> (class 없음)
+  ③ 학습 파트 코드에는 반드시 print() 구문 포함
+     → 독자가 "이 print가 아래 터미널 출력을 만든 것"을 확인 가능하게
+  ④ <span class="comment"> 수동 태그 쓰지 말 것 (Prism.js가 자동 처리)
+  ⑤ 코드 내 한국어 주석 허용
+
+======================================================================
+ 7. 챕터 h2 헤더 규칙
+======================================================================
+  형식:
+    <section id="chN">
+      <h2 class="chap">
+        <span class="num">CH NN</span>챕터 제목<a href="#chN" class="anchor-link">#</a>
+      </h2>
+      ...
+    </section>
+
+  id 는 ch1~ch12 (또는 해당 번호)
+  앵커 링크 반드시 포함 (hover 시 표시)
+  제목 작성법: 기능 설명이 아닌 "독자의 궁금증을 자극하는 문장"
+
+======================================================================
+ 8. 박스 컴포넌트
+======================================================================
+  .qbox    → 의문/가설 제기 (파란 왼쪽 선)
+    <div class="qbox"><span class="label">가설</span>가설 내용</div>
+    ※ 라벨은 "Q" 가 아니라 "가설" — 통과/실패가 검증되어야 하는 진술
+
+  .keypoint → 핵심 결론 (초록 왼쪽 선)
+    <div class="keypoint"><span class="label">KEY POINT — 가설 통과</span>결론</div>
+    ※ 라벨 변형: "PARTIAL OK", "FAILURE → CLUE", "FINAL CONCLUSION"
+
+  .callout  → 경고/함정/실행시 주의사항 (주황 왼쪽 선)
+    <div class="callout"><span class="label">함정</span>내용</div>
+
+  blockquote.cite → 학습 본문 인라인 인용 (보라 왼쪽 선)
+    <blockquote class="cite">
+      "원문 그대로 인용 — 영어/한글 무관"
+      <span class="src">— <a href="..." target="_blank" rel="noopener">출처 명</a></span>
+    </blockquote>
+
+  .bridge  → 다음 챕터로 가는 다리 (회색 왼쪽 선, 작은 글씨)
+    <div class="bridge">
+      <strong>다음 챕터로 가는 다리</strong> — 직전 결론에서 어떤 의문이
+      파생되어 다음 챕터로 넘어가는지 한 단락으로.
+    </div>
+    ※ 마지막 챕터 뒤에는 bridge 를 두지 않는다 (글이 닫혀야 하므로)
+
+======================================================================
+ 9. 표지(header.cover) 필수 항목
+======================================================================
+  <p class="eyebrow">Python · {카테고리} · {태그}</p>
+  <h1>파이썬 {주제}: {기술 블로그다운 부제}</h1>
+  <p class="deck">학습 → 의문 → 테스트 → 결론 ... (한 문장 소개)</p>
+  <div class="meta-row">
+    <strong>작성일자</strong> YYYY/MM/DD
+    <strong>HW</strong> (환경 정보 섹션 참조)
+    <strong>SW</strong> (환경 정보 섹션 참조)
+  </div>
+  <nav class="toc">...</nav>
+
+======================================================================
+ 10. 제목 작성 원칙
+======================================================================
+  ✗ "파이썬 dict 한 권에 끝내기"
+  ✗ "dict 완벽 정리"
+  ✓ "파이썬 dict 분석: 해시 테이블부터 CPython dictobject.c까지"
+  ✓ "파이썬 추상화 분석: ABC부터 Protocol까지, 인터페이스 없는 언어의 인터페이스 설계"
+  포인트: 검색 가능한 기술 용어 + 독자가 얻는 것이 명확한 부제
+
+======================================================================
+ 11. run_all.py 표준 구조
+======================================================================
+  위치: blog/tmp/run_all.py
+  실행: c:\_proj\python_workspace\.venv\Scripts\python.exe blog/tmp/run_all.py
+
+  단계:
+    STEP 1  subprocess.run(<주제>_runner.py) — capture 없이 터미널에 그대로 출력
+    STEP 2  logs/*.txt 읽기
+    STEP 3  HTML에서 div.terminal 패턴 찾아 교체 (zero-width space 제거 포함)
+    STEP 4  orphan pre 정리 (4칸/0칸 두 패턴 모두)
+    STEP 5  저장 + 검증 (div.terminal == pre.terminal-body 개수 확인)
+    STEP 6  tmp/*.txt 갱신 + run_all_log.txt 저장
+
+======================================================================
+ 12. 검증 체크리스트 (작업 완료 전 필수 확인)
+======================================================================
+  [ ] div.terminal 수 == pre.terminal-body 수 (중복 없음)
+  [ ] img/*.png 참조 0개 (이미지 대신 텍스트 블록)
+  [ ] figure.shot 잔여 0개
+  [ ] zero-width space 0개
+  [ ] 모든 섹션 실제 출력과 HTML 내용 일치
+  [ ] language-python 클래스 코드블록에 부착
+  [ ] 앵커 링크 모든 h2.chap 에 포함
+  [ ] Prism.js JS CDN body 닫기 직전에 있음
+  [ ] SEO 메타태그 (description, og:*, twitter:*) 포함
+  [ ] 터미널 헤더에 맥 dot 없음 (PS> 만 표시)
+  [ ] 모든 qbox 앞에 h3.step "의문" 레이블 있음
+  [ ] 모든 keypoint 앞에 h3.step "결론" 레이블 있음
+  [ ] GUIDE.txt §16 F 최종 확인 체크리스트 통과
+
+======================================================================
+ 13. 금지 목록 (할루시네이션 방지)
+======================================================================
+  ✗ 코드 실행 없이 출력 값 직접 작성
+  ✗ hash() 값 직접 작성 (실행마다 달라짐)
+  ✗ 이미지 파일(png) 생성 후 HTML에 삽입 — 텍스트 블록 사용
+  ✗ 맥 스타일 UI 구현 (터미널 dot, 맥 글꼴 등)
+  ✗ span.comment 직접 작성 (Prism.js 충돌)
+  ✗ 내용을 지어서 쓰기 — 모든 코드 출력은 실제 실행 결과
+  ✗ CSS content 속성에 유니코드 문자 리터럴 직접 삽입
+       — Blogger 포스트 에디터가 저장 시 코드포인트 숫자로 변환해 깨짐
+       — 예: content: "▍" (U+258D) → 저장 후 이상한 숫자로 출력
+       — 대신 CSS inline-block 방식 사용:
+           content: "";
+           display: inline-block;
+           width: 4px; height: 1.1em;
+           background: var(--accent);
+           vertical-align: text-bottom;
+
+======================================================================
+ 14. 새 주제 시작 체크리스트
+======================================================================
+  [ ] 1. test/<주제>/ 폴더 생성
+  [ ] 2. <주제>_runner.py 작성 (run_section 패턴 준수)
+  [ ] 3. 실제 실행하여 logs/*.txt 생성 확인
+  [ ] 4. full_output.txt 로 전체 출력 확인
+  [ ] 5. dict.html CSS/head 복붙하여 새 html 시작
+  [ ] 6. 챕터 수·TOC 먼저 설계 후 본문 작성
+  [ ] 7. run_all.py 작성하여 blog/tmp에 저장
+  [ ] 8. 검증 체크리스트 (섹션 12) 통과 확인
+
+======================================================================
+ 15. 디자인 스타일 가이드 (2025-05 확정)
+======================================================================
+
+  [ 기본 디자인 컨셉 ]
+  "A web blog design for a programming technical blog,
+   Swiss International Style, strict modular grid system,
+   asymmetric layout, high contrast,
+   clean white background with red and black accent colors,
+   functional and professional vibe."
+
+  [ 한글 폰트 ]
+  한글 작성 시 폰트: Nanum Gothic Coding (나눔고딕코딩)
+  Google Fonts import — 두 가지 방식 모두 사용한다.
+
+  ① GitHub Pages용 (HTML <head> 에 <link> 태그 + <style> 내 @import 백업):
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+
+  ② <style> 블록 첫 줄 — 반드시 포함 (Blogger 붙여넣기 시 <link> 가 제거되므로 이 줄이 폰트 로딩을 보장):
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+
+  body font-family:
+    "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+
+  코드/터미널 font-family (변경 없음):
+    "Cascadia Code", "Consolas", "D2Coding", monospace;
+
+  [ 포인트 색상 팔레트 (파스텔 톤 4색) ]
+  :root {
+    --accent:      #52A97E;   /* 파스텔 초록  — 챕터번호·강조·keypoint */
+    --accent-2:    #E8875A;   /* 파스텔 오랜지 — callout·경고·accent-2 */
+    --accent-3:    #5B9BD5;   /* 파스텔 파랑  — qbox·링크·accent-3 */
+    --accent-4:    #9178C4;   /* 파스텔 보라  — 추가 강조·accent-4 */
+    --accent-soft: #EBF7F1;   /* 초록 배경 tint (keypoint bg) */
+    --warn-soft:   #FFF1E8;   /* 오랜지 배경 tint (callout bg) */
+  }
+
+  qbox 배경: #EBF4FF  (파란 tint)
+  table th 배경: #EEF0F5 / color: #1f2933
+  inline code 배경: #EEF0F6
+
+  [ 컬러별 용도 ]
+  초록(--accent)  : 챕터 번호 배지, h3.step::before, keypoint 왼쪽 선, .eyebrow
+  오랜지(--accent-2): callout 왼쪽 선, 경고 텍스트
+  파랑(--accent-3): qbox 왼쪽 선, a 링크, 질문 레이블
+  보라(--accent-4): 필요 시 추가 강조 요소에 사용
+
+  [ Swiss International Style 핵심 CSS 원칙 ]
+  ✗ border-radius: 8px 이상 — 반드시 0 (직각 모서리)
+  ✗ box-shadow: var(--shadow) — 완전 제거
+  ✗ linear-gradient 배경 — 단색 #ffffff 로 대체
+  ✓ 구분선은 border: 1px/2px/3px solid var(--ink) 로 표현
+  ✓ 챕터 h2: border-top: 3px solid var(--ink) + padding-top
+  ✓ header 하단: border-bottom: 3px solid var(--ink)
+  ✓ TOC: border-top: 3px solid var(--ink) (상단 굵은 선)
+  ✓ 챕터 번호 배지: border: 2px solid var(--accent), border-radius: 0
+
+======================================================================
+ 17. 레퍼런스 명시 및 공신력 확보 규칙 (필수)
+======================================================================
+
+  모든 챕터의 결론은 반드시 근거 출처를 명시해야 한다.
+  독자는 "이 주장이 어디서 왔는가"를 추적할 수 있어야 하며,
+  이것이 할루시네이션을 방지하고 기술 블로그의 공신력을 확보한다.
+
+  ─────────────────────────────────
+  근거 표기 — 두 가지 위치
+  ─────────────────────────────────
+  ① 챕터 본문(기본): §2-C 의 인라인 <blockquote class="cite"> 사용
+       — 주장이 등장하는 그 자리에 한두 개의 인용을 자연스럽게 끼워 넣는다.
+       — 챕터당 1~2 개 권장. 흐름이 깨지면 안 된다.
+
+  ② 글 끝 부록(선택): <div class="ref-chain"> 으로 글 전체에서 참조한
+     공식 문서 / CPython 소스 / workspace 파일 / 실행 로그를 한 번에 정리.
+       — "전체 요약" 표 다음 또는 푸터 위에 한 블록으로만 배치.
+       — 챕터마다 ref-chain 을 반복하던 구버전 방식은 폐기 (§2-C 참조).
+
+  ─────────────────────────────────
+  근거 항목 (해당되는 것만)
+  ─────────────────────────────────
+    • 공식 문서  : docs.python.org 또는 peps.python.org 링크 + 핵심 인용문
+    • CPython 소스: github.com/python/cpython 파일경로 + 함수명
+                    ← 내부 동작을 다루는 챕터는 반드시 포함
+                    ← 라인 번호 직접 작성 금지 (버전마다 달라짐 — 함수명 사용)
+    • workspace  : python_workspace 내 실제 파일명 + 관련 내용
+    • 실행 검증  : <주제>_runner.py §NN → logs/NN_name.txt
+
+  ─────────────────────────────────
+  금지사항
+  ─────────────────────────────────
+  ✗ 결론을 근거 없이 작성 (공식 문서 링크 없는 주장 금지)
+  ✗ CPython 소스 라인 번호 직접 작성 → 함수명으로 대체
+  ✗ 실행 결과 없이 인용만 작성 → 학습 인용 + 가설 + 테스트 + 결론 사슬 유지
+  ✗ 외부 사이트 URL 자의적으로 생성 → 반드시 fetch 또는 실제 확인
+  ✗ 챕터 본문 안에 ref-chain 박스를 넣어 흐름을 끊는 행위 (구버전 폐기)
+
+  ─────────────────────────────────
+  부록 ref-chain HTML 구성 (글 끝에 한 번만)
+  ─────────────────────────────────
+  <div class="ref-chain">
+    <p class="ref-title">📚 전체 근거 출처</p>
+    <ol>
+      <li><strong>공식 문서</strong>
+          <a href="https://docs.python.org/..." target="_blank" rel="noopener">링크 텍스트</a>
+          — "직접 인용"</li>
+      <li><strong>CPython 소스</strong>
+          <a href="https://github.com/python/cpython/blob/main/파일경로" ...>파일 → 함수명()</a>
+          : 설명</li>
+      <li><strong>workspace 확인</strong>
+          <code>python_oop/파일명.py</code>: 설명</li>
+      <li><strong>실행 검증</strong>
+          <code>abstraction_runner.py §NN</code>
+          → <code>logs/NN_name.txt</code></li>
+    </ol>
+  </div>
+
+  ─────────────────────────────────
+  CSS 클래스
+  ─────────────────────────────────
+  blockquote.cite (챕터 본문 인라인 인용 — §8 참조)
+    border-left: 4px solid var(--accent-4);
+    background: #F7F5FD;
+    padding: 12px 16px;
+    margin: 12px 0;
+    .src color: var(--muted); font-size: 0.9em; display: block;
+
+  .ref-chain (글 끝 부록 박스)
+    border-left: 4px solid var(--accent-4);
+    background: #F7F5FD;
+    ref-title color: var(--accent-4);
+    ol li strong: min-width 표준화, 대문자
+
+======================================================================
+ 18. 자습 글 vs 부트캠프 글 구분 표기 (2026-05-10 추가)
+======================================================================
+
+  about.txt 의 학습 프로젝트 연역(1주차 python_logic / python_collection /
+  python_fileio, 2주차 python_oop / python_package / python_module /
+  python_gui / streamlit_login_csv_project) 은 부트캠프 실습이다.
+  그 외 주제(예: 추상화, dict 의 일부 심화 챕터 등)는 사용자가 추가로
+  자습하며 작성한 것이므로, 다음과 같이 표지(header.cover) 영역에 명시한다.
+
+  ─────────────────────────────────
+  자습 글
+  ─────────────────────────────────
+  표지 .eyebrow 에 "Self-Study" 태그 포함:
+    <p class="eyebrow">Python · 자습 노트(Self-Study) · {태그}</p>
+
+  표지 .deck 첫 문장에 한 줄 명시:
+    "이 글은 부트캠프 커리큘럼 외에 추가로 자습하며 정리한 노트다."
+
+  현재 자습 글: abstraction.html
+
+  ─────────────────────────────────
+  부트캠프 글
+  ─────────────────────────────────
+  표지 .eyebrow 에 "Bootcamp" 또는 주차 태그:
+    <p class="eyebrow">Python · 1주차 · {태그}</p>
+
+  현재 부트캠프 글: dict.html, interpreter.html, retrospective_w1w2.html
+
+======================================================================
+ 19. 회고(Retrospective) 글 작성 규칙 (2026-05-10 추가)
+======================================================================
+
+  주차 회고 글은 about.txt 의 "학습 프로젝트들 연역" 만 대상으로 작성한다.
+
+  ─────────────────────────────────
+  대상에서 제외할 것 (반드시)
+  ─────────────────────────────────
+  ✗ 이 블로그 글 자동 생성 프로젝트(.study/blog/) 자체는 회고 대상 아님
+       — 가이드 작성, HTML 빌드 파이프라인, runner.py 작업 등은
+         부트캠프 커리큘럼이 아니므로 회고 본문에 포함하지 않는다.
+  ✗ 자습용 .study/test/* runner 작업도 회고 대상 아님
+
+  ─────────────────────────────────
+  대상에 포함할 것
+  ─────────────────────────────────
+  ✓ 1주차: python_logic, python_collection, python_fileio
+  ✓ 2주차: python_oop, python_package, python_module, python_gui,
+           streamlit_login_csv_project
+  ✓ 각 프로젝트의 실제 작성한 파일 단위로 학습한 내용·시행착오·해결 정리
+
+  ─────────────────────────────────
+  회고 글 구조
+  ─────────────────────────────────
+  서사 사슬(§2) 의 변형. "한 줄짜리 의문" 대신 "한 주를 시작할 때의 목표 한 줄"
+  로 시작하고, 각 챕터를 프로젝트 단위로 두며, 각 프로젝트 안에서
+  학습→시행착오(가설처럼)→테스트(실행 로그/스크린샷)→배운 점(중간 결론)
+  으로 진행한 뒤, 다음 프로젝트로 넘어가는 다리(bridge) 를 둔다.
+  마지막에 "주차 종합 회고"로 출발 목표가 어떻게 달성/미달성되었는지 회수한다.
+
+  ─────────────────────────────────
+  표기 사항
+  ─────────────────────────────────
+  표지 .eyebrow: "Python · 1·2주차 회고 · 부트캠프"
+  HW/SW 메타: §0 환경 정보 동일
+
+======================================================================
+ 20. 결과물 저장 경로 규칙 (2026-05-10 추가)
+======================================================================
+
+  모든 HTML 결과물(원본 및 Blogger 배포용 base64 버전 모두)은
+  아래 단일 경로에 저장한다.
+
+    c:\_proj\python_workspace\.study\blog\<파일명>.html
+
+  ─────────────────────────────────
+  파일 유형별 네이밍
+  ─────────────────────────────────
+  원본  : <주제>.html               (예: interpreter.html)
+  Base64: <주제>_base64.html        (예: interpreter_base64.html)
+
+  ─────────────────────────────────
+  .blog/ 동기화 (Git 배포)
+  ─────────────────────────────────
+  .study/blog/ 에서 작업 완료 후 .blog/ 에 복사해 push 한다.
+    Copy-Item ".study\blog\*.html" ".blog\" -Force
+    Copy-Item ".study\blog\img"   ".blog\img" -Recurse -Force
+  → GitHub Pages (Actions) 에서 .blog/ 를 서빙한다.
+
+  ─────────────────────────────────
+  스크립트 경로
+  ─────────────────────────────────
+  빌드·변환 스크립트: .study\write\tmp\*.py
+  출력 결과물      : .study\blog\*.html  ← 항상 여기
+
+======================================================================
+ 21. 구글 블로그(Blogger) 업로드 형식 규칙 (2026-05-10 추가)
+======================================================================
+
+  ─────────────────────────────────
+  플랫폼 구분
+  ─────────────────────────────────
+  GitHub Pages (.blog/) : 완전 독립 HTML (<html><head><body> 포함)
+                          → SEO 메타태그, <link> 폰트, 전체 구조 유지
+  구글 블로그(Blogger)  : _base64.html 을 Blogger 포스트 에디터 HTML 탭에 붙여넣기
+                          → HTML wrapper 없이 <style>+본문 구조만
+
+  ─────────────────────────────────
+  Blogger 포스트 에디터 HTML 붙여넣기 형식
+  ─────────────────────────────────
+  Blogger 포스트 에디터 HTML 탭에 붙여넣을 때 <html>/<head>/<body> 구조는
+  제거된다. 따라서 _base64.html 은 아래 구조로 생성한다:
+
+    1) <style> 블록 (첫 줄에 반드시 @import — <link> 태그가 없으므로 폰트 로딩 담당)
+         <style>
+           @import url('https://fonts.googleapis.com/css2?family=...');
+           :root { ... }
+           ...
+         </style>
+
+    2) Prism.js 시트 <link> 태그 (Blogger는 <link> 를 포스트 body에도 허용)
+         <link rel="stylesheet"
+           href="https://cdnjs.cloudflare.com/.../prism-tomorrow.min.css" />
+
+    3) 본문 콘텐츠 (<header>, <main>, <footer>)
+         HTML wrapper(<!DOCTYPE>, <html>, <head>, <body>) 없이 바로
+
+    4) Prism.js <script> 태그 (본문 맨 끝)
+         <script src="...prism-core.min.js"></script>
+         <script src="...prism-autoloader.min.js"></script>
+
+  ─────────────────────────────────
+  make_base64_html.py 로 자동 생성
+  ─────────────────────────────────
+  .venv\Scripts\python.exe .study\write\tmp\make_base64_html.py <주제>.html
+    → .study\blog\<주제>_base64.html 생성 (Blogger 붙여넣기 전용)
+
+  생성 후 Blogger에서:
+    1. 새 게시물 → HTML 편집기(연필 아이콘 옆 '<>' 탭) 클릭
+    2. <주제>_base64.html 전체 내용 붙여넣기
+    3. 미리보기로 폰트·하이라이팅·이미지 확인 후 게시
+
+  ─────────────────────────────────
+  GitHub Pages용 원본 HTML 과의 차이
+  ─────────────────────────────────
+  항목            | GitHub Pages (.html)       | Blogger (_base64.html)
+  ──────────────────────────────────────────────────────────────────
+  HTML wrapper    | <html><head><body> 포함    | 없음
+  폰트 로딩       | <link> + @import 이중      | @import 만
+  이미지          | img/ 상대경로              | base64 인라인
+  Prism.js 시트   | <head> 안 <link>           | 본문 앞 <link>
+  Prism.js 스크립트| </body> 직전              | 본문 맨 끝
+
+======================================================================
+ 16. 새 주제 시작 전 사전 고찰 (필수)
+======================================================================
+
+  새 HTML 글 작업을 시작하기 전에 반드시 아래 항목을 검토하고
+  그 결과를 작업 계획에 반영한다.
+
+  ─────────────────────────────────
+  A. 참고 소스 목록 수집
+  ─────────────────────────────────
+  [ ] .study/notes/ 폴더 전체 파일 목록 확인
+      → 해당 주제와 관련된 .mhtml / .docx / .txt 파일 모두 열람
+      → 기존에 내가 작성한 블로그 글(이전 주제 .mhtml) 형식 참고
+      → 나와 AI 가 대화하며 도출한 의문·해결 과정 파악
+
+  [ ] python_workspace 내 관련 프로젝트 폴더 확인
+      → test/<주제>/ 폴더의 runner, 샘플 코드, 로그 파일 전수 확인
+      → 최상위 프로젝트(python_oop/, python_collection/ 등) 내
+         이미 존재하는 샘플 코드 파악 — 예제는 반드시 기존 파일에서
+         찾아 보강하는 방식으로 사용 (새 예제 무분별 생성 금지)
+
+  [ ] 파이썬 공식 레퍼런스 / 라이브러리 문서 해당 섹션 확인
+      → notes 에 없는 의문은 공식 문서 기준으로 보충
+
+  ─────────────────────────────────
+  B. 의문점 목록 확보
+  ─────────────────────────────────
+  [ ] notes 파일에서 제시된 의문점을 모두 목록화
+  [ ] 각 의문이 기존 HTML 에 이미 다뤄졌는지 확인
+  [ ] 누락된 의문은 새 챕터 또는 .qbox 로 반드시 포함
+
+
+======================================================================
+ 22. ASCII 다이어그램 정렬 규칙  (2026-05-24 추가)
+======================================================================
+
+  [ 폰트 ]
+  .ascii { font-family: "Nanum Gothic Coding", "Cascadia Code", "Consolas", monospace; }
+  Nanum Gothic Coding 은 한글=2열, ASCII=1열 너비가 정확히 2:1 이므로
+  혼합 텍스트 박스 정렬이 브라우저에서 일관성 있게 유지된다.
+
+  [ 시각 너비(visual width) 계산 규칙 ]  ※ 2026-05-25 실측 검증으로 규칙 수정
+  ──────────────────────────────────────────────────────────────────────────
+  Playwright canvas measureText (Nanum Gothic Coding 18px) 실측값:
+    ASCII 'A'    → 6.880px  (1×)
+    한글  '가'   → 13.760px (2×)
+    박스  '─'    → 13.760px (2×)  ← 이전 규칙(1×)이 틀렸음!
+    박스  '│'    → 13.760px (2×)
+    화살표 '→'   → 13.760px (2×)
+    기호  '▲'    → 13.760px (2×)
+  ──────────────────────────────────────────────────────────────────────────
+
+  올바른 규칙 (ALL non-ASCII = 2×):
+    ASCII (U+0000–U+007F)     → 1 visual col
+    나머지 전부 (U+0080 이상)  → 2 visual cols
+    (한글, 박스문자 ─ │ ┌ ┐, 화살표 → ←, 기호 ▲ ① ② — ≈ · 전부 2×)
+
+  ※ 구버전 잘못된 규칙:
+    "박스 경계 문자 (│ ─ ┌ ┐ …) → 1 visual col"  ← 이 규칙은 틀림! 삭제됨
+
+  [ 박스 내용 줄 작성 규칙 ]
+  border N개 ─ 사용 시 inner visual = N × 2 (각 ─ 가 2 units 이므로)
+  모든 │...│ 내부 라인의 new_vw(content) == N × 2 (target) 이어야 한다.
+
+    [ | / │ 세로선 줄맞춤 처리 규칙 ]  ※ 2026-05-24 보강
+    ──────────────────────────────────────────────────────────────────────────
+    ASCII 다이어그램에서 `|` 또는 `│` 세로선이 어긋난 경우, 줄 삭제·의미 축약·
+    임의 공백 조정으로 맞추지 않는다. 반드시 아래 순서로 처리한다.
+
+    1. 실제 적용 폰트와 white-space 설정을 확인한다.
+      예: .ascii → Nanum Gothic Coding, white-space: pre
+
+    2. 기준 column 을 먼저 정한다.
+      예: 왼쪽 박스 경계 column, 오른쪽 박스 경계 column, 되돌이 화살표 column
+
+    3. 각 줄에서 `|`, `│`, `┌`, `┐`, `└`, `┘`의 visual column 을 계산한다.
+      ASCII=1칸, U+0080 이상=2칸 기준으로 계산하되, 폰트에 없는 특수 글리프는
+      반드시 canvas.measureText 또는 Playwright 실측으로 확인한다.
+
+    4. 내용 줄은 유지한다. 병렬 구조가 viewport 폭을 넘으면 줄을 삭제하지 말고
+      세로형/단계형 구조로 재배치해 의미를 보존한다.
+
+    5. 수정 후 브라우저에서 다음을 모두 검증한다.
+      - target `.ascii` 블록의 marker pixel x 좌표가 줄마다 동일한가
+      - target `.ascii` 블록의 `scrollWidth <= clientWidth` 인가
+      - 문서 전체에 불필요한 horizontal overflow 가 남지 않았는가
+
+    6. 검증 실패 시 완료로 보고하지 않는다. 원인을 다시 분석하고 통과할 때까지 재작업한다.
+
+  Python 검증 함수 (올바른 버전):
+    def new_vw(s: str) -> int:
+        return sum(1 if ord(c) < 128 else 2 for c in s)
+
+    def box_line(content: str, target: int, annot: str = "") -> str:
+        pad = max(0, target - new_vw(content))
+        return f"  │{content}{' ' * pad}│{annot}"
+
+  실제 사용 예 (day0511_mysql_btree.html):
+    N1 = 30  → target = 60  (16KB 페이지 박스, 16줄 전체 new_vw=60 ✓)
+    N2 = 34  → target = 68  (12장 요약 박스, 21줄 전체 new_vw=68 ✓)
+    브라우저 실측: 16KB 박스 모든 줄 413px, 12장 박스 모든 줄 468px ✓
+
+  [ 새 박스 설계 절차 ]
+  1. 가장 긴 내용 줄의 new_vw 를 측정한다.
+  2. N = ceil(max_new_vw / 2) + 여유  (border ─ 개수, target = N × 2)
+  3. 모든 content 줄은 new_vw(content) == target 이 되도록 오른쪽 공백 패딩.
+  4. border: ┌ + '─' * N + ┐  (border inner visual = N × 2 = target ✓)
+  5. 어노테이션(← Records 영역 등)은 우측 │ 바깥에 추가해 측정에서 제외한다.
+
+  [ 금지 ]
+  ✗ Korean 문자가 포함된 라인을 ASCII 문자 수만 세어 padding 하는 행위
+  ✗ 박스 경계 문자(─ │ ┌ ┐ 등)를 1× 너비로 계산하는 행위 (실제로 2×임!)
+  ✗ 등폭이 아닌 폰트(Segoe UI, Nanum Gothic 등)에서 ASCII 박스 그림 작성
+  ✗ 박스 border 의 ─ 개수를 임의로 설정하고 content 줄을 맞추지 않는 행위
+  ✗ 줄맞춤을 위해 다이어그램의 의미 있는 줄을 삭제하거나 문장을 축약하는 행위
+  [ ] "왜?", "어떻게?", "언제?" 형식의 독자 시선 질문으로 변환
+
+  ─────────────────────────────────
+  C. 예제 코드 출처 원칙
+  ─────────────────────────────────
+  [ ] 예제는 workspace 기존 파일에서 찾는다 (우선순위 1)
+      → 해당 파일을 read_file 로 직접 읽고 내용 확인
+      → 기존 샘플에서 보강·확장하는 방식으로 작성
+  [ ] 불가피하게 새 예제가 필요한 경우만 새로 작성 (우선순위 2)
+      → 이 경우 "기존 샘플 없음" 사유를 주석으로 명시
+
+  ─────────────────────────────────
+  D. 테스트 결과 수집 원칙 (할루시네이션 방지)
+  ─────────────────────────────────
+  [ ] 코드 실행 없이 출력값 직접 작성 절대 금지
+  [ ] 반드시 <주제>_runner.py 작성 후 실제 실행
+  [ ] 터미널에 출력된 결과를 그대로 복사하여 HTML 에 삽입
+  [ ] run_all.py 로 재현 가능하게 blog/tmp/ 에 보관
+
+  ─────────────────────────────────
+  E. 작업 환경 (하드코딩 금지 항목)
+  ─────────────────────────────────
+  작업 환경: Windows 11 / VS Code / PowerShell
+  터미널 UI: PS> 표시 (맥 dot ●●● 절대 금지)
+  Python   : c:\_proj\python_workspace\.venv\Scripts\python.exe
+  출력 경로: c:\_proj\python_workspace\.study\blog\<주제>.html
+
+  ─────────────────────────────────
+  F. 최종 확인 — 초기 요청사항 체크
+  ─────────────────────────────────
+  [ ] notes 의 의문점이 HTML 에 빠짐없이 반영됐는가?
+  [ ] 기존 workspace 샘플 코드를 예제로 활용했는가?
+  [ ] 모든 터미널 출력이 실제 실행 결과인가?
+  [ ] 글 흐름이 학습→의문→테스트→결론 순으로 이어지는가?
+  [ ] 네이버 블로그가 아닌 구글 블로그(Blogger) HTML 편집기에 붙여넣기 가능한 형식인가?
+         → _base64.html 이 wrapper 없이 <style>+본문 구조인지 확인 (§21 참조)
+
+======================================================================
+ 22. 터미널 헤더 레이블(t-label) 규칙 (2026-05-24 추가)
+======================================================================
+
+  터미널 결과창 헤더의 t-label 에는 "이 결과창이 어떤 작업의 결과인지" 만 표시한다.
+  챕터 번호·학습 일차·섹션명 등의 내비게이션 정보는 절대 표시하지 않는다.
+
+  ─────────────────────────────────
+  금지 패턴
+  ─────────────────────────────────
+  ✗ "DAY{N} § {섹션명}" 형식의 날짜/챕터/섹션 내비게이션 정보
+  ✗ 테이블명만 단독으로 표기 (어떤 SQL인지 알 수 없음)
+
+  예) ✗  DAY1 § ACCOUNT2 — SHOW INDEX
+  예) ✗  DAY2 § NOT NULL
+  예) ✗  DAY3 § WHERE 연산자
+
+  ─────────────────────────────────
+  허용 패턴 — "실제 실행한 SQL/명령 — 확인한 내용"
+  ─────────────────────────────────
+  ✓ SQL 명령(또는 함수·파일명) + 대시(—) + 무엇을 확인했는지
+
+  예) ✓  SHOW INDEX FROM ACCOUNT2 · hash_test — B+Tree vs HASH 인덱스 타입 비교
+  예) ✓  INSERT INTO tbl_notnull — NOT NULL 위반 ERROR 1048 확인
+  예) ✓  SELECT WHERE BETWEEN / IN — 경계값 포함 · NULL 미포함 확인
+  예) ✓  abstraction_runner.py §02 · Python 3.14.2 · PowerShell  ← Python runner는 기존 형식 유지
+
+  ─────────────────────────────────
+  MySQL 셸 블록의 경우
+  ─────────────────────────────────
+  MySQL 터미널 블록의 ::before 는 'mysql>' 로 고정 (§5⑤ 참조).
+  t-label 은 실행된 SQL 동사 + 테이블/뷰명 + 확인 내용 순으로 작성한다.
+
+    형식: {SQL동사} {대상} — {확인 내용}
+    예)   EXPLAIN SELECT WHERE id=2 — type=const vs type=ALL 비교
+    예)   SELECT FROM performance_schema.data_locks — X,GAP Lock 확인
+
+======================================================================
+ 23. 코드 예제 작성 스타일 규칙 (2026-05-24 추가)
+======================================================================
+
+  코드 예제는 워크스페이스 내 실제 프로젝트 파일의 스타일을 따른다.
+  (python_logic/, python_oop/, python_package/, python_collection/ 등)
+
+  ─────────────────────────────────
+  공통 스타일 원칙
+  ─────────────────────────────────
+  ① 파일 상단 경로 주석
+       # path : ./파일경로   또는   # pass : ./파일경로
+
+  ② 삼중 따옴표 독스트링으로 개념 설명 (파일 상단에 바로)
+       '''
+       개념 이름 (concept)
+       - 핵심 설명 ...
+       '''
+
+  ③ 한국어 인라인 주석 — 오른쪽 정렬로 통일
+       self.__num = num   # private 필드에 값 대입
+
+  ④ if __name__ == '__main__': 패턴으로 실행 진입점 명시
+       if __name__ == '__main__':
+           print('프로그램 시작!')
+           ...
+           print('프로그램 종료!')
+
+  ⑤ 함수 내 명시적 print() 구문 포함
+       def add(x, y):
+           print('x : {}, y : {}'.format(x, y))
+           return x + y
+
+  ⑥ 변수명·함수명은 snake_case. 클래스명은 PascalCase.
+
+  ─────────────────────────────────
+  새 예제 작성 순서 (§16-C 의 강화)
+  ─────────────────────────────────
+  [ ] 먼저 기존 프로젝트 파일에서 유사 코드 찾기 (read_file 로 확인)
+  [ ] 기존 코드에서 보강/확장하는 방식 우선
+  [ ] 불가피하게 새로 쓸 때도 위 스타일 원칙 ①~⑥ 준수

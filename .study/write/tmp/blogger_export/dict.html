@@ -1,0 +1,1186 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>파이썬 dict 완전 분석: 해시 테이블부터 CPython dictobject.c까지</title>
+  <meta name="description" content="파이썬 dict의 생성·조회·변경·복사·해시 내부 구조를 학습→의문→테스트→결론 흐름으로 분석. CPython dictobject.c의 compact dict, open addressing, perturb 알고리즘까지 Python 3.14 기준으로 검증." />
+  <meta property="og:title" content="파이썬 dict 완전 분석: 해시 테이블부터 CPython 내부까지" />
+  <meta property="og:description" content="dict 생성부터 CPython open addressing 알고리즘까지 — Python 3.14.2 직접 실행 결과와 함께." />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="파이썬 dict 완전 분석" />
+  <meta name="twitter:description" content="해시 테이블부터 CPython dictobject.c까지, 12챕터로 완전 정복." />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dee8;
+      --paper: #ffffff;
+      --surface: #ffffff;
+      --accent: #52A97E;
+      --accent-2: #E8875A;
+      --accent-3: #5B9BD5;
+      --accent-4: #9178C4;
+      --accent-soft: #EBF7F1;
+      --warn-soft: #FFF1E8;
+      --code-bg: #1e1e1e;
+      --code-ink: #e5e7eb;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+      line-height: 1.78;
+      font-size: 16px;
+    }
+    a { color: var(--accent-3); text-underline-offset: 3px; }
+    .page { width: min(880px, calc(100% - 32px)); margin: 0 auto; }
+
+    /* ------------ 표지 ------------ */
+    header.cover {
+      background: #ffffff;
+      border-bottom: 3px solid var(--ink);
+      padding: 64px 0 40px;
+    }
+    .cover .eyebrow {
+      border-top: 4px solid var(--accent);
+      padding-top: 10px;
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+    }
+    .cover h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+      line-height: 1.18;
+      letter-spacing: -0.01em;
+    }
+    .cover .deck {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-top: 30px;
+      padding-top: 18px;
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .meta-row strong { color: var(--ink); margin-right: 6px; }
+
+    /* ------------ 본문 일반 ------------ */
+    main { padding: 36px 0 60px; }
+    h2.chap {
+      border-top: 3px solid var(--ink);
+      padding-top: 16px;
+      margin: 56px 0 8px;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    h2.chap .num {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin-right: 10px;
+      padding: 2px 8px;
+      border: 2px solid var(--accent);
+      border-radius: 0;
+      vertical-align: middle;
+    }
+    h3.step {
+      margin: 26px 0 8px;
+      font-size: 1.08rem;
+      color: var(--ink);
+    }
+    h3.step::before {
+      content: "▍";
+      color: var(--accent);
+      margin-right: 6px;
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { padding-left: 22px; margin: 6px 0 14px; }
+    li { margin-bottom: 6px; }
+
+    /* ------------ 인라인 코드 / 코드블록 ------------ */
+    code {
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+      font-size: 0.92em;
+    }
+    :not(pre) > code {
+      background: #EEF0F6;
+      border: 1px solid #d8e0ea;
+      border-radius: 0;
+      padding: 1px 6px;
+      color: #1f2933;
+    }
+    pre {
+      margin: 12px 0 18px;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 0;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      tab-size: 4;
+      box-shadow: none;
+    }
+    pre .comment { color: #6a9955; }
+    pre code.language-python { background: transparent; border: none; padding: 0; color: inherit; font-size: 1em; }
+
+    /* ------------ 터미널 출력 블록 ------------ */
+    .terminal {
+      margin: 14px 0 22px;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: none;
+      border: 1px solid #30363d;
+      font-family: "Cascadia Code", "Consolas", "D2Coding", monospace;
+    }
+    .terminal-header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 9px 16px;
+      font-size: 0.8rem;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .terminal-header::before {
+      content: 'PS>';
+      color: #4ec9b0;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .terminal-header .t-label { flex: 1; color: #8b949e; }
+    pre.terminal-body {
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 16px 20px;
+      border-radius: 0;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+      box-shadow: none;
+    }
+    .t-hdr { color: #484f58; }
+    .t-sec { color: #58a6ff; font-weight: 600; }
+    .t-err { color: #f85149; }
+
+    /* ------------ 체터 앵커 링크 ------------ */
+    .anchor-link {
+      display: inline-block;
+      margin-left: 8px;
+      color: var(--accent);
+      text-decoration: none;
+      opacity: 0;
+      font-size: 0.75em;
+      vertical-align: middle;
+      font-weight: 400;
+      transition: opacity 0.15s;
+    }
+    h2.chap:hover .anchor-link { opacity: 1; }
+
+    /* ------------ 흐름 박스: 의문/결론 ------------ */
+    .qbox, .keypoint, .callout {
+      border-radius: 0;
+      padding: 16px 18px;
+      margin: 14px 0 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .qbox {
+      border-left: 4px solid var(--accent-3);
+      background: #EBF4FF;
+    }
+    .qbox .label {
+      display: block;
+      color: var(--accent-3);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .keypoint {
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+    }
+    .keypoint .label {
+      display: block;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .callout {
+      border-left: 4px solid var(--accent-2);
+      background: var(--warn-soft);
+    }
+    .callout .label {
+      display: block;
+      color: var(--accent-2);
+      font-weight: 800;
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    /* ------------ 가로스크롤 (figure.shot 제거) ------------ */
+    figure.shot { display: none; }
+
+    /* ------------ 표 ------------ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: #EEF0F5;
+      color: #1f2933;
+      font-weight: 800;
+    }
+
+    /* ------------ ASCII 다이어그램 ------------ */
+    .ascii {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 16px 18px;
+      border-radius: 0;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 12px 0 18px;
+    }
+
+    /* ------------ TOC ------------ */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--ink);
+      border-radius: 0;
+      padding: 18px 22px;
+      margin: 24px 0 0;
+    }
+    .toc h4 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 20px;
+      counter-reset: tocitem;
+    }
+    .toc ol li { margin-bottom: 4px; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--accent-3); }
+
+    /* ------------ 푸터 ------------ */
+    footer {
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      padding: 26px 0 40px;
+      font-size: 0.9rem;
+    }
+    footer .refs { padding-left: 20px; margin: 8px 0 0; }
+    footer .refs li { margin-bottom: 6px; }
+
+    /* ------------ 모바일 ------------ */
+    @media (max-width: 720px) {
+      header.cover { padding: 48px 0 32px; }
+      .meta-row { gap: 10px 18px; }
+      h2.chap { font-size: 1.32rem; }
+      pre { font-size: 0.84rem; padding: 14px 16px; }
+    }
+
+    /* ------------ 인라인 인용 (학습 본문 안) ------------ */
+    blockquote.cite {
+      border: 1px solid #d8d0f0;
+      border-left: 4px solid var(--accent-4);
+      background: #F7F5FD;
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-radius: 0;
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+    blockquote.cite .src {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85em;
+      margin-top: 8px;
+    }
+
+    /* ------------ 다음 챕터로 가는 다리 ------------ */
+    .bridge {
+      border-left: 4px solid var(--muted);
+      background: #F4F6F8;
+      padding: 12px 16px;
+      margin: 18px 0 8px;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: #3a4250;
+      border-radius: 0;
+    }
+    .bridge strong { color: var(--ink); }
+
+  </style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">Python · Built-in Types · 딥다이브</p>
+    <h1>파이썬 <code>dict</code> 완전 분석: 해시 테이블부터 CPython 내부까지</h1>
+    <p class="deck">"<code>list</code> 까지 익혔는데 왜 또 새 자료형 <code>dict</code> 가 필요한가?" — 한 줄짜리 출발 의문에서 시작해, 12개 챕터를 학습 → (인라인 인용) → 가설 → 테스트 → 중간 결론 → 다음 챕터로 가는 다리 의 사슬로 이어 따라간다. CH12 에서 출발 의문에 한 문장으로 답하며 닫는다. 본문 인용·동작 검증은 모두 <strong>Python 3.14.2 · Windows 11 · PowerShell</strong> 기준.</p>
+    <div class="meta-row">
+      <span><strong>작성일자</strong>2026/05/09</span>
+      <span><strong>HW</strong> Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+      <span><strong>SW</strong> 윈도우 11 Pro 25H2 · VS Code 1.117.0 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <nav class="toc">
+      <h4>이 글의 흐름</h4>
+      <ol>
+        <li><a href="#ch1">왜 또 자료형이 필요한가 — <code>list</code> 다음에 <code>dict</code></a></li>
+        <li><a href="#ch2">만들기와 키의 자격</a></li>
+        <li><a href="#ch3">조회: 엄격한 <code>d[k]</code> 와 안전한 <code>d.get()</code></a></li>
+        <li><a href="#ch4">변경: 한 자리에서 끝내는 갱신·삭제</a></li>
+        <li><a href="#ch5">뷰(view)는 “스냅샷”이 아니다</a></li>
+        <li><a href="#ch6">순서, 그러나 정렬은 아니다</a></li>
+        <li><a href="#ch7">얕은 복사의 함정</a></li>
+        <li><a href="#ch8">합치기 연산자와 딕셔너리 컴프리헨션</a></li>
+        <li><a href="#ch9">미니 프로젝트: 직원 관리(<code>dict</code> + <code>pickle</code>)</a></li>
+        <li><a href="#ch10">함정: 반복 중에 크기를 바꾸면</a></li>
+        <li><a href="#ch11">왜 평균 O(1)인가 — <code>dictobject.c</code> 안으로</a></li>
+        <li><a href="#ch12">정리: 한 문장으로 압축</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+<!-- ============================================================ 도입 다리 -->
+<div class="bridge" style="margin-top:18px">
+  <strong>이 글이 추적하는 한 줄 의문</strong> — "list 까지 익혔는데 왜 또 새 자료형 dict 가 필요한가?"
+  CH01 ~ CH11 이 표면 동작 → 내부 자료구조까지 사슬로 이어가며 답을 쌓고, CH12 에서 한 문장으로 압축한다.
+</div>
+
+<!-- =========================================================
+     CHAPTER 1
+========================================================= -->
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span>왜 또 자료형이 필요한가 — <code>list</code> 다음에 <code>dict</code><a href="#ch1" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>리스트는 “순서가 있는 모음”이다. 첫 번째, 두 번째, … 라는 <em>위치</em>가 식별자다. 그런데 부트캠프 실습이 “직원 관리”에 닿는 순간 이 모델이 어색해진다. 사번 200, 201, 202가 있을 때 우리가 다루는 것은 “0번째 직원”이 아니라 “200번 직원”이기 때문이다. 위치가 아니라 <strong>이름(키)</strong>이 식별자가 되는 자료형이 필요하다. 그것이 매핑(mapping)이고, 파이썬에서는 <code>dict</code>다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    리스트로도 되지 않나? <code>employees[0]</code>처럼 인덱스로 찾으면 끝 아닌가?
+  </div>
+  <p>가능은 하다. 그러나 “사번 200을 찾아라”라는 도메인 요구를 코드로 옮기는 순간, 인덱스 모델은 매번 “사번이 200인 항목의 인덱스”를 찾기 위해 리스트를 훑어야 한다. 평균 O(n)이고, 사번이 바뀌면 코드도 바뀐다. <code>dict</code>는 “사번을 그대로 키로 쓴다”라는 모델이라 평균 O(1)에 끝난다.</p>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <strong>위치로 찾을 것인가, 이름으로 찾을 것인가.</strong> 위치면 <code>list</code>, 이름이면 <code>dict</code>. 이 한 줄이 자료형 선택의 1차 기준이다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — <code>list</code> 와는 다른 새 자료형이 왜 필요한지 알았으니, 다음 의문은 — 그런데 dict 의 키로는 무엇이든 다 쓸 수 있나? CH02 가 키의 자격을 본다.
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 2
+========================================================= -->
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span>만들기와 키의 자격<a href="#ch2" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>실습 파일 <code>python_fileio/test_dict/dict_sample.py</code>의 <code>test_dict1/2</code>는 다섯 가지 생성 패턴을 보여준다. 리터럴 <code>{}</code>, 생성자 <code>dict()</code>, 키-값 시퀀스로의 생성, <code>zip</code>으로의 짝짓기, 그리고 <code>dict.fromkeys()</code>까지. 모두 같은 자료형 <code>dict</code>를 만든다.</p>
+
+  <blockquote class="cite">
+    An object is hashable if it has a hash value which never changes during its lifetime
+    (it needs a <code>__hash__()</code> method), and can be compared to other objects (it needs an <code>__eq__()</code> method).
+    … All of Python's immutable built-in objects are hashable; mutable containers (such as lists or dictionaries) are not.
+    <span class="src">— <a href="https://docs.python.org/3/glossary.html#term-hashable" target="_blank" rel="noopener">docs.python.org/3/glossary § hashable</a></span>
+  </blockquote>
+<pre><code class="language-python">d1 = dict(name="aman", age=33, city="seoul")
+d2 = {"name": "Alice", "age": 30, "city": "New York"}
+d3 = dict([("a", 1), ("b", 2), ("c", 3)])
+d4 = dict(zip(["x", "y", "z"], [10, 20, 30]))
+d5 = dict.fromkeys(["a", "b", "c"], 0)
+print("dict():     ", d1, type(d1).__name__)
+print("literal:    ", d2)
+print("from list:  ", d3)
+print("from zip:   ", d4)
+print("fromkeys:   ", d5)
+mixed = {1: "int key", "a": "str key", (1, 2): "tuple key", 3.14: "float key"}
+print("mixed keys: ", mixed)
+# {[1, 2]: "list key"}  →  TypeError: unhashable type: 'list'
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    키에는 어디까지 넣을 수 있는가? 정수, 문자열, 튜플은 되는데 왜 리스트는 안 되는가?
+  </div>
+  <p>파이썬 공식 용어집은 “해시 가능(hashable)”을 “일생 동안 해시 값이 바뀌지 않고 다른 객체와의 동등성 비교가 가능한 객체”로 정의한다. <code>dict</code>는 키의 해시 값으로 슬롯을 정하고 그 자리에 값을 넣는다. 키 자신이 시간이 지나도 같은 해시를 줘야 다음에 다시 그 슬롯을 찾을 수 있다. 그래서 <strong>가변 객체는 키가 될 수 없다</strong>. 리스트, 딕셔너리, 집합은 모두 이 조건을 어긴다.</p>
+  <div class="callout">
+    <span class="label">함정</span>
+    “튜플은 키로 OK”라는 말은 절반만 맞다. 튜플 안에 가변 요소가 섞이면 그 튜플도 해시 불가다.
+<pre style="margin-top:8px"><code>hash((1, 2, 3))       <span class="comment"># OK</span>
+hash((1, [2, 3]))     <span class="comment"># TypeError: unhashable type: 'list'</span>
+</code></pre>
+    즉 “재귀적으로 모든 요소가 해시 가능할 때”만 튜플이 키 자격을 얻는다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <p>다섯 가지 생성 패턴이 모두 <code>dict</code>를 만들고, 정수·문자열·튜플·실수는 키로 받아들이지만 리스트를 키로 쓰는 순간 <code>TypeError: unhashable type: 'list'</code>가 즉시 발생한다.</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §01 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 01_create</span>
+<span class="t-hdr">============================================================</span>
+dict():      {'name': 'aman', 'age': 33, 'city': 'seoul'} dict
+literal:     {'name': 'Alice', 'age': 30, 'city': 'New York'}
+from list:   {'a': 1, 'b': 2, 'c': 3}
+from zip:    {'x': 10, 'y': 20, 'z': 30}
+fromkeys:    {'a': 0, 'b': 0, 'c': 0}
+mixed keys:  {1: 'int key', 'a': 'str key', (1, 2): 'tuple key', 3.14: 'float key'}
+<span class="t-err">list key  -&gt; TypeError: unhashable type: 'list'</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <strong>키 = 해시 가능한 객체.</strong> 정수·문자열·튜플(요소까지 모두 해시 가능할 때)은 가능, 리스트·딕셔너리·집합은 불가. 그 외에 “생성 방법”은 다섯 가지든 열 가지든 결과는 같은 <code>dict</code>다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 키의 자격을 알았다면, 그 키로 값을 꺼내는 방법이 두 가지라는 사실이 다음 의문이 된다 — 엄격한 <code>d[k]</code> 와 안전한 <code>d.get()</code>. 둘은 언제 어느 쪽을 써야 하는가?
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 3
+========================================================= -->
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span>조회: 엄격한 <code>d[k]</code> 와 안전한 <code>d.get()</code><a href="#ch3" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>키로 값을 꺼내는 두 가지 길은 의도가 다르다. <code>d[k]</code>는 “이 키가 반드시 있어야 한다”는 단정이고, <code>d.get(k, default)</code>는 “있으면 좋고 없어도 흐름은 이어진다”는 양보다.</p>
+<pre><code class="language-python">d = {"a": 1, "b": 2, "c": 3}
+print(f"d['a'] = {d['a']}")
+print(f"d.get('z') = {d.get('z')}")
+print(f"d.get('z', -1) = {d.get('z', -1)}")
+# d["z"]  →  KeyError: 'z'
+print(f"'a' in d: {'a' in d}")
+print(f"3 in d.values(): {3 in d.values()}")
+print(f"len(d): {len(d)}")
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    그럼 항상 <code>get()</code>이 안전한 거 아닌가? <code>d[k]</code>를 굳이 쓸 이유가 있나?
+  </div>
+  <p>의도를 코드로 드러내기 위해서다. “이 시점에 사번 200이 없다면 그건 버그”라면 <code>d["200"]</code>이 적절하다. 예외가 곧 “설계가 어긋났다”는 신호가 된다. 반대로 “없을 수도 있고 그땐 기본값으로 진행”이면 <code>get()</code>이 맞다. 둘 다 도구이고, 골라 쓰는 기준은 “없다”의 의미가 무엇이냐다.</p>
+  <div class="callout">
+    <span class="label">주의</span>
+    <code>d.get(k)</code>는 키가 없을 때도 <code>None</code>을 돌려준다. 따라서 “키가 없는 경우”와 “값이 진짜 <code>None</code>인 경우”가 구분되지 않는다. 둘을 구분해야 한다면 <code>k in d</code>로 먼저 체크하거나, 보초값(sentinel)을 두자.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §02 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 02_access</span>
+<span class="t-hdr">============================================================</span>
+d['a'] = 1
+d.get('z') = None
+d.get('z', -1) = -1
+<span class="t-err">d['z']  -&gt; KeyError: 'z'</span>
+'a' in d: True
+3 in d.values(): True
+len(d): 3</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <code>d[k]</code> = “있어야 한다”, <code>d.get(k, default)</code> = “없어도 된다”. 둘은 안전성의 차이가 아니라 <em>의도</em>의 차이다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 조회를 익혔으면 다음은 변경이다. dict 는 한 자리(<code>d[k] = v</code>)에서 갱신·삭제까지 끝낼 수 있는데, 그 비결은 무엇인가?
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 4
+========================================================= -->
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span>변경: 한 자리에서 끝내는 갱신·삭제<a href="#ch4" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p><code>dict_sample.py</code>의 <code>dict_test_func()</code>은 일상 연산을 한자리에 모아 둔다. 리스트와 가장 큰 차이는, “인덱스 0이 비면 1이 0이 된다”는 시프트가 없다는 점이다. 키와 값이 한 쌍으로 사라지고 끝난다.</p>
+  <table>
+    <thead><tr><th>의도</th><th>코드</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>갱신/추가</td><td><code>d[k] = v</code></td><td>키 존재 여부에 따라 자동 분기</td></tr>
+      <tr><td>일괄 갱신</td><td><code>d.update(other)</code></td><td>겹치는 키는 <code>other</code>가 이긴다</td></tr>
+      <tr><td>키 기반 삭제</td><td><code>del d[k]</code> / <code>d.pop(k)</code></td><td><code>pop</code>은 값을 돌려준다</td></tr>
+      <tr><td>마지막 항목 제거</td><td><code>d.popitem()</code></td><td>3.7+ 부터 LIFO 순서, 빈 dict 면 <code>KeyError</code></td></tr>
+      <tr><td>없으면 만들기</td><td><code>d.setdefault(k, v)</code></td><td>이미 있으면 변경 없음</td></tr>
+      <tr><td>전체 비우기</td><td><code>d.clear()</code></td><td>같은 객체를 비운다 (재할당 ≠ <code>d = {}</code>)</td></tr>
+    </tbody>
+  </table>
+<pre><code class="language-python">d = {"a": 1, "b": 2, "c": 3}
+d["a"] = 100; d["d"] = 4
+print("after set/add:", d)
+d.update({"b": 200, "e": 5})
+print("after update :", d)
+v = d.pop("c"); print(f"pop('c')     : {v} ->", d)
+item = d.popitem(); print(f"popitem()    : {item} ->", d)
+d.setdefault("f", 0); print("setdefault   :", d)
+del d["b"]; print("del d['b']   :", d)
+d.clear(); print("clear()      :", d)
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    <code>d.clear()</code> 와 <code>d = {}</code> 가 같은 결과 아닌가?
+  </div>
+  <p>결과처럼 보이지만 다르다. <code>d.clear()</code>는 <em>같은 객체</em>를 비운다. 따라서 다른 변수가 <code>d</code>를 참조하고 있었다면 그 변수도 빈 딕셔너리를 본다. <code>d = {}</code>는 새 객체를 만들어 이름 <code>d</code>에 다시 묶는 것뿐이고, 기존 객체는 다른 참조가 있다면 그대로 살아 있다.</p>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §03 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 03_mutate</span>
+<span class="t-hdr">============================================================</span>
+after set/add: {'a': 100, 'b': 2, 'c': 3, 'd': 4}
+after update : {'a': 100, 'b': 200, 'c': 3, 'd': 4, 'e': 5}
+pop('c')     : 3 -&gt; {'a': 100, 'b': 200, 'd': 4, 'e': 5}
+popitem()    : ('e', 5) -&gt; {'a': 100, 'b': 200, 'd': 4}
+setdefault   : {'a': 100, 'b': 200, 'd': 4, 'f': 0}
+del d['b']   : {'a': 100, 'd': 4, 'f': 0}
+clear()      : {}</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    변경 연산은 모두 <strong>“키가 식별자다”</strong>라는 한 가지 규칙에서 파생된다. 인덱스가 흔들리지 않으니 시프트 비용도 없다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 값을 바꿨더니 <code>keys()</code>/<code>values()</code> 의 결과가 따라 바뀐다 — 그렇다면 뷰는 스냅샷이 아니라는 뜻인가? CH05 에서 확인한다.
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 5
+========================================================= -->
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span>뷰(view)는 “스냅샷”이 아니다<a href="#ch5" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p><code>d.keys()</code>, <code>d.values()</code>, <code>d.items()</code>는 모두 뷰 객체를 돌려준다. 새 리스트가 아니다. 뷰는 <em>창문</em>처럼 원본 <code>dict</code>를 들여다본다. 그래서 원본을 바꾸면 뷰의 출력도 따라 바뀐다.</p>
+<pre><code class="language-python">d = {"a": 1, "b": 2, "c": 3}
+print("keys  :", d.keys())
+print("values:", d.values())
+print("items :", d.items())
+keys = d.keys()              # 뷰를 변수에 저장
+d["d"] = 4                   # 원본에 새 키 추가
+print("after add d['d']=4 -> keys :", keys)  # 자동 반영
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    뷰가 살아 있다는 건 알겠다. 그럼 “지금 이 순간의 키 목록”을 박제하려면?
+  </div>
+  <p><code>list(d.keys())</code>로 명시 복사한다. 또한 키 뷰와 아이템 뷰는 set-like(집합 유사)라 <code>&amp;</code>(교집합), <code>|</code>(합집합), <code>-</code>(차집합)이 곧장 통한다. 두 <code>dict</code>의 공통 키는 <code>a.keys() &amp; b.keys()</code> 한 줄로 끝난다.</p>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §04 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 04_views</span>
+<span class="t-hdr">============================================================</span>
+keys  : dict_keys(['a', 'b', 'c'])
+values: dict_values([1, 2, 3])
+items : dict_items([('a', 1), ('b', 2), ('c', 3)])
+after add d['d']=4 -&gt; keys : dict_keys(['a', 'b', 'c', 'd'])</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    뷰는 <strong>참조</strong>다. “기록”이 필요하면 <code>list()</code>로 그 시점을 끊어 잡아라.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 뷰가 살아있는 창이라는 사실을 확인했으니, 그 창이 보여주는 키의 <strong>순서</strong> 는 어떻게 결정되는가? 삽입 순서인가, 정렬인가?
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 6
+========================================================= -->
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span>순서, 그러나 정렬은 아니다<a href="#ch6" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>3.7부터 <code>dict</code>는 <strong>삽입 순서</strong>를 언어 사양으로 보장한다. 순회는 “넣은 순서대로” 진행된다. 그러나 그것은 “정렬된 순서”가 아니다. 사전식·숫자 정렬이 필요하면 <code>sorted()</code>를 명시해야 한다.</p>
+<pre><code class="language-python">d = {}
+for k in ["c", "a", "b"]:
+    d[k] = ord(k)
+print("insertion order :", list(d.items()))
+# sorted(d.items())  →  [('a', 97), ('b', 98), ('c', 99)]
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    그럼 키 순서가 다른 두 <code>dict</code>는 다른 객체로 취급되나?
+  </div>
+  <p>동등성(<code>==</code>) 검사는 순서와 무관하다. 같은 키-값 쌍을 가지면 같다. 단 <strong>“같다(<code>==</code>)”와 “같은 객체다(<code>is</code>)”는 다른 질문</strong>이다. 두 <code>dict</code>가 키-값까지 동일하더라도 메모리상 다른 객체일 수 있다.</p>
+<pre><code class="language-python">a = {"x": 1, "y": 2}
+b = {"y": 2, "x": 1}
+print("a == b ?", a == b)   # True  — 내용이 같다
+# a is b  →  False (다른 객체)
+</code></pre>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §05 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 05_order</span>
+<span class="t-hdr">============================================================</span>
+insertion order : [('c', 99), ('a', 97), ('b', 98)]
+a == b ? True</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    “순서가 보장된다 ≠ 정렬되어 있다.” 정렬은 언제나 <code>sorted()</code>로 명시하라.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 순서가 보존된다는 사실은 알았다. 그렇다면 dict 를 <code>copy()</code> 로 복사할 때, 그 안에 들어 있는 list/dict 까지 같이 복사되는가?
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 7
+========================================================= -->
+<section id="ch7">
+  <h2 class="chap"><span class="num">CH 07</span>얕은 복사의 함정<a href="#ch7" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>실습 코드의 <code>copy()</code> 절은 “원본을 보호하려면 사본을 만들면 된다”는 직관에 작은 함정이 숨어 있음을 보여준다. <code>dict.copy()</code>는 <strong>최상위 매핑만</strong> 복사한다. 값으로 들어 있는 리스트나 딕셔너리는 같은 객체를 그대로 공유한다.</p>
+<pre><code class="language-python">import copy
+src = {"name": "홍길동", "ids": [1, 2, 3]}
+shallow = src.copy()
+deep = copy.deepcopy(src)      # deepcopy 시점: src["ids"] = [1, 2, 3]
+shallow["ids"].append(4)       # src["ids"] 도 [1,2,3,4] 가 된다
+deep["ids"].append(99)         # deep 은 독립 사본 → [1,2,3,99]
+print("src    :", src)
+print("shallow:", shallow)
+print("deep   :", deep)
+print("id same? src vs shallow:", src["ids"] is shallow["ids"])
+print("id same? src vs deep   :", src["ids"] is deep["ids"])
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    그럼 “안전한 사본”이라는 게 그냥 <code>copy()</code>로는 안 되는 거 아닌가?
+  </div>
+  <p>맞다. 한 층 위는 분리되지만 그 아래는 공유된다. “값까지 진짜로 분리”가 필요하면 <code>copy.deepcopy()</code>가 답이다. 단 깊은 복사는 비용이 크기 때문에, <em>변경할 일이 없는 깊은 부분</em>까지 복사하는 건 낭비다. 보통은 <strong>변경할 부분만 deepcopy 하거나, 새로 만들어 끼워 넣는다</strong>.</p>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §06 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 06_copy</span>
+<span class="t-hdr">============================================================</span>
+src    : {'name': '홍길동', 'ids': [1, 2, 3, 4]}
+shallow: {'name': '홍길동', 'ids': [1, 2, 3, 4]}
+deep   : {'name': '홍길동', 'ids': [1, 2, 3, 99]}
+id same? src vs shallow: True
+id same? src vs deep   : False</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <code>copy()</code> = 한 층 사본, <code>deepcopy()</code> = 모든 층 사본. 같은 함정은 <code>list</code>, <code>tuple</code>, 사용자 정의 객체에도 동일하게 적용된다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 얕은 복사의 함정이 dict 안에서 명확해졌다. 그러면 두 dict 를 <strong>합칠</strong> 때는 어떻게 되는가? Python 3.9 의 <code>|</code> 연산자와 컴프리헨션이 답한다.
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 8
+========================================================= -->
+<section id="ch8">
+  <h2 class="chap"><span class="num">CH 08</span>합치기 연산자와 딕셔너리 컴프리헨션<a href="#ch8" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>3.9부터 <code>dict</code>는 <code>|</code>(합치기)와 <code>|=</code>(in-place 합치기)를 지원한다. 의미는 <code>{**a, **b}</code>나 <code>a.update(b)</code>와 같지만 한 줄이 짧고 의도가 분명하다.</p>
+<pre><code class="language-python">a = {"x": 1, "y": 2}
+b = {"y": 20, "z": 30}
+print("a | b :", a | b)    # {'x': 1, 'y': 20, 'z': 30}  ← b 가 이긴다
+a |= {"w": 9}
+print("a |= {} -> a :", a) # {'x': 1, 'y': 2, 'w': 9}
+</code></pre>
+  <p>딕셔너리 컴프리헨션은 같은 모양으로 <em>변환·뒤집기·필터링</em>을 한 줄에 담는다.</p>
+<pre><code class="language-python">nums = [1, 2, 3, 4, 5]
+squares = {n: n*n for n in nums}
+print("squares:", squares)
+swapped = {v: k for k, v in squares.items()}
+print("swapped:", swapped)
+even = {k: v for k, v in squares.items() if v % 2 == 0}
+print("filter :", even)
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    <code>a | b</code> 와 <code>{**a, **b}</code> 는 결국 같은 결과인데, 왜 굳이 새 연산자를 추가했을까?
+  </div>
+  <p>가독성과 일관성. 집합·리스트와 마찬가지로 “두 매핑을 합친다”라는 자연스러운 표기를 갖게 된 것이다. PEP 584(<em>Add Union Operators To dict</em>)가 짚은 이유는 세 가지다.</p>
+  <ul>
+    <li><code>{**a, **b}</code>는 <em>표현식</em>으로는 작동하지만 “두 매핑의 합치기”라는 의미를 전달하는 표기로는 어색하다 — 별표 두 개의 의도가 “언패킹”이지 “합치기”가 아니기 때문.</li>
+    <li><code>a.update(b)</code>는 <em>구문(statement)</em>이라 표현식 안에 둘 수 없다. <code>a | b</code>는 식이라 함수 인자, 컴프리헨션, 람다 본문 어디에서도 쓸 수 있다.</li>
+    <li><code>set</code>·<code>frozenset</code>이 이미 <code>|</code>를 가지고 있다 — 매핑만 빠져 있을 이유가 없다.</li>
+  </ul>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §07 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 07_merge</span>
+<span class="t-hdr">============================================================</span>
+a | b : {'x': 1, 'y': 20, 'z': 30}
+a |= {} -&gt; a : {'x': 1, 'y': 2, 'w': 9}</pre>
+  </div>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §08 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 08_comprehension</span>
+<span class="t-hdr">============================================================</span>
+squares: {1: 1, 2: 4, 3: 9, 4: 16, 5: 25}
+swapped: {1: 1, 4: 2, 9: 3, 16: 4, 25: 5}
+filter : {2: 4, 4: 16}</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    <code>|</code>는 <strong>두 매핑의 합치기</strong>, 컴프리헨션은 <strong>한 매핑의 변환</strong>. 다 “한 줄로 끝낸다”라는 같은 미학에서 온다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 구문이 충분히 풍부해졌으니 이제 실전 적용. CH09 에서 <code>dict</code> + <code>pickle</code> 로 직원 관리 미니 프로젝트를 만들고, 디스크 직렬화까지 묶어 본다.
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 9
+========================================================= -->
+<section id="ch9">
+  <h2 class="chap"><span class="num">CH 09</span>미니 프로젝트: 직원 관리(<code>dict</code> + <code>pickle</code>)<a href="#ch9" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>실습 미션 <code>python_fileio/fileio/fileio_mission.py</code>는 사번을 키, 직원 정보 리스트를 값으로 두는 단일 <code>dict</code>(<code>emp_list</code>)를 메뉴 루프로 다룬다. 핵심은 두 가지다 — <strong>키 기반 식별</strong>과 <strong>파일 영속화</strong>.</p>
+<pre><code class="language-python">emp_list = {
+    "200": ["홍길순", "851225-2234567", "hong@test.com", "010-1234-5678", 3800000, "대리", "개발부"],
+    "201": ["김철수", "900101-1234567", "kim@test.com",  "010-2222-3333", 4200000, "과장", "개발부"],
+    "202": ["이영희", "920510-2345678", "lee@test.com",  "010-7777-8888", 3500000, "사원", "기획부"],
+}
+print(">> 전체 출력")
+for empid, emp_info in emp_list.items():
+    print(f"  {empid} : {emp_info}")
+
+del emp_list["201"]
+print(">> 201 삭제 후")
+for empid, emp_info in emp_list.items():
+    print(f"  {empid} : {emp_info}")
+
+# pickle 저장 → 불러오기 (round-trip)
+import pickle
+with open("employees.dat", "wb") as f:
+    pickle.dump(emp_list, f)
+with open("employees.dat", "rb") as f:
+    loaded = pickle.load(f)
+print(">> pickle round-trip 동등성:", emp_list == loaded)
+print(">> 불러온 키 목록      :", list(loaded.keys()))
+</code></pre>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    JSON 도 있는데 왜 <code>pickle</code> 인가? 그리고 변수명이 왜 <code>emp_list</code>인가, 자료형은 <code>dict</code> 아닌가?
+  </div>
+  <p>두 가지로 답한다.</p>
+  <ul>
+    <li><strong>왜 pickle</strong>: JSON은 키를 문자열로만 허용하고, 튜플·바이트열·사용자 정의 객체를 직접 표현하지 못한다. 이번 미션은 사번이 문자열이라 JSON 도 가능하지만, “파이썬 객체 그대로 보존”이 목적이면 <code>pickle</code>이 짧고 정확하다. 단 신뢰할 수 없는 입력에는 절대 쓰지 말 것 — <code>pickle</code>은 임의 코드 실행 위험이 있다.</li>
+    <li><strong>이름과 타입의 불일치</strong>: <code>emp_list</code>라는 이름은 학습 단계의 흔적이다. 실제 자료형이 <code>dict</code>임을 드러내려면 <code>employees</code>나 <code>emp_table</code>이 더 낫다. 코드 가독성은 “이름이 타입을 거짓말하지 않는 데서” 시작한다.</li>
+  </ul>
+  <div class="callout">
+    <span class="label">보안 경고</span>
+    <code>pickle.load()</code>는 파일에 적힌 지시대로 <strong>임의의 파이썬 객체를 복원</strong>한다. 즉 악의적으로 조작된 pickle 파일을 열면 임의 코드 실행이 일어날 수 있다. 따라서 <strong>외부에서 받은 pickle 파일은 절대 그대로 <code>load</code>하지 말 것</strong>. 외부 교환이 필요하면 <code>json</code>을, 동일 시스템 내부 캐시 용도로만 <code>pickle</code>을 쓰는 것이 안전하다.
+  </div>
+
+  <h3 class="step">테스트</h3>
+  <p>입력 대화 부분만 미리 채운 채로 추가 → 삭제 → <code>pickle</code> 저장 → 다시 불러오기까지 한 번에 검증했다. 마지막 줄의 <em>round-trip 동등성: True</em>가 “파일을 거쳐 다시 만든 <code>dict</code>가 원본과 같다”는 증명이다.</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §10 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 10_employee</span>
+<span class="t-hdr">============================================================</span>
+&gt;&gt; 전체 출력
+  200 : ['홍길순', '851225-2234567', 'hong@test.com', '010-1234-5678', 3800000, '대리', '개발부']
+  201 : ['김철수', '900101-1234567', 'kim@test.com', '010-2222-3333', 4200000, '과장', '개발부']
+  202 : ['이영희', '920510-2345678', 'lee@test.com', '010-7777-8888', 3500000, '사원', '기획부']
+&gt;&gt; 201 삭제 후
+  200 : ['홍길순', '851225-2234567', 'hong@test.com', '010-1234-5678', 3800000, '대리', '개발부']
+  202 : ['이영희', '920510-2345678', 'lee@test.com', '010-7777-8888', 3500000, '사원', '기획부']
+&gt;&gt; pickle round-trip 동등성: True
+&gt;&gt; 불러온 키 목록      : ['200', '202']</pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    “식별자가 분명한 도메인 데이터”를 다룰 땐 <strong><code>dict</code> + <code>pickle</code></strong>이 가장 짧은 영속화 경로다. 단 데이터가 외부와 교환된다면 JSON으로 바꿔라.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 실전에서 가장 자주 만나는 함정 한 가지가 남았다 — 반복(<code>for k in d</code>) 중에 dict 의 크기를 바꾸면 어떻게 되는가?
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 10
+========================================================= -->
+<section id="ch10">
+  <h2 class="chap"><span class="num">CH 10</span>함정: 반복 중에 크기를 바꾸면<a href="#ch10" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>흔한 실수 한 가지. 순회하면서 같은 <code>dict</code>에 키를 추가하거나 삭제하면 다음과 같은 예외가 난다.</p>
+<pre><code class="language-python">d = {"a": 1, "b": 2, "c": 3}
+for k in d:
+    d["new"] = 0    # ← 이 한 줄이 크기를 바꾼다
+# ↓ 즉시 발생
+# RuntimeError: dictionary changed size during iteration
+</code></pre>
+  <p>예외 메시지가 알려주듯, 트리거는 <strong>크기 변화</strong>다. 반복자는 시작 시점의 항목 수(<code>ma_used</code>)를 기억하고, 다음 항목을 꺼내기 직전에 현재 값과 비교한다. 다르면 그 자리에서 <code>RuntimeError</code>를 던진다. 별도로 <code>dk_version</code>이라는 버전 태그도 있는데, 이건 인라인 캐시·바이트코드 가드용이고 본 예외와 직접적인 트리거는 “크기 비교” 쪽이다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    그럼 “반복하면서 조건에 맞는 항목을 삭제”는 어떻게 하나?
+  </div>
+  <ul>
+    <li>반복 대상의 <strong>사본</strong>을 돌린다 — <code>for k in list(d):</code></li>
+    <li>변경 사항을 한 곳에 모았다가 반복이 끝난 뒤 <code>update()</code>/<code>pop()</code> 으로 적용한다.</li>
+    <li>완전히 새 <code>dict</code>를 컴프리헨션으로 만든다 — <code>{k:v for k,v in d.items() if cond(k,v)}</code></li>
+  </ul>
+
+  <h3 class="step">테스트</h3>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §11 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 11_runtime_error</span>
+<span class="t-hdr">============================================================</span>
+<span class="t-err">RuntimeError: dictionary changed size during iteration</span></pre>
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    “반복 중에 변경”은 거의 항상 <strong>설계 결함</strong>이다. 사본을 돌리거나, 결과를 새로 만들어라.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 표면 동작은 거의 다 봤다. 이제 마지막 의문 — 왜 dict 의 조회·삽입은 평균 <code>O(1)</code> 인가? CPython <code>Objects/dictobject.c</code> 안으로 들어간다.
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 11
+========================================================= -->
+<section id="ch11">
+  <h2 class="chap"><span class="num">CH 11</span>왜 평균 O(1)인가 — <code>dictobject.c</code> 안으로<a href="#ch11" class="anchor-link">#</a></h2>
+
+  <h3 class="step">학습</h3>
+  <p>여기서부터는 “쓰는 법”에서 “돌아가는 법”으로 시점을 옮긴다. 본 글에 인용한 CPython 소스는 작업 폴더에 사본이 있다 — <code>.study/test/2-dict/python_dict/dictobject.c</code>(약 244 KB), <code>pycore_dict.h</code>(약 16 KB).</p>
+
+  <blockquote class="cite">
+    The dict implementation uses an open addressing hash table … Major subtleties ahead: most hash schemes depend on having
+    a "good" hash function, in the sense of simulating randomness. Python doesn't: its most important hash functions
+    (for strings and ints) are very regular in common cases.
+    <span class="src">— <a href="https://github.com/python/cpython/blob/main/Objects/dictobject.c" target="_blank" rel="noopener">github.com/python/cpython · Objects/dictobject.c (헤더 주석)</a></span>
+  </blockquote>
+
+  <p>3.6 이후 CPython 의 <code>dict</code>는 <strong>compact dict</strong> 구조다. <em>인덱스 배열</em>과 <em>엔트리 배열</em>을 분리해 인덱스 배열은 작은 정수만 담고, 엔트리 배열은 (해시, 키, 값)을 <strong>삽입 순서대로</strong> 모아 둔다. 이 한 가지 구조로 “순서 보존”과 “캐시 효율”이 동시에 해결된다.</p>
+<pre><code><span class="comment">// pycore_dict.h - 핵심만 발췌</span>
+struct _dictkeysobject {
+    Py_ssize_t dk_refcnt;
+    uint8_t    dk_log2_size;          <span class="comment">// 표 크기 = 1 &lt;&lt; dk_log2_size</span>
+    uint8_t    dk_log2_index_bytes;   <span class="comment">// 인덱스 슬롯 한 칸의 바이트 수</span>
+    uint8_t    dk_kind;               <span class="comment">// GENERAL / UNICODE / SPLIT</span>
+    uint32_t   dk_version;            <span class="comment">// 변경 시 0 으로 초기화 (반복자 무효화 신호)</span>
+    Py_ssize_t dk_usable;             <span class="comment">// 더 넣을 수 있는 엔트리 수</span>
+    Py_ssize_t dk_nentries;           <span class="comment">// 현재 사용 중 엔트리 수</span>
+    char       dk_indices[];          <span class="comment">// 표 (hash → entry index)</span>
+    <span class="comment">/* 그 뒤에 PyDictKeyEntry / PyDictUnicodeEntry 배열 */</span>
+};
+
+#define DKIX_EMPTY (-1)   <span class="comment">// 빈 슬롯</span>
+#define DKIX_DUMMY (-2)   <span class="comment">// 삭제됨 — 탐색은 계속</span>
+</code></pre>
+  <p>핵심은 세 가지다.</p>
+  <ul>
+    <li><strong>표 크기는 2의 거듭제곱.</strong> <code>hash &amp; mask</code> 한 번으로 슬롯이 정해진다.</li>
+    <li><strong>인덱스 폭이 가변.</strong> 작은 <code>dict</code>는 슬롯 한 칸이 1바이트, 표가 커지면 2/4/8바이트로 자동 확장된다.</li>
+    <li><strong>삭제 표식 <code>DKIX_DUMMY</code>.</strong> 슬롯을 곧장 비우면 충돌 사슬이 끊겨 다른 키를 못 찾는다. “비었지만 탐색은 계속”이라는 표식이 필요하다.</li>
+  </ul>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">가설</span>
+    해시 충돌을 <strong>체이닝(Chaining)</strong> 방식으로 처리하면, 충돌이 쌓일수록 링크드 리스트 → 레드블랙트리로 전환되면서 성능 손실이 발생한다고 한다. CPython 의 <code>dict</code>는 이 문제를 어떻게 해결했는가?
+  </div>
+  <p>이것이 학습 초기에 남긴 핵심 의문이다. Java 의 <code>HashMap</code>은 실제로 한 버킷에 항목이 8개 이상 쌓이면 링크드 리스트를 <strong>레드블랙트리(Red-Black Tree)</strong>로 전환한다. 덕분에 최악 탐색이 O(n) → O(log n)으로 개선되지만, 트리 노드는 포인터로 메모리 여기저기 흩어지기 때문에 <strong>캐시 지역성(Cache Locality)</strong>을 잃는다. 현대 CPU 는 메모리를 캐시라인(64 B) 단위로 읽는다. 포인터를 타고 노드를 오가면 캐시 미스가 누적되어 "이론 O(log n)인데 실제 체감이 느린" 역설이 생긴다.</p>
+  <p>CPython 의 선택은 다르다. <strong>체이닝을 아예 쓰지 않고, 오픈 어드레싱(Open Addressing)으로 충돌을 같은 배열 안에서 해결한다.</strong> 모든 엔트리가 연속된 메모리 블록에 머무르므로 캐시 효율이 높다. 단, 배열이 너무 꽉 차면 오픈 어드레싱도 탐색 사슬이 길어지는데, CPython 은 슬롯의 약 2/3까지만 채우고 그 이상이면 표를 두 배로 늘려 <strong>재해싱(rehash)</strong>하는 정책으로 이를 원천 차단한다.</p>
+  <table>
+    <thead><tr><th>방식</th><th>충돌 처리</th><th>캐시 효율</th><th>최악 탐색</th><th>대표 구현</th></tr></thead>
+    <tbody>
+      <tr><td>체이닝 + 레드블랙트리</td><td>버킷마다 링크드 리스트 → RBT</td><td>낮음 (포인터 점프)</td><td>O(log n)</td><td>Java HashMap</td></tr>
+      <tr><td>오픈 어드레싱 + perturb</td><td>같은 배열 안에서 다음 빈 슬롯</td><td>높음 (연속 메모리)</td><td>O(n) 이론, 실제 ≈ O(1)</td><td>CPython <code>dict</code></td></tr>
+    </tbody>
+  </table>
+  <p>오픈 어드레싱은 탐색 시퀀스 설계가 나쁘면 군집(Clustering) 현상으로 성능이 망가진다. 아래 Q 가 이 문제를 다룬다.</p>
+
+  <div class="qbox">
+    <span class="label">가설</span>
+    충돌이 나면 다음 자리는 어떻게 정하나? 그냥 옆 칸을 보면 충돌 사슬이 한 줄로 길어질 텐데.
+  </div>
+  <p>CPython 은 <strong>perturb 시퀀스</strong>를 쓴다. 단순 선형 탐색이 아니라 “원래 해시의 상위 비트”까지 끌어와 다음 후보 슬롯을 결정한다.</p>
+<pre><code><span class="comment">// dictobject.c — 충돌 발생 시 다음 슬롯 결정 (요약)</span>
+#define PERTURB_SHIFT 5
+
+i = hash &amp; mask;          <span class="comment">// 첫 슬롯</span>
+perturb = hash;
+while (충돌) {
+    perturb &gt;&gt;= PERTURB_SHIFT;
+    i = (i*5 + 1 + perturb) &amp; mask;   <span class="comment">// 다음 후보</span>
+}
+</code></pre>
+  <p>이 방식은 두 가지를 동시에 노린다. (1) 첫 단계에서 충돌한 키들이 두 번째 단계에서도 같은 자리에 모이지 않도록 <code>perturb</code>의 상위 비트가 흩어 주고, (2) <code>perturb</code>가 0이 된 뒤에는 점화식이 <code>i = 5*i + 1 (mod 2^k)</code>로 단순해진다. 그런데 <strong>표 크기가 2의 거듭제곱일 때, 이 점화식은 모든 슬롯을 정확히 한 번씩 방문한다는 정수론적 사실</strong>이 알려져 있다(곱수 5는 2의 거듭제곱과 서로소이고 +1 항이 사이클을 깨 준다). 그래서 빈 슬롯이 하나라도 있으면 탐색은 반드시 끝난다 — 평균은 O(1), 최악도 잘 정의된 상한을 갖는다.</p>
+
+  <p>또 하나의 의문 — “표는 언제, 어떻게 커지나?” CPython 은 “슬롯의 약 2/3까지만 채우고, 그 이상이면 표 크기를 두 배로 늘려 다시 분포(rehash)”라는 정책을 쓴다(상수 <code>USABLE_FRACTION</code>). 이 정책이 외부에서 관측 가능한 흔적을 남긴다 — <code>sys.getsizeof(d)</code>가 <em>단계적으로</em> 점프한다.</p>
+
+  <h3 class="step">테스트</h3>
+  <p><code>dict</code>에 키를 0개부터 16개까지 한 개씩 넣으면서 메모리 크기를 측정했다. 길이 0→1, 5→6, 10→11 사이에서 단계적 점프가 일어나는 것을 보면, 위에서 말한 “2/3 적재율” 정책이 그대로 표면에 드러난다.</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="t-label">dict_runner.py §09 · Python 3.14.2 · PowerShell</span>
+    </div>
+    <pre class="terminal-body"><span class="t-hdr">============================================================</span>
+<span class="t-sec"># 09_hash_sizeof</span>
+<span class="t-hdr">============================================================</span>
+len -&gt; sys.getsizeof(dict)
+  len= 0  size=64 bytes
+  len= 1  size=224 bytes
+  len= 2  size=224 bytes
+  len= 3  size=224 bytes
+  len= 4  size=224 bytes
+  len= 5  size=224 bytes
+  len= 6  size=352 bytes
+  len= 7  size=352 bytes
+  len= 8  size=352 bytes
+  len= 9  size=352 bytes
+  len=10  size=352 bytes
+  len=11  size=632 bytes
+  len=12  size=632 bytes
+  len=13  size=632 bytes
+  len=14  size=632 bytes
+  len=15  size=632 bytes
+  len=16  size=632 bytes
+hash('python') = -2952661498519925993
+hash(42)       = 42
+hash((1,2,3))  = 529344067295497451
+<span class="t-err">hash(list) -&gt; TypeError: unhashable type: 'list'</span></pre>
+  </div>
+
+  <div class="ascii">아이디어를 한 그림으로
+
+  [ dk_indices ]   ─ 해시 → 작은 정수 인덱스
+  ┌──┬──┬──┬──┬──┬──┬──┬──┐
+  │ 2│-1│ 0│-1│-2│-1│ 1│-1│   (-1 = EMPTY, -2 = DUMMY)
+  └─┬┴──┴─┬┴──┴──┴──┴─┬┴──┘
+    │     │           │
+    ▼     ▼           ▼
+  [ dk_entries ]  ─ 삽입 순서대로 (hash, key, value)
+   0: ('a', 1)
+   1: ('c', 3)
+   2: ('b', 2)</div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">KEY POINT — 가설 통과</span>
+    “키 → 슬롯”은 단 한 번의 비트 마스크로 끝나고, 충돌은 <strong>perturb 기반 오픈 어드레싱</strong>으로 흩어지고, 표는 <strong>2/3 적재율</strong>에서 두 배로 자란다. 이 세 가지가 “평균 O(1)”의 실체다.
+  </div>
+</section>
+
+<div class="bridge">
+  <strong>다음 챕터로 가는 다리</strong> — 내부까지 모두 확인했다. CH12 에서 출발 의문 — "list 까지 익혔는데 왜 또 새 자료형 dict 가 필요한가?" — 으로 돌아가 한 문장으로 압축한다.
+</div>
+
+
+<!-- =========================================================
+     CHAPTER 12
+========================================================= -->
+<section id="ch12">
+  <h2 class="chap"><span class="num">CH 12</span>정리: 한 문장으로 압축<a href="#ch12" class="anchor-link">#</a></h2>
+
+  <h3 class="step">최종 결론</h3>
+  <div class="keypoint">
+    <span class="label">FINAL CONCLUSION</span>
+    출발 의문 — "<code>list</code> 까지 익혔는데 왜 또 새 자료형 <code>dict</code> 가 필요한가?" — 의 답.
+    <code>list</code> 가 "위치(index)로 찾는 모음" 이라면 <code>dict</code> 는 "이름(key)으로 찾는 모음" 이다.
+    그 이름을 빠르게 찾아내기 위해 내부는 <strong>해시 테이블 + compact + open addressing</strong> 로 짜여 있고,
+    그 결과가 우리가 한 줄(<code>d[k]</code>) 로 누리는 <strong>평균 O(1)</strong> 다.
+    CH02 의 키 자격(해시 가능), CH05 의 살아있는 뷰, CH07 의 한 층 복사, CH10 의 <code>RuntimeError</code>,
+    CH11 의 <code>dictobject.c</code> — 이 모두가 그 한 자료구조의 다른 얼굴이다.
+  </div>
+
+  <p>리스트가 “순서가 있는 모음”이라면, <code>dict</code>는 “이름으로 찾는 모음”이다. 이름을 받기 위해 키는 <strong>해시 가능</strong>해야 하고, 키 충돌을 피하기 위해 내부는 <strong>compact + open addressing</strong> 으로 짜여 있고, 그 결과 우리가 코드 한 줄로 누리는 것이 <strong>평균 O(1) 조회</strong>다.</p>
+  <p>이 글의 11개 챕터를 한 문장으로 줄이면 다음과 같다 — <em>“<code>dict</code>는 키로 찾고, 삽입 순서를 기억하며, 평균 O(1)에 답한다. 키는 해시 가능해야 하고, 뷰는 살아 있고, 복사는 한 층만 분리된다.”</em></p>
+
+  <div class="keypoint">
+    <span class="label">CHEAT SHEET</span>
+    <ul>
+      <li>식별자가 위치 → <code>list</code>, 식별자가 이름 → <code>dict</code></li>
+      <li>키 자격: 해시 가능 (정수·문자열·튜플 ✓ / 리스트·딕셔너리·집합 ✗)</li>
+      <li>조회: 단정 <code>d[k]</code> · 양보 <code>d.get(k, default)</code></li>
+      <li>변경: <code>d[k]=v</code>, <code>update</code>, <code>pop</code>, <code>popitem</code>, <code>setdefault</code>, <code>del</code>, <code>clear</code></li>
+      <li>뷰는 살아있다. 박제하려면 <code>list(d.keys())</code></li>
+      <li>3.7+ 삽입 순서 보장. 정렬은 별개 — <code>sorted()</code></li>
+      <li><code>copy()</code>는 한 층, 그 아래는 <code>copy.deepcopy()</code></li>
+      <li>3.9+ 합치기: <code>a | b</code>, <code>a |= b</code></li>
+      <li>반복 중 변경 → <code>RuntimeError</code>. 사본을 돌려라</li>
+      <li>영속화는 <code>pickle</code>(파이썬 전용) 또는 <code>json</code>(범용)</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="page">
+    <p>본 글은 부트캠프 학습용 정리이며, CPython 소스 인용은 PSF 라이선스에 따른다. 검증 환경: <strong>윈도우 11 Pro 25H2 · VS Code 1.117.0 · Python 3.14.2 · PowerShell</strong> (HW: Asrock x600, Ryzen 8600G, 24GB LPDDR5, RTX 4070 Super 12GB).</p>
+    <p style="margin-top:10px"><strong>레퍼런스</strong></p>
+    <ol class="refs">
+      <li>Python Docs — <em>Mapping Types — dict</em>: <a href="https://docs.python.org/3/library/stdtypes.html#mapping-types-dict">stdtypes.html#mapping-types-dict</a></li>
+      <li>Python Docs — <em>Glossary · hashable</em>: <a href="https://docs.python.org/3/glossary.html#term-hashable">glossary.html#term-hashable</a></li>
+      <li>Python Docs — <em>Tutorial · Dictionaries</em>: <a href="https://docs.python.org/3/tutorial/datastructures.html#dictionaries">datastructures.html#dictionaries</a></li>
+      <li>Python Docs — <em>collections</em> (defaultdict, OrderedDict, ChainMap): <a href="https://docs.python.org/3/library/collections.html">collections.html</a></li>
+      <li>Python Docs — <em>pickle</em>: <a href="https://docs.python.org/3/library/pickle.html">pickle.html</a></li>
+      <li>PEP 468 — Preserving Keyword Argument Order</li>
+      <li>PEP 584 — Add Union Operators To dict</li>
+      <li>CPython 소스 — <code>Objects/dictobject.c</code>, <code>Include/internal/pycore_dict.h</code> (작업 폴더 사본: <code>.study/test/2-dict/python_dict/</code>)</li>
+      <li>실습 코드 — <code>python_fileio/test_dict/dict_sample.py</code>, <code>python_fileio/fileio/fileio_mission.py</code></li>
+    </ol>
+  </div>
+</footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>

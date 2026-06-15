@@ -1,0 +1,22 @@
+============================================================
+# 00_inspect
+============================================================
+train 크기: (900, 8)   test 크기: (300, 8)
+컬럼: ['date', 'day_of_week', 'month', 'station_name', 'visibility', 'precipitation', 'temperature', 'num_people']
+
+[처음 3행]
+      date day_of_week  month    station_name  visibility  precipitation  temperature  num_people
+2023-01-01      Sunday      1  Jamsil Station    9.047399       2.136081    18.023113       13075
+2023-01-03      Friday      1 Hongdae Station   13.319895      16.647143    11.032550       12454
+2023-01-04      Sunday      1  Sillim Station   12.551289      18.386217    12.342243       10093
+
+[타깃 num_people 분포]
+  min=7261  max=18186  mean=12556.7  std=1827.1
+  역 종류: 5개 → ['Jamsil Station', 'Hongdae Station', 'Sillim Station', 'Seoul Station', 'Gangnam Station', nan]
+  요일 종류: 7개
+  test.csv 에 정답(num_people) 존재? True  → test R2 측정 가능
+
+[결측치(NaN) — 깨끗하지 않은 데이터]
+  station_name: 5개 결측
+  visibility: 8개 결측
+  → station_name 결측(nan)·수치 결측이 섞여 있어 그대로 넣으면 LinearRegression 이 멈춘다.

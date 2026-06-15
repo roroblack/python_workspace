@@ -1,0 +1,25 @@
+============================================================
+# 09_hash_sizeof
+============================================================
+len -> sys.getsizeof(dict)
+  len= 0  size=64 bytes
+  len= 1  size=224 bytes
+  len= 2  size=224 bytes
+  len= 3  size=224 bytes
+  len= 4  size=224 bytes
+  len= 5  size=224 bytes
+  len= 6  size=352 bytes
+  len= 7  size=352 bytes
+  len= 8  size=352 bytes
+  len= 9  size=352 bytes
+  len=10  size=352 bytes
+  len=11  size=632 bytes
+  len=12  size=632 bytes
+  len=13  size=632 bytes
+  len=14  size=632 bytes
+  len=15  size=632 bytes
+  len=16  size=632 bytes
+hash('python') = 3389863610105554613
+hash(42)       = 42
+hash((1,2,3))  = 529344067295497451
+hash(list) -> TypeError: unhashable type: 'list'

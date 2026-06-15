@@ -1,0 +1,11 @@
+============================================================
+# 02_abc_basic
+============================================================
+강아지가 멍멍 짖습니다.
+강아지가 네 발로 달립니다.
+  (숨쉬는 중...)
+고양이가 야옹 웁니다.
+고양이가 살금살금 걷습니다.
+  (숨쉬는 중...)
+TypeError: Can't instantiate abstract class Fish without an implementation for abstract method 'move'
+TypeError: Can't instantiate abstract class Animal without an implementation for abstract methods 'move', 'speak'

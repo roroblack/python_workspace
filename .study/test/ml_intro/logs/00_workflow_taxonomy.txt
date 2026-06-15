@@ -1,0 +1,9 @@
+============================================================
+# 00_workflow_taxonomy
+============================================================
+[데이터 준비] diabetes(회귀용)  X shape: (442, 10)
+[데이터 준비] iris(분류용)      X shape: (150, 4)
+
+diabetes y 예시 5개: [151.  75. 141. 206. 135.]  → 회귀(Regression)
+iris     y 예시 5개: [0 0 0 0 0]             → 분류(Classification)
+iris 정답 라벨 종류: [0 1 2] = [np.str_('setosa'), np.str_('versicolor'), np.str_('virginica')]

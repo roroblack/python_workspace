@@ -1,0 +1,562 @@
+# Knowledge Index
+
+Generated: 2026-06-10 12:31
+
+이 파일은 `.study/knowledge/scripts/build_index.py`로 생성한다.
+
+## Source Notes
+
+`.study/notes/`는 이 지식 시스템의 원천 자료다. 블로그는 결과물이고, notes는 사고 과정과 질문의 출처다.
+
+### 04~05
+
+- `.study/notes/04~05/0511 B+트리 - C 언어 문자열 출력 오류 수정 - Google Gemini.mhtml` (raw web note, 3.5 MB, 2026-05-24)
+- `.study/notes/04~05/0515 선형 모델, 회귀, 릿지 회귀 개념 정리 - Google Gemini.mhtml` (raw web note, 1.6 MB, 2026-05-15)
+- `.study/notes/04~05/0516 수소차 등록 데이터 SQL 쿼리 검토 - Google Gemini.mhtml` (raw web note, 1.7 MB, 2026-05-16)
+- `.study/notes/04~05/0519 PK 문자열 처리 책임 분리 - Google Gemini.mhtml` (raw web note, 2.3 MB, 2026-05-19)
+- `.study/notes/04~05/0520 - 로지스틱 회귀 C 값의 의미 - Google Gemini.mhtml` (raw web note, 2.8 MB, 2026-05-20)
+- `.study/notes/04~05/_interp_extracted.txt` (extracted text, 0.0 MB, 2026-05-09)
+  - preview: 파이썬 - 인터프리터 언어 - 한 줄 단위 실행 : 네이버 블로그
+- `.study/notes/04~05/_파이썬 - dict - 작성중_extracted.txt` (extracted text, 0.0 MB, 2026-05-09)
+  - preview: Coding : 네이버 블로그
+- `.study/notes/04~05/_파이썬 0429 0 - Google Gemini_extracted.txt` (extracted text, 0.0 MB, 2026-05-09)
+  - preview: 파이썬 0 - Google Gemini Gemini 파이썬 0 새 채팅 내 항목 Notebooks 새 노트북 Gems Fukuoka 채팅 파이썬 0430 고정된 채팅 머신러닝 0501 고정된 채팅 pro 고정된 채팅
+- `.study/notes/04~05/_파이썬 0429 1 - Google Gemini_extracted.txt` (extracted text, 0.1 MB, 2026-05-09)
+  - preview: 파이썬 1 - Google Gemini Gemini 파이썬 1 새 채팅 내 항목 Notebooks 새 노트북 Gems Fukuoka 채팅 파이썬 0430 고정된 채팅 머신러닝 0501 고정된 채팅 pro 고정된 채팅
+- `.study/notes/04~05/_파이썬 0430 - Google Gemini_extracted.txt` (extracted text, 0.2 MB, 2026-05-09)
+  - preview: 파이썬 0430 - Google Gemini Gemini 파이썬 0430 새 채팅 내 항목 Notebooks 새 노트북 Gems Fukuoka 채팅 파이썬 0430 고정된 채팅 머신러닝 0501 고정된 채팅 pro 
+- `.study/notes/04~05/fileio_파이썬 w와 wb 모드 차이 - Google Gemini.mhtml` (raw web note, 3.3 MB, 2026-05-07)
+- `.study/notes/04~05/module_파이썬 모듈 실행 코드 관리 - Google Gemini.mhtml` (raw web note, 2.2 MB, 2026-05-09)
+- `.study/notes/04~05/oop_파이썬 객체지향 추상화 원리 - Google Gemini.mhtml` (raw web note, 3.3 MB, 2026-05-07)
+- `.study/notes/04~05/test1-프로그래밍과 데이터 기초.mhtml` (raw web note, 1.6 MB, 2026-05-19)
+- `.study/notes/04~05/리스트.txt` (text note, 0.0 MB, 2026-05-07)
+  - preview: Gemini와의 대화
+- `.study/notes/04~05/머신러닝 하이퍼파라미터 최적화 방법 - Google Gemini.mhtml` (raw web note, 3.0 MB, 2026-05-09)
+- `.study/notes/04~05/물로간다_ver2.pptx` (office artifact, 8.8 MB, 2026-05-21)
+- `.study/notes/04~05/물로간다_팀작업현황.xlsx` (office artifact, 0.0 MB, 2026-05-21)
+- `.study/notes/04~05/파이썬 - dict - 작성중.mhtml` (raw web note, 3.9 MB, 2026-05-09)
+- `.study/notes/04~05/파이썬 - 인터프리터 언어 - 한 줄 단위 실행 _ 네이버 블로그.mhtml` (raw web note, 11.5 MB, 2026-05-09)
+- `.study/notes/04~05/파이썬 - 인터프리터 언어 - 한 줄 단위 실행.docx` (office artifact, 0.9 MB, 2026-05-09)
+- `.study/notes/04~05/파이썬 0429 0 - Google Gemini.mhtml` (raw web note, 2.2 MB, 2026-05-07)
+- `.study/notes/04~05/파이썬 0429 1 - Google Gemini.mhtml` (raw web note, 3.0 MB, 2026-05-07)
+- `.study/notes/04~05/파이썬 0430 - Google Gemini.mhtml` (raw web note, 3.7 MB, 2026-05-07)
+- `.study/notes/04~05/파이썬 _w_와 _wb_ 모드 차이 - Google Gemini.mhtml` (raw web note, 3.3 MB, 2026-05-04)
+- `.study/notes/04~05/파이썬 MySQL 연결 문제 해결 방법 - Google Gemini.mhtml` (raw web note, 3.8 MB, 2026-05-10)
+- `.study/notes/04~05/파이썬 객체지향 추상화 원리 - Google Gemini.mhtml` (raw web note, 3.3 MB, 2026-05-06)
+- `.study/notes/04~05/파이썬 데이터베이스 자동 증가 시퀀스 비교 - Google Gemini.mhtml` (raw web note, 3.0 MB, 2026-05-12)
+- `.study/notes/04~05/파이썬 모듈 실행 코드 관리 - Google Gemini.mhtml` (raw web note, 2.2 MB, 2026-05-07)
+- `.study/notes/04~05/파이썬 사번 년월 데이터 날짜 처리 팁 - Google Gemini.mhtml` (raw web note, 2.6 MB, 2026-05-15)
+- `.study/notes/04~05/파이썬 웹 크롤링 기본 원리 및 도구 - Google Gemini.mhtml` (raw web note, 2.4 MB, 2026-05-15)
+- `.study/notes/04~05/파이썬 인덱스 사용 시점과 주의사항 - Google Gemini.mhtml` (raw web note, 2.1 MB, 2026-05-11)
+- `.study/notes/04~05/파이썬 테스트 데이1 - Google Gemini.mhtml` (raw web note, 4.2 MB, 2026-05-12)
+- `.study/notes/04~05/플레이데이터 주간회고(WIL) 작성 가이드.mhtml` (raw web note, 4.2 MB, 2026-05-23)
+### 06
+
+- `.study/notes/06/_딥러닝1_개념구조_extracted.txt` (extracted text, 0.5 MB, 2026-06-09)
+  - preview: 딥러닝 1 : 개념, 구조, 발전 배경 - Google Gemini Gemini 새 채팅 채팅 검색 라이브러리 라이브러리 노트북 새 노트북 Professional Machine Learning Engineer Stu
+- `.study/notes/06/_머신러닝1_분류체계_텍사노미_extracted.txt` (extracted text, 0.1 MB, 2026-06-03)
+  - preview: 머신러닝 1 : 분류 체계 텍사노미 - Google Gemini
+- `.study/notes/06/_머신러닝1실습_지하철예측_extracted.txt` (extracted text, 0.1 MB, 2026-06-03)
+  - preview: 머신러닝 1 실습 : 지하철 이용객 예측 모델 성능 개선 - Google Gemini
+- `.study/notes/06/_머신러닝6_차원축소_extracted.txt` (extracted text, 0.4 MB, 2026-06-09)
+  - preview: 머신러닝 6 : 차원축소 및 시각화 - Google Gemini Gemini 새 채팅 채팅 검색 라이브러리 라이브러리 노트북 새 노트북 Professional Machine Learning Engineer Study
+- `.study/notes/06/_머신러닝7_비지도학습_extracted.txt` (extracted text, 0.7 MB, 2026-06-09)
+  - preview: 머신러닝 7 : 비지도 학습 - Google Gemini Gemini 새 채팅 채팅 검색 라이브러리 라이브러리 노트북 새 노트북 Professional Machine Learning Engineer Study Gui
+- `.study/notes/06/구글 AI_ML 자격증 스터디 프로젝트 표현 - Google Gemini.mhtml` (raw web note, 1.7 MB, 2026-06-03)
+- `.study/notes/06/논문 1 _ text2vect 스킵-그램 효율성_ 행렬 곱셈 회피 - Google Gemini.mhtml` (raw web note, 1.9 MB, 2026-06-03)
+- `.study/notes/06/논문 2 _ 신경망 기계번역 어텐션 메커니즘 요약 - Google Gemini.mhtml` (raw web note, 2.6 MB, 2026-06-03)
+- `.study/notes/06/딥러닝 1 _ 개념, 구조, 발전 배경 - Google Gemini.mhtml` (raw web note, 6.9 MB, 2026-06-08)
+- `.study/notes/06/머신러닝 1 _ 분류 체계 텍사노미 - Google Gemini.mhtml` (raw web note, 3.6 MB, 2026-06-03)
+- `.study/notes/06/머신러닝 1 실습 _ 지하철 이용객 예측 모델 성능 개선 - Google Gemini.mhtml` (raw web note, 2.5 MB, 2026-06-03)
+- `.study/notes/06/머신러닝 2 _ GPU vs TPU_ 머신러닝 선택 가이드 - Google Gemini.mhtml` (raw web note, 5.3 MB, 2026-06-03)
+- `.study/notes/06/머신러닝 3 _ 앙상블 모델 종류와 원리 - Google Gemini.mhtml` (raw web note, 2.8 MB, 2026-06-03)
+- `.study/notes/06/머신러닝 4 _ 결정 트리 노드- 루트와 터미널 - Google Gemini.mhtml` (raw web note, 8.0 MB, 2026-06-03)
+- `.study/notes/06/머신러닝 5 _ 딥러닝 앙상블 기법 개요 - Google Gemini.mhtml` (raw web note, 3.1 MB, 2026-06-03)
+- `.study/notes/06/머신러닝 6 _ 차원축소 및 시각화 - Google Gemini.mhtml` (raw web note, 5.9 MB, 2026-06-08)
+- `.study/notes/06/머신러닝 7 _ 비지도 학습 - Google Gemini.mhtml` (raw web note, 8.5 MB, 2026-06-08)
+- `.study/notes/06/밑바닥부터 시작하는 딥러닝 0602 - Google Gemini.mhtml` (raw web note, 2.7 MB, 2026-06-03)
+### _w4_extract
+
+- `.study/notes/_w4_extract/0516 수소차 등록 데이터 SQL 쿼리 검토 - Google Gemini.txt` (extracted text, 0.0 MB, 2026-05-25)
+  - preview: 수소차 등록 데이터 SQL 쿼리 검토 - Google Gemini 문제가 발생했습니다. 새로고침하여 다시 시도하거나 다른 계정을 선택 하세요. Gemini 수소차 등록 데이터 SQL 쿼리 검토 업그레이드 새 채팅 내
+- `.study/notes/_w4_extract/0519 PK 문자열 처리 책임 분리 - Google Gemini.txt` (extracted text, 0.0 MB, 2026-05-25)
+  - preview: PK 문자열 처리 책임 분리 - Google Gemini Gemini Gemini 정보 새 창에서 열기 Gemini 앱 새 창에서 열기 구독 새 창에서 열기 비즈니스용 새 창에서 열기 New chat 채팅 채팅 저장
+
+## Blog Outputs
+
+- `.blog/abstraction.html`
+  - title: 파이썬 추상화 분석ABC부터 Protocol까지,인터페이스 없는 언어의 인터페이스 설계
+  - chapters:
+    - CH 00C/C++ vtable vs Python — 왜 파이썬은 다른 방식을 선택했나 #
+    - CH 01덕 타이핑 — 추상화 없이 쓰면 어떻게 되나 #
+    - CH 02ABC로 인터페이스 강제하기 #
+    - CH 03ABC로 컬렉션 인터페이스 강제하기 #
+    - CH 04typing.Protocol — 구조적 서브타이핑 #
+    - CH 05ABC vs Protocol — 언제 무엇을 쓰나 #
+    - CH 06__abstractmethods__와 ABCMeta 내부 #
+    - CH 07실전 — 결제 시스템 추상 계층 설계 #
+- `.blog/day0511_mysql_btree.html`
+  - title: MySQL InnoDB 내부 구조 완전 분석: 컬럼 한 줄이 들어갈 때 무슨 일이 일어나는가
+  - chapters:
+    - CH 010511MySQL의 자료구조 — 컬럼은 어떤 알고리즘으로 저장되는가#
+    - CH 020511왜 레드블랙트리가 아니라 B+Tree여야 했는가#
+    - CH 030511$O(1)$이 실제로 어떻게 가능해지는가 — 3가지 기술의 합산#
+    - CH 040511세 기술 개관 — 클러스터드 인덱스 · AHI · 버퍼풀의 역할 분담#
+    - CH 050511클러스터드 인덱스 — "테이블 자체가 인덱스"의 기술적 의미#
+    - CH 060511B+Tree 구조에서 클러스터드 인덱스는 어디에 쓰이는가#
+    - CH 070511클러스터드 인덱스 내부 알고리즘 — 이진 탐색·이중 링크드·페이지 분할#
+    - CH 080511Adaptive Hash Index — 자주 쓰는 길에 깔린 $O(1)$ 지름길#
+- `.blog/day0511_mysql_intro.html`
+  - title: 0511 학습 노트: MySQL DBMS 입문 — 계정·스키마·자료형이 분리된 이유
+  - chapters:
+    - CH 01 DAY1root 와 일반 사용자 — 왜 DBMS 는 OS 와 분리된 계정 체계를 갖는가#
+    - CH 02 DAY1DATABASE / SCHEMA — 한 서버 안의 격리 단위#
+    - CH 03 DAY1CREATE TABLE — 컬럼마다 자료형을 강제하는 이유#
+    - CH 04 DAY1PRIMARY KEY · B+Tree — INT AUTO_INCREMENT 가 기본 설계인 이유#
+    - CH 05 DAY1ALTER / DROP — 정적 스키마는 정말 굳어 있는가#
+    - CH 06 DAY1INSERT · DELETE · SELECT — 행 단위 조작과 NULL 의 의미#
+    - CH 07최종 결론 — 파이썬의 반대 방향, 그러나 같은 목적#
+- `.blog/day0512_mysql_constraints.html`
+  - title: 0512 학습 노트: MySQL 제약조건과 DML — 자료형보다 한 층 더 강한 차단막
+  - chapters:
+    - CH 01 DAY2NOT NULL — 비울 수 없다는 가장 단순한 차단#
+    - CH 02 DAY2UNIQUE — "중복" 의 의미를 단일키와 복합키가 다르게 정의한다#
+    - CH 03 DAY2PRIMARY KEY — NOT NULL + UNIQUE 의 결합, 그리고 식별의 책임#
+    - CH 04 DAY2CHECK — InnoDB 위에서만 살아있는 도메인 규칙#
+    - CH 05 DAY2FOREIGN KEY — 두 테이블을 묶는 관계, ON DELETE / ON UPDATE#
+    - CH 06최종 결론 — 다섯 제약조건은 "잘못된 행" 의 다섯 정의다#
+- `.blog/day0513_mysql_select_join.html`
+  - title: 0513 학습 노트: SELECT · WHERE · JOIN — 행을 골라내고 합치는 6 절 구문의 실행 순서
+  - chapters:
+    - CH 01 DAY3SELECT 6 절 — 작성 순서 vs 실행 순서#
+    - CH 02 DAY3WHERE — 비교·논리·범위·패턴 연산자의 차이#
+    - CH 03 DAY3JOIN — USING vs ON, 그리고 NULL 의 위험#
+    - CH 04 DAY3함수와 NULL — IFNULL/COALESCE 로 빠진 자리를 채우기#
+    - CH 05 DAY3DISTINCT · ORDER BY · 별칭 — 마지막 단계가 가장 보이는 단계#
+    - CH 06최종 결론 — 6 절은 한 줄짜리 파이프라인이다#
+- `.blog/day0514_static_crawling.html`
+  - title: 0514 학습 노트: 정적 크롤링 — HTML 트리에서 값을 꺼내 MySQL 로 흘려보내기
+  - chapters:
+    - CH 01 DAY4urllib + bs4 — 페이지 가져오기와 파싱의 분리#
+    - CH 02 DAY4find vs find_all — 한 개 vs 여러 개의 의도 차이#
+    - CH 03 DAY4속성 추출과 동적 클래스명 — class_ vs {'class': ...}#
+    - CH 04 DAY4크롤링 → DB — MySQLTemplate 으로 흘려보내기#
+    - CH 05최종 결론 — 정적 크롤링은 "트리 탐색 + 매핑" 두 단계다#
+- `.blog/day0515_dynamic_crawling.html`
+  - title: 0515 학습 노트: 동적 크롤링 — Selenium 으로 자바스크립트 너머의 데이터를 잡는 법에서 playwrite 로 Auto Crawling 까지
+  - chapters:
+    - CH 01 DAY5정적 vs 동적 — urllib 의 한계와 Selenium 의 등장#
+    - CH 02 DAY5WebDriverManager — 버전 불일치 자동 해결#
+    - CH 03 DAY5명시적 / 암묵적 대기 — 비동기 렌더링과 동기 코드의 만남#
+    - CH 04 DAY5선택자 안정화 — 해시 → data 속성 → 태그 구조#
+    - CH 05 DAY5자동화로 한 걸음 더 — auto_crawler 의 APScheduler 패턴#
+    - CH 06최종 결론 — 동적 크롤링은 "기다림" 과 "안정성" 의 게임이다#
+- `.blog/day0516_0519_team_project.html`
+  - title: 0516–0519 학습 노트: 첫 단위 프로젝트 — "물로간다" 수소차 통합 대시보드
+  - chapters:
+    - CH 01 DAY6기획 — "물로간다" 의 한 줄 정의와 4명의 역할 분할#
+    - CH 02 DAY7DB 스키마 — regions FK 중심의 5 테이블 + SQLAlchemy#
+    - CH 03 DAY7~83 개의 크롤러, 3 가지 방식 — Excel · CSV · HTML 파싱#
+    - CH 04 DAY8UI 구조 — 단일 app.py + APScheduler 이중 스케줄#
+    - CH 05 DAY8~9시행착오 — asyncio 충돌 · 봇 챌린지 · 시도명 정규화#
+    - CH 06최종 결론 — 한 주의 도구들이 만나서 시스템이 된다#
+- `.blog/day0520_numpy.html`
+  - title: 0520 학습 노트: numpy — "수치 데이터의 표준 컨테이너"
+  - chapters:
+    - CH 01 DAY10ndarray vs list — 같은 데이터, 다른 표현#
+    - CH 02 DAY10차원 — shape / reshape / T / newaxis#
+    - CH 03 DAY10인덱싱과 마스킹 — 위치가 아니라 조건으로 자르기#
+    - CH 04 DAY10통계 함수 — mean / var / std / median / percentile#
+    - CH 05 DAY10난수 — seed 가 재현성을 만든다#
+    - CH 06최종 결론 — numpy 는 분석의 "공용 자료형" 이다#
+- `.blog/day0521_data_preprocessing.html`
+  - title: 데이터를 다듬다 — dtype·결측값·변수 변환, 모델에 넣기 전에
+  - chapters:
+    - 이 글의 흐름 — 하나의 질문에서 갈라져 나온 질문들
+    - CH 01시작 — np.array는 dtype을 혼자 어떻게 정하나#
+    - CH 02dtype을 직접 주면 한글이 잘린다#
+    - CH 03표로 넘어가며 — NaN은 왜 ==로 못 찾나#
+    - CH 04두 갈래 — 버릴까(dropna) 채울까(fillna)#
+    - CH 05예상과 다른 결과 — 평균으로 채웠더니 분산이 줄었다#
+    - CH 06타입 바꾸기 — astype은 무엇을 버리고 아끼나#
+    - CH 07분포 바꾸기 — 쏠린 꼬리를 log로 펴다#
+- `.blog/day0522_outlier_normalization.html`
+  - title: Pandas로 배우는 이상값 탐지와 데이터 정규화
+  - chapters:
+    - 목차
+    - CH 01DataFrame 구조 탐색 · 인덱스·컬럼 조작#
+    - CH 02MultiIndex · stack · unstack#
+    - CH 03auto-mpg 로드 · 기술 통계 탐색#
+    - CH 04이상값 탐지 : IQR vs Z-score#
+    - CH 05이상값 처리 3전략 비교#
+    - CH 06상관행렬 분석 · 다중공선성 탐지#
+    - CH 07MinMax · StandardScaler 정규화#
+- `.blog/day0526_data_visualization.html`
+  - title: Matplotlib·Seaborn으로 배우는 데이터 시각화
+  - chapters:
+    - 목차
+    - CH 01Figure · Axes 기초 구조#
+    - CH 02pyplot vs OOP 인터페이스 비교#
+    - CH 03분포 시각화 : histogram · boxplot#
+    - CH 04관계 시각화 : scatter · correlation heatmap#
+    - CH 05범주형 시각화 : countplot · barplot#
+    - CH 06시계열 DatetimeIndex · line plot#
+    - CH 07CSV 데이터 입출력#
+- `.blog/day0527_ml_intro.html`
+  - title: model.fit() 한 줄은 무엇을 정하는가 — 회귀 직선은 어떻게 정해지나
+  - chapters:
+    - 이 글의 흐름 — 하나의 질문에서 갈라져 나온 질문들
+    - CH 01시작 — fit(X, y)는 무엇을 정하나#
+    - CH 02fit이 정하는 것 — 모든 점을 지나는 직선은 없다#
+    - CH 03그 점수를 믿어도 되나#
+    - CH 04예상과 다른 결과 — 모델을 더 키웠더니 점수가 크게 낮아졌다#
+    - CH 05왜 낮아졌나 — 과대적합이란#
+    - CH 06되살리기 — 계수만 누르는 규제(Ridge)#
+    - CH 07한 발 더 — 규제가 공정하려면(표준화)#
+- `.blog/day0528_classification_logistic.html`
+  - title: 회귀로 분류를 풀 수 있을까 — 로지스틱 회귀가 '회귀'인 이유
+  - chapters:
+    - 이 글의 흐름 — 하나의 단순한 시도에서 갈라져 나온 질문들
+    - CH 01시작 — Day1의 회귀를 0/1 라벨에 그대로 써 보면#
+    - CH 02실패 — 직선의 예측이 [0,1]을 벗어났다#
+    - CH 03메우기 — 출력을 (0,1)로 가두는 시그모이드#
+    - CH 04의문 해소 — '회귀'인데 왜 분류기인가#
+    - CH 05한 발 더 — 클래스가 3개라면, softmax#
+    - CH 06정확도 98.8%, 믿어도 되나#
+    - CH 07두 개의 눈 — 정밀도와 재현율#
+- `.blog/day0529_svm.html`
+  - title: 가장 좋은 분류 경계란 무엇인가 — 마진·서포트 벡터·커널
+  - chapters:
+    - 이 글의 흐름 — '가장 좋은 경계'라는 한 질문에서 갈라진 길
+    - CH 01시작 — 무수히 많은 선 중 무엇이 '가장 좋은' 경계인가#
+    - CH 02마진 최대화 — 왜 '가장 넓은 도로'의 한가운데인가#
+    - CH 03서포트 벡터 — 경계를 정하는 단 몇 개의 점#
+    - CH 04막힘 — 직선으로 안 갈리는 데이터(커널 트릭)#
+    - CH 05한 발 더 — RBF 는 정말 일반적인가(동심원)#
+    - CH 06예상과 다른 결과 — C·gamma 를 키웠더니 경계가 크게 낮아졌다#
+    - CH 07비교 — 로지스틱·KNN·SVM 의 경계 모양#
+- `.blog/day0601_decision_tree.html`
+  - title: if-else 질문은 무엇으로 데이터를 가르는가 — 결정트리의 분할 기준은 무엇인가
+  - chapters:
+    - 이 글의 흐름 — 질문 하나에서 갈라진 질문들
+    - CH 01시작 — 직선으로 못 가르는 데이터를 if-else로 나누면?#
+    - CH 02분할의 기준 — 지니 불순도와 정보이득#
+    - CH 03기준을 바꿔보다 — gini vs entropy#
+    - CH 04예상과 다른 결과 — 깊이를 키워도 test가 더 안 오른다#
+    - CH 05왜 멈췄나 — 과대적합, 잎이 샘플 1개까지#
+    - CH 06되돌리기 — 가지치기로 일반화 회복#
+    - CH 07트리의 강점 — 중요도와 규칙을 그림으로#
+- `.blog/day0602_ensemble.html`
+  - title: 트리 하나가 불안하다면 — 배깅·부스팅·랜덤포레스트로 모으는 법
+  - chapters:
+    - 이 글의 흐름 — '트리 하나'의 불안에서 갈라져 나온 질문들
+    - CH 01시작 — 단일 결정트리는 왜 불안한가#
+    - CH 02배깅 — 모으면 분산이 줄까#
+    - CH 03랜덤포레스트 — 특성까지 무작위로#
+    - CH 04방향 전환 — 편향을 줄이는 부스팅#
+    - CH 05한 자리 비교 — 다섯 모델을 겨루다#
+    - CH 06과대적합은 정말 줄었나#
+    - CH 07덤으로 얻는 것 — 특성 중요도#
+- `.blog/day0604_dimensionality_reduction.html`
+  - title: 특성 64개를 2개로 줄이면 — PCA가 남기는 것
+  - chapters:
+    - 이 글의 흐름 — '특성이 너무 많다'는 불편에서 갈라져 나온 질문들
+    - CH 01시작 — 특성이 많으면 무엇이 문제인가#
+    - CH 02공분산 행렬을 손으로 — XᵀX 가 왜 (d×d) 지도가 되나#
+    - CH 03PCA란 무엇인가 — 분산이 가장 큰 축으로#
+    - CH 04몇 개로? — 차원 수는 뭘 기준으로 정하나#
+    - CH 052D로 줄여 본다 — 군집이 드러날까#
+    - CH 06대가 — 줄이면 무조건 성능이 좋아지나#
+    - CH 07한계 — PCA로 못 펴는 군집, t-SNE 맛보기#
+- `.blog/day0605_unsupervised.html`
+  - title: 정답을 가린 k-means는 무엇을 묶는가 — k=3이 맞는가
+  - chapters:
+    - 이 글의 흐름 — '정답을 가린다'에서 갈라져 나온 질문들
+    - CH 01시작 — 정답 y를 가리면 무엇이 남나#
+    - CH 02k-means의 동작 — 중심·할당·재계산의 반복#
+    - CH 03k는 몇 개? — 엘보우로 후보를 찾다#
+    - CH 04예상과 다른 결과 — 실루엣도 2를 가리켰다#
+    - CH 05정답과 얼마나 맞나 — 군집 vs 품종(ARI)#
+    - CH 06어디서 갈렸나 — 2D 산점도#
+    - CH 07컴퓨터는 첫 중심점을 어떻게 잡나 — random vs k-means++#
+- `.blog/dict.html`
+  - title: 파이썬 dict 완전 분석: 해시 테이블부터 CPython 내부까지
+  - chapters:
+    - CH 01왜 또 자료형이 필요한가 — list 다음에 dict#
+    - CH 02만들기와 키의 자격#
+    - CH 03조회: 엄격한 d[k] 와 안전한 d.get()#
+    - CH 04변경: 한 자리에서 끝내는 갱신·삭제#
+    - CH 05뷰(view)는 “스냅샷”이 아니다#
+    - CH 06순서, 그러나 정렬은 아니다#
+    - CH 07얕은 복사의 함정#
+    - CH 08합치기 연산자와 딕셔너리 컴프리헨션#
+- `.blog/interpreter.html`
+  - title: 파이썬은 정말 “한 줄씩” 실행되는가
+  - chapters:
+    - CH 01“한 줄씩 실행”이라는 말의 의심
+    - CH 02첫 시도 — 디버거 Step Over로 변수 추적
+    - CH 03함정 — 소스를 고쳐도 디버거의 변수가 바뀌지 않는다
+    - CH 04답을 찾아서 — 컴파일 파이프라인(PEP 339)
+    - CH 05흔적 추적 — __pycache__는 왜 생기지 않는가
+    - CH 06dis로 본 바이트코드 — 메모리와 디스크의 분리
+    - CH 07두 번째 검증 — REPL로 “일부만 실행”
+    - CH 08세 번째 검증 — 에러가 있는 프로그램을 일부러 돌린다
+- `.blog/ml_practice01_subway.html`
+  - title: 지하철 이용객 수를 예측하다 — R2 0에서 0.85까지, 무엇을 바꿨나
+  - chapters:
+    - 이 글의 흐름 — 하나의 점수를 끌어올리려던 시도들
+    - CH 01시작 — 무엇을 맞히나, 그리고 데이터가 깨끗하지 않다#
+    - CH 02바닥 — 평균만 찍으면 R2는 정확히 0이다#
+    - CH 03첫 상승 — 날씨를 넣자 0.74, 무엇이 끌어올렸나#
+    - CH 04큰 점프 — '어느 역, 무슨 요일'을 One-Hot으로 살리다#
+    - CH 05천장 — 날짜를 풀고 스케일링해도 0.855에서 멈춘다#
+    - CH 06예상과 다른 결과 — 더 강한 모델로 바꿨더니 점수가 떨어졌다#
+    - CH 07강한 신호도 안 통한다 — 역별 요일 평균과 log1p#
+- `.blog/ml_practice02_titanic.html`
+  - title: 타이타닉, 누가 살아남았나 — 결측치와 인코딩부터 분류기 평가까지
+  - chapters:
+    - 이 글의 흐름 — 데이터 한 장을 열고 쏟아진 질문들
+    - CH 01시작 — 이건 무엇을 맞히는 문제인가#
+    - CH 02빈 칸의 처리 — 같은 결측이라도 다르게#
+    - CH 03EDA — 누가 살아남았나#
+    - CH 04막힘 — 'male'을 그대로 넣었더니#
+    - CH 05하한선 긋기 — baseline#
+    - CH 06분류기 비교 — Logistic vs Tree vs Forest#
+    - CH 07정확도 0.804를 믿어도 되나#
+- `.blog/ml_practice03_svm_knn_nb.html`
+  - title: 문제마다 다른 분류기 — SVM·KNN·나이브베이즈를 직접 확인해 본다
+  - chapters:
+    - 이 글의 흐름 — 하나의 의문에서 갈라져 나온 세 과제
+    - CH 01시작 — 왜 문제마다 분류기가 다른가#
+    - CH 02막힘 — SVM 글자 분류, 스케일을 안 했더니#
+    - CH 03커널 — linear로는 부족했다, 어떤 글자가 헷갈리나#
+    - CH 04응용 — 같은 골격으로 우편번호 조회기를 만들다#
+    - CH 05KNN 유방암도 스케일에서 크게 낮아졌다#
+    - CH 06k 고르기 — 1은 왜 위험하고, 암은 무엇을 봐야 하나#
+    - CH 07나이브베이즈 — 텍스트엔 왜 이 분류기인가#
+- `.blog/ml_practice04_tree.html`
+  - title: 와인 결정트리, 깊이를 키워도 안 오르던 정확도 — 그리고 회귀트리 R2를 음수에서 끌어올리기까지
+  - chapters:
+    - 이 글의 흐름 — 두 트리에서 갈라져 나온 의문들
+    - CH 01시작 — 분류 트리와 회귀 트리는 무엇이 다른가#
+    - CH 02분류 baseline — 정확도 0.963, 그런데 train은 1.0#
+    - CH 03의외 — 깊이를 바꿔도 test가 안 움직인다#
+    - CH 04예상과 다른 결과 — GridSearchCV가 고른 트리가 시험에선 낮았다#
+    - CH 05트리의 해석 — 루트 노드는 어떤 특성으로 가르나#
+    - CH 06하락 — 회귀트리 기본값의 test R2가 음수였다#
+    - CH 07되살리기 — R2를 음수에서 +0.20으로#
+- `.blog/ml_practice05_ann.html`
+  - title: 콘크리트 강도를 신경망으로 예측하고, 트리 앙상블과 맞붙이다
+  - chapters:
+    - 이 글의 흐름 — 하나의 의문에서 갈라져 나온 질문들
+    - CH 01시작 — 트리로 풀던 회귀를 왜 신경망으로#
+    - CH 02신경망의 구조 — 입력·은닉·출력층과 역전파#
+    - CH 03표준화를 안 하면 MLP 성능이 낮다#
+    - CH 04튜닝 — 은닉층 크기·학습률 그리드서치#
+    - CH 05잔차 — 예측은 어디서 빗나가나#
+    - CH 06맞대결 — MLP vs RandomForest vs GradientBoosting#
+    - CH 07왜 트리가 이겼나 — 신경망이 유리한 지점과 비용#
+- `.blog/ml_practice06_pca.html`
+  - title: 차원의 저주에 걸린 KNN을 PCA 주성분 축소로 되살리다
+  - chapters:
+    - 이 글의 흐름 — 하나의 의문에서 갈라져 나온 질문들
+    - CH 01시작 — 고차원에서 KNN은 무엇으로 분류하나#
+    - CH 02표준화 없는 KNN은 단위 큰 특성에 끌려간다#
+    - CH 03차원의 저주 — '가깝다'가 흐려진다#
+    - CH 04PCA 투입 — 주성분 수를 바꿔가며 훑다#
+    - CH 05sweet spot — 절반 차원으로 전체를 넘다#
+    - CH 06어긋남 — 설명분산과 정확도는 같이 가지 않는다#
+    - CH 072D 투영 — 평면에 눌러도 갈라지나#
+- `.blog/ml_practice07_association.html`
+  - title: 장바구니에서 '함께 사는' 품목을 어떻게 찾나 — 연관규칙으로 찾는다
+  - chapters:
+    - 이 글의 흐름 — '함께 산다'를 숫자로 정의하는 길
+    - CH 01시작 — '함께 산다'를 무엇으로 재나#
+    - CH 02품목 빈도 — 단일 품목의 지지도#
+    - CH 03왜 쏠리나 — 품목 분포의 불균등을 재다#
+    - CH 04정의부터 확인한다 — support·confidence·lift 를 손으로#
+    - CH 05직관 — lift>1의 뜻과, 합집합 기호인데 왜 교집합인가#
+    - CH 06규칙 생성 — apriori 와 lift 줄 세우기#
+    - CH 07임계값을 어떻게 정하나#
+- `.blog/mysql_commands.html`
+  - title: MySQL 명령어 체계 정리 — DML · DDL · DCL · TCL 의 4분면
+  - chapters:
+    - CH 01 개요MySQL 4분면 — DML · DDL · DCL · TCL 의 분류 기준#
+    - CH 02 DMLDML SELECT — 6절 실행 파이프라인과 함수#
+    - CH 03 DMLDML 데이터 조작 — INSERT · UPDATE · DELETE · REPLACE#
+    - CH 04 DDLDDL + 제약조건 — CREATE TABLE · ALTER · DROP · 5대 제약#
+    - CH 05 DCL·TCLDCL + TCL — 권한(GRANT/REVOKE)과 트랜잭션(COMMIT/ROLLBACK)#
+    - CH 06최종 정리 — 4분면 통합표와 결론#
+- `.blog/retrospective_m1.html`
+  - title: 한 달의 학습 여정 — Python에서 머신러닝까지
+  - chapters:
+    - 이 글의 흐름 — 한 달을 한 줄 목표로 묶다
+    - MAP한 달의 학습 로드맵#
+    - W1·2생각을 코드로 — Python 기초·OOP#
+    - W3데이터를 저장·질의하다 — MySQL#
+    - W3·4데이터를 모으다 — 웹 크롤링#
+    - W4처음으로 팀으로 만들다 — 단위 프로젝트#
+    - W5데이터를 읽다 — 데이터 분석#
+    - W6데이터로 예측하다 — 머신러닝 입문#
+- `.blog/retrospective_w1w2.html`
+  - title: 1·2주차 학습 회고: python_logic 부터 Streamlit 미니 프로젝트까지
+  - chapters:
+    - CH 01 1주차python_logic — 변수를 선언하지 않는 언어, 그 첫 위화감#
+    - CH 02 1주차python_collection — list 메서드가 왜 이렇게 많은가#
+    - CH 03 1주차python_fileio — 예외가 나도 파일이 닫히는 이유#
+    - CH 04 2주차python_oop — class_oop4.py 한 줄의 TypeError#
+    - CH 05 2주차python_module / python_package — 모듈은 어디서 찾아오는가#
+    - CH 06 2주차python_gui / streamlit — 매 입력마다 스크립트가 다시 돈다고?#
+    - CH 072주간의 답 — 출발 의문으로 돌아오기#
+    - CH 08비판적 자기 점검 — 검증 기록 · 시행착오 · 개선점#
+- `.blog/retrospective_w3.html`
+  - title: 3주차 학습 회고: MySQL · 정적 크롤링 · 동적 크롤링 — "데이터를 어떻게 안전하게 저장하고 꺼내며 외부에서 가져오는가"
+  - chapters:
+    - CH 01한 줄 의문 — "데이터를 어떻게 안전하게 저장하고 꺼내며 외부에서 가져오는가"
+    - CH 02사슬 ①·② — DBMS 도입(0511) 과 제약조건(0512): '믿을 수 있는 행' 이란 무엇인가
+    - CH 03사슬 ③ — SELECT 6 절(0513): '꺼내는 일' 이 곧 '파이프라인 설계'
+    - CH 04사슬 ④·⑤ — 정적/동적 크롤링(0514, 0515): '들어오는 길' 의 두 가지 시점
+    - CH 05잘한 점 / 부족한 점 / 다음 주 계획
+    - CH 06최종 결론 — 5 일이 "한 시스템의 다섯 단계" 로 보였다
+- `.blog/retrospective_w4.html`
+  - title: 0516-0519 회고: 카데이터 팀 “물로간다” — 수소차 등록 현황 · 충전소 · FAQ 통합 대시보드
+  - chapters:
+    - 목차
+    - CH 01팀 프로젝트 시작 & 팀 구성#
+    - CH 02처음 한 일: ERD부터 시작한 이유#
+    - CH 03ERD 완성과 폴더·파일 명명 규칙#
+    - CH 04프로토타입: Streamlit + MySQL + Playwright 뼈대#
+    - CH 05일정·회의·협업 도구 (스프레드시트 · 깃 브런치)#
+    - CH 06디버깅 11건 + 마스터 직접 push 사건#
+    - CH 07발표 준비와 마지막 날의 위태로움#
+- `.blog/retrospective_w4_2.html`
+  - title: 0520-0522 회고: 데이터 분석 도구 — NumPy·Pandas 전처리 3일
+  - chapters:
+    - 목차
+    - CH 015주차 전환: 단위 프로젝트 → 데이터 분석#
+    - CH 020520NumPy 분석 도구와 라이브러리 생태계#
+    - CH 030521변수 변환과 결측값 처리#
+    - CH 040522이상값 탐지와 데이터 정규화#
+    - CH 053일의 연결 — 전처리 파이프라인으로 통합#
+    - CH 06회고 — 잘한 점 / 부족했던 점 / 다음 한 수#
+- `.blog/retrospective_w5.html`
+  - title: 데이터를 '읽는' 한 주 — numpy에서 시각화까지, 5주차 회고
+  - chapters:
+    - 이 글의 흐름 — '데이터를 읽는다'가 한 칸씩 분명해지는 길
+    - CH 01한 주의 목표 & numpy — 분석은 왜 ndarray에서 시작했나#
+    - CH 02pandas 전처리 — 비어 있는 칸을 어떻게 메울 것인가#
+    - CH 03이상치, 어디까지가 '튀는 값'인가#
+    - CH 04정규화 — 단위가 다른 변수를 같은 자에 세우기#
+    - CH 05시각화 — 숫자를 '눈으로 읽기', 차트는 무엇으로 고르나#
+    - CH 06연결 — 흩어진 도구들이 하나의 전처리 파이프라인으로#
+    - CH 07주차 종합 회고 — 목표 회수#
+- `.blog/retrospective_w6.html`
+  - title: 머신러닝 한 주의 지도 — 회귀에서 비지도학습까지
+  - chapters:
+    - 이 글의 흐름 — 7일을 하나의 지도로
+    - Day1회귀와 데이터 관리 — fit이 정하는 것#
+    - Day2분류와 로지스틱 회귀#
+    - Day3SVM — 좋은 경계와 커널#
+    - Day4결정트리·회귀트리#
+    - Day5앙상블 — 약한 모델을 모으면#
+    - Day6차원 축소 — 공분산 행렬이라는 '변수들의 지도'#
+    - Day7비지도학습 — 정답 없이 구조 찾기, lift는 왜 1보다 큰가#
+
+## Study Tests
+
+- `.study/test/2-dict`: logs 11, charts 0
+  - runners: `.study/test/2-dict/dict_runner.py`
+- `.study/test/3-abstraction`: logs 9, charts 0
+  - runners: `.study/test/3-abstraction/abstraction_runner.py`
+- `.study/test/clf_logistic`: logs 6, charts 4
+  - runners: `.study/test/clf_logistic/clf_logistic_runner.py`, `.study/test/clf_logistic/build_day0528_html.py`
+- `.study/test/day0521`: logs 5, charts 0
+- `.study/test/day0522`: logs 5, charts 0
+- `.study/test/day0523`: logs 6, charts 0
+- `.study/test/decision_tree`: logs 8, charts 5
+  - runners: `.study/test/decision_tree/decision_tree_runner.py`, `.study/test/decision_tree/build_day0601_html.py`
+- `.study/test/ensemble`: logs 6, charts 4
+  - runners: `.study/test/ensemble/ensemble_runner.py`, `.study/test/ensemble/build_day0602_html.py`
+- `.study/test/ml_intro`: logs 8, charts 4
+  - runners: `.study/test/ml_intro/ml_intro_runner.py`, `.study/test/ml_intro/build_day0527_html.py`
+- `.study/test/ml_practice03`: logs 8, charts 5
+  - runners: `.study/test/ml_practice03/ml_practice03_runner.py`, `.study/test/ml_practice03/build_practice03_html.py`
+- `.study/test/pca_intro`: logs 8, charts 6
+  - runners: `.study/test/pca_intro/pca_intro_runner.py`, `.study/test/pca_intro/build_day0604_html.py`
+- `.study/test/practice04_tree`: logs 8, charts 4
+  - runners: `.study/test/practice04_tree/practice04_runner.py`, `.study/test/practice04_tree/build_practice04_html.py`
+- `.study/test/practice05_ann`: logs 5, charts 4
+  - runners: `.study/test/practice05_ann/practice05_runner.py`, `.study/test/practice05_ann/build_practice05_html.py`
+- `.study/test/practice06_pca`: logs 11, charts 4
+  - runners: `.study/test/practice06_pca/practice06_runner.py`, `.study/test/practice06_pca/build_practice06_html.py`
+- `.study/test/practice07_assoc`: logs 9, charts 5
+  - runners: `.study/test/practice07_assoc/practice07_runner.py`, `.study/test/practice07_assoc/build_practice07_html.py`
+- `.study/test/preprocessing`: logs 6, charts 2
+  - runners: `.study/test/preprocessing/preprocessing_runner.py`, `.study/test/preprocessing/build_day0521_html.py`
+- `.study/test/retro_m1`: logs 0, charts 0
+  - runners: `.study/test/retro_m1/build_retro_m1.py`
+- `.study/test/retro_w6`: logs 0, charts 0
+  - runners: `.study/test/retro_w6/build_retro_w6.py`
+- `.study/test/subway_reg`: logs 8, charts 3
+  - runners: `.study/test/subway_reg/subway_reg_runner.py`, `.study/test/subway_reg/build_subway_html.py`
+- `.study/test/svm_intro`: logs 6, charts 4
+  - runners: `.study/test/svm_intro/svm_intro_runner.py`, `.study/test/svm_intro/build_day0529_html.py`
+- `.study/test/titanic_clf`: logs 8, charts 3
+  - runners: `.study/test/titanic_clf/titanic_clf_runner.py`, `.study/test/titanic_clf/build_titanic_html.py`
+- `.study/test/unsupervised`: logs 10, charts 6
+  - runners: `.study/test/unsupervised/unsupervised_runner.py`, `.study/test/unsupervised/build_day0605_html.py`
+
+## PDFs
+
+- `.study/pdf/02_파이썬언어의기본.pdf` (1.1 MB)
+- `.study/pdf/03_수치형자료형과문자형자료형의특징.pdf` (1.0 MB)
+- `.study/pdf/04_리스트_튜플_사전_집합자료형의특징.pdf` (0.9 MB)
+- `.study/pdf/05_리스트_튜플_사전_자료형의활용.pdf` (0.9 MB)
+- `.study/pdf/07_파이썬의조건문.pdf` (0.6 MB)
+- `.study/pdf/08_파이썬의반복문.pdf` (0.7 MB)
+- `.study/pdf/09_파이썬파일입출력.pdf` (0.7 MB)
+- `.study/pdf/10_파이썬의함수.pdf` (0.5 MB)
+- `.study/pdf/11_파이썬함수의활용과람다함수.pdf` (0.6 MB)
+- `.study/pdf/12_파이썬의모듈.pdf` (1.2 MB)
+- `.study/pdf/13_파이썬외부모듈의활용.pdf` (1.1 MB)
+- `.study/pdf/14_파이썬클래스.pdf` (1.1 MB)
+- `.study/pdf/15_파이썬클래스의활용.pdf` (1.5 MB)
+- `.study/pdf/16_파이썬의예외처리.pdf` (1.5 MB)
+- `.study/pdf/1_데이터분석_라이브러리.pdf` (3.2 MB)
+- `.study/pdf/1_파이썬_개발환경_구축_작성방법.pdf` (1.0 MB)
+- `.study/pdf/4_데이터시각화.pdf` (2.0 MB)
+- `.study/pdf/6_파이썬_Streamlit_GUI.pdf` (4.7 MB)
+- `.study/pdf/MYSQL_고급.pdf` (2.1 MB)
+- `.study/pdf/MYSQL_기본.pdf` (3.3 MB)
+- `.study/pdf/MySQL_서버구축및운영관리.pdf` (4.0 MB)
+- `.study/pdf/데이터분석_통계.pdf` (12.3 MB)
+- `.study/pdf/데이터전처리.pdf` (1.7 MB)
+- `.study/pdf/머신러닝_결정트리_회귀트리.pdf` (2.5 MB)
+- `.study/pdf/머신러닝_비지도학습알고리즘.pdf` (1.2 MB)
+- `.study/pdf/머신러닝_서포트백터머신구조.pdf` (2.4 MB)
+- `.study/pdf/머신러닝_알고리즘_앙상블.pdf` (1.3 MB)
+- `.study/pdf/머신러닝_학습방법_데이터관리.pdf` (2.8 MB)
+- `.study/pdf/머신러닝_회귀모델_분류모델.pdf` (1.5 MB)
+- `.study/pdf/웹크롤러만들기.pdf` (7.5 MB)
+- `.study/pdf/웹크롤링이해와실습.pdf` (24.1 MB)
+
+## Root Project Folders
+
+- `python_assingment1`: 5 files
+- `python_collection`: 6 files
+- `python_fileio`: 16 files
+- `python_gui`: 11 files
+- `python_logic`: 877 files
+- `python_module`: 2 files
+- `python_oop`: 7 files
+- `python_package`: 11 files
+- `streamlit_login_csv_project`: 5 files
+- `test_numpy`: 11 files
+- `test_pandas`: 17 files
+
+## Source Files
+
+- `about.txt`: 날짜별 학습/프로젝트 흐름
+- `.study/HISTORY.md`: 작업 이력
+- `.study/GUIDE.txt`: 블로그 작성 규칙
+- `.study/notes/`: 원천 노트

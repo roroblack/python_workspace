@@ -1,0 +1,745 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python Bootcamp Field Notes: Collection, File I/O, OOP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dee8;
+      --paper: #ffffff;
+      --surface: #ffffff;
+      --accent: #52A97E;
+      --accent-2: #E8875A;
+      --accent-3: #5B9BD5;
+      --accent-4: #9178C4;
+      --accent-soft: #EBF7F1;
+      --warn-soft: #FFF1E8;
+      --code-bg: #111827;
+      --code-ink: #e5e7eb;
+      --shadow: none;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Nanum Gothic Coding", "Segoe UI", Arial, sans-serif;
+      line-height: 1.72;
+    }
+
+    a {
+      color: var(--accent-3);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 44px;
+      padding: 64px 0 44px;
+      align-items: end;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      font-size: 0.82rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.25rem, 5vw, 4.75rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+      max-width: 900px;
+    }
+
+    .subtitle {
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+      max-width: 820px;
+    }
+
+    .meta-panel {
+      border-left: 4px solid var(--accent);
+      padding: 16px 0 16px 20px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .meta-panel strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    nav {
+      background: #f4f7f9;
+      border-bottom: 1px solid var(--line);
+    }
+
+    nav .page {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      padding: 14px 0;
+      font-size: 0.94rem;
+    }
+
+    nav a {
+      color: #344054;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+    }
+
+    nav a:hover {
+      border-color: var(--accent);
+    }
+
+    main {
+      padding: 44px 0 72px;
+    }
+
+    section {
+      margin: 0 0 56px;
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: 1.8rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 30px 0 10px;
+      font-size: 1.22rem;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    .lead {
+      font-size: 1.08rem;
+      color: #344054;
+    }
+
+    .abstract {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: none;
+      padding: 28px;
+      border-radius: 0;
+    }
+
+    .keywords {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .keywords span {
+      background: var(--accent-soft);
+      color: #115e59;
+      border: 1px solid #b7ddd7;
+      border-radius: 2px;
+      padding: 4px 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 18px;
+      border-top: 2px solid var(--ink);
+      padding-top: 16px;
+    }
+
+    .date {
+      color: var(--accent-2);
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .source-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 0;
+      padding: 18px;
+      min-height: 164px;
+    }
+
+    .source-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .question-list {
+      counter-reset: question;
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .question {
+      position: relative;
+      background: var(--surface);
+      border-left: 4px solid var(--accent-3);
+      padding: 16px 18px 16px 52px;
+      border-radius: 0;
+      border-top: 2px solid var(--ink);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .question::before {
+      counter-increment: question;
+      content: "Q" counter(question);
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      color: var(--accent-3);
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    .finding {
+      border-top: 2px solid var(--ink);
+      padding-top: 24px;
+      margin-top: 24px;
+    }
+
+    .evidence {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    .note,
+    .doc-note {
+      border-radius: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .doc-note {
+      background: #EBF4FF;
+      border-color: #c7dbf7;
+    }
+
+    .note strong,
+    .doc-note strong {
+      color: var(--accent-2);
+    }
+
+    pre {
+      margin: 14px 0 0;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 0;
+      padding: 18px;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      tab-size: 4;
+    }
+
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+
+    :not(pre) > code {
+      background: #EEF0F6;
+      border: 1px solid #d8e0ea;
+      border-radius: 0;
+      padding: 1px 5px;
+      color: #1f2933;
+      font-size: 0.92em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      background: #EEF0F5;
+      color: #1f2933;
+      font-weight: 800;
+    }
+
+    .result-block {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    .warning {
+      background: var(--warn-soft);
+      border: 1px solid #f4c790;
+      border-radius: 0;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .references ol {
+      padding-left: 22px;
+    }
+
+    .references li {
+      margin-bottom: 10px;
+    }
+
+    footer {
+      border-top: 2px solid var(--ink);
+      color: var(--muted);
+      padding: 24px 0 42px;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero,
+      .evidence,
+      .source-grid,
+      .timeline-item {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 42px;
+      }
+
+      .page {
+        width: min(100% - 28px, 1120px);
+      }
+
+      .abstract,
+      .source-card,
+      .question,
+      .note,
+      .doc-note,
+      .result-block,
+      .warning {
+        padding: 16px;
+      }
+
+      .question {
+        padding-left: 46px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      header,
+      nav,
+      .abstract,
+      .source-card,
+      .question,
+      .note,
+      .doc-note,
+      .result-block,
+      .warning {
+        box-shadow: none;
+      }
+
+      nav {
+        display: none;
+      }
+
+      a {
+        color: inherit;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="page hero">
+      <div>
+        <p class="eyebrow">Bootcamp Research Article</p>
+        <h1>파이썬 기초 실습에서 객체 모델까지: 컬렉션, 파일 입출력, OOP의 연결 구조</h1>
+        <p class="subtitle">수업 중 생긴 질문 노트와 프로젝트 코드를 한 편의 기술 블로그 논문처럼 재구성한 산출물. 핵심은 “문법을 외웠는가”가 아니라, 파이썬 런타임이 데이터를 어떻게 객체로 다루고, 파일과 클래스가 그 모델 위에서 어떻게 작동하는가다.</p>
+      </div>
+      <aside class="meta-panel" aria-label="문서 메타데이터">
+        <strong>작성일</strong>2026-05-07
+        <strong>근거 파일</strong>date.txt, notes, python_collection, python_fileio, python_oop
+        <strong>검증 환경</strong>Python 3.13.5, Windows PowerShell
+      </aside>
+    </div>
+  </header>
+
+  <nav>
+    <div class="page">
+      <a href="#abstract">초록</a>
+      <a href="#timeline">학습 흐름</a>
+      <a href="#questions">연구 질문</a>
+      <a href="#findings">분석 결과</a>
+      <a href="#execution">작동 결과</a>
+      <a href="#references">레퍼런스</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <section id="abstract" class="abstract">
+      <h2>초록</h2>
+      <p class="lead">이 프로젝트는 부트캠프에서 진행한 파이썬 학습 기록이다. 날짜 파일은 학습 흐름을, 프로젝트 폴더는 실행 가능한 코드 근거를, 노트 폴더는 사용자가 실제로 품었던 의문을 담고 있다. 본문은 이 세 자료를 연결해 “파이썬 리스트는 왜 C 배열과 다르게 느껴지는가”, “텍스트 파일 모드와 바이너리 모드는 실제로 무엇이 다른가”, “객체지향에서 추상화와 특수 메서드는 코드 실행에서 어떤 효과를 내는가”를 확인한다.</p>
+      <p>공식 문서 기준으로 보면 리스트와 딕셔너리는 가변 객체이고 튜플은 불변 시퀀스이며, 파일 객체는 텍스트 I/O와 바이너리 I/O로 분리된다. 또한 클래스 인스턴스는 이름 공간과 어트리뷰트 조회 규칙을 통해 상태와 행동을 결합하고, `__add__`, `__len__`, `__getitem__` 같은 특수 메서드로 연산자와 내장 함수의 동작을 흉내 낼 수 있다.</p>
+      <div class="keywords">
+        <span>list</span><span>tuple</span><span>dict</span><span>file I/O</span><span>pickle</span><span>OOP</span><span>exception</span><span>data model</span>
+      </div>
+    </section>
+
+    <section id="timeline">
+      <h2>학습 흐름</h2>
+      <p>`date.txt`는 학습 기록의 목차 역할을 한다. 날짜별 폴더를 따라가면 자료구조에서 파일 지속성, 다시 객체 모델로 올라가는 흐름이 보인다.</p>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="date">~ 0430</div>
+          <div>
+            <strong>python_collection</strong>
+            <p>리스트와 튜플의 생성, 인덱싱, 슬라이싱, 가변성, 전역 변수, 모듈 import, 실습 성적 리스트를 다룬다. 노트의 핵심 질문은 “C 배열과 파이썬 리스트의 차이”, “음수 인덱싱은 길이를 매번 계산하는가”, “여러 요소를 한 번에 출력하는 방식”이었다.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="date">0504</div>
+          <div>
+            <strong>python_fileio</strong>
+            <p>텍스트 파일과 바이너리 파일, `open()` 모드, `read`, `readline`, `readlines`, `writelines`, `pickle`, `os.path`, `while` 메뉴 루프, 딕셔너리 기반 직원 관리 실습이 연결된다. 노트의 핵심 질문은 “`w`와 `wb`가 정확히 무엇이 다른가”, “파일 객체 `f`에는 어떤 값이 들어가나”였다.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="date">0506</div>
+          <div>
+            <strong>python_oop</strong>
+            <p>클래스, 인스턴스, 생성자, 소멸자, 캡슐화 관례, 정적 메서드, 연산자 오버로딩, 상속, 다형성, 예외 처리를 확인한다. 노트의 핵심 질문은 “추상화란 무엇인가”, “소멸자와 `with`는 언제 쓰는가”, “이름 맹글링과 static method는 어떤 의미인가”였다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <h2>분석 대상</h2>
+      <div class="source-grid">
+        <article class="source-card">
+          <strong>코드</strong>
+          <p>`python_collection`은 리스트/튜플, `python_fileio`는 파일과 딕셔너리, `python_oop`는 클래스와 예외를 다룬다. 각 파일의 주석은 수업 내용의 실시간 해설 역할을 한다.</p>
+        </article>
+        <article class="source-card">
+          <strong>노트</strong>
+          <p>`notes` 폴더에는 Gemini로 리서치한 질문이 들어 있다. 단순 복붙 자료가 아니라, 수업 중 이해가 걸린 지점을 기록한 연구 질문 모음으로 읽는 것이 적절하다.</p>
+        </article>
+        <article class="source-card">
+          <strong>검증</strong>
+          <p>본문의 실행 결과는 Python 3.13.5에서 대표 동작을 다시 실행해 수집했다. 입력이 필요한 메뉴형 함수는 `input()`을 모의했고, 파일 저장은 임시 디렉터리에서 수행했다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="questions">
+      <h2>연구 질문</h2>
+      <p>노트에서 반복적으로 드러난 질문을 코드와 공식 문서로 답할 수 있는 형태로 정리하면 다음과 같다.</p>
+      <div class="question-list">
+        <div class="question"><strong>C 배열과 파이썬 리스트의 차이는 무엇인가?</strong><br />크기 조절, 타입 혼합, 슬라이싱, 음수 인덱싱, 중첩 리스트의 관점에서 비교할 수 있다.</div>
+        <div class="question"><strong>음수 인덱싱은 리스트 길이를 어떻게 아는가?</strong><br />파이썬의 내장 시퀀스는 길이를 알고 있으며, `a[-2]`는 길이 `n` 기준의 `a[n-2]`처럼 해석된다.</div>
+        <div class="question"><strong>`w`와 `wb`는 둘 다 쓰기인데 왜 다르게 동작하는가?</strong><br />텍스트 모드는 `str`과 인코딩/개행 변환을 다루고, 바이너리 모드는 `bytes`를 있는 그대로 다룬다.</div>
+        <div class="question"><strong>`pickle`은 왜 `wb`와 `rb`를 요구하는가?</strong><br />피클은 파이썬 객체 계층을 바이트 스트림으로 직렬화하므로 바이너리 파일 객체가 필요하다.</div>
+        <div class="question"><strong>OOP의 추상화는 코드에서 무엇으로 보이는가?</strong><br />호출자는 같은 메서드 이름을 사용하고, 객체 내부의 구체 구현은 클래스가 숨기거나 대체한다.</div>
+        <div class="question"><strong>소멸자보다 `with`가 자주 권장되는 이유는 무엇인가?</strong><br />파일 같은 외부 자원은 가비지 컬렉션 시점에 기대기보다 컨텍스트 매니저로 즉시 닫는 편이 명확하다.</div>
+      </div>
+    </section>
+
+    <section id="findings">
+      <h2>분석 결과</h2>
+
+      <article class="finding">
+        <h3>1. 리스트는 “동적이고 가변적인 시퀀스 객체”다</h3>
+        <p>`list_sample.py`와 `list_sample2.py`는 리스트가 생성 후에도 요소를 교체하고, `append`, `insert`, `remove`, `pop`, `extend`, `reverse`, `sort`, `count` 같은 메서드로 내부 상태를 바꿀 수 있음을 보여준다. 공식 문서의 데이터 모델은 리스트를 가변 시퀀스로 설명하며, 시퀀스는 `len()`으로 길이를 갖고 인덱싱과 슬라이싱을 지원한다.</p>
+        <div class="evidence">
+          <div class="note">
+            <strong>노트의 질문</strong>
+            <p>“C 배열과 파이썬 리스트는 인덱싱, 슬라이싱, 동적 배열, 다차원 배열에서 정확히 뭐가 다른가?”</p>
+          </div>
+          <div class="doc-note">
+            <strong>공식 문서 근거</strong>
+            <p>파이썬 데이터 모델은 리스트를 “임의의 파이썬 객체”를 담는 가변 시퀀스로 설명한다. 또한 내장 시퀀스는 음수 첨자를 길이에 더해 해석할 수 있다고 설명한다.</p>
+          </div>
+        </div>
+        <pre><code>lst = [1, 2, 3, "python", 3.45, [11, 22, 33], True, False]
+print(lst[-2:])      # [True, False]
+print(lst[1:7])      # [2, 3, 'python', 3.45, [11, 22, 33], True]
+lst[0] = 77
+lst[2] = [1.2, 2.3, 3.4]</code></pre>
+        <p>따라서 C 배열과 달리 파이썬 리스트는 “메모리 크기와 타입을 개발자가 직접 관리하는 배열”이 아니라, 객체 참조들을 담고 길이를 관리하는 런타임 객체로 보는 편이 정확하다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>2. 튜플은 리스트와 닮았지만 불변성으로 목적이 달라진다</h3>
+        <p>`tuple_sample.py`는 튜플도 인덱싱과 슬라이싱을 지원하지만 요소 대입은 불가능하다는 점을 확인한다. 특히 `(1)`은 괄호로 묶은 정수이고, `(1,)` 또는 `1,`이 1개짜리 튜플이라는 점은 노트로 남길 만한 함정이다.</p>
+        <pre><code>print(type((1)).__name__)   # int
+print(type((1,)).__name__)  # tuple
+a, b = (4, 7)
+print(a, b)                 # 4 7</code></pre>
+        <p>공식 문서는 튜플을 불변 시퀀스로 분류한다. 다만 튜플 안에 리스트 같은 가변 객체를 담을 수는 있으므로 “튜플 안의 참조 묶음은 고정되지만, 참조된 객체 자체가 항상 불변인 것은 아니다”라고 이해하는 것이 안전하다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>3. 딕셔너리는 인덱스가 아니라 키로 접근하는 매핑이다</h3>
+        <p>`dict_sample.py`와 직원 관리 실습은 딕셔너리를 사번과 직원 정보의 관계로 사용한다. 키는 조회와 삭제의 기준이 되고, 값은 리스트처럼 복합 자료형도 가능하다. 공식 문서는 딕셔너리를 가변 매핑으로 설명하며, 존재하지 않는 키를 `d[key]`로 조회하면 `KeyError`가 발생하고 `get()`은 기본값을 줄 수 있다고 설명한다.</p>
+        <table>
+          <thead>
+            <tr><th>작업</th><th>코드 형태</th><th>실습 의미</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>추가/변경</td><td><code>emp_list[empid] = info</code></td><td>사번을 기준으로 직원 정보 저장</td></tr>
+            <tr><td>삭제</td><td><code>del emp_list[empid]</code></td><td>해당 사번의 항목 제거</td></tr>
+            <tr><td>순회</td><td><code>for key, value in emp_list.items()</code></td><td>전체 직원 정보 출력</td></tr>
+            <tr><td>안전 조회</td><td><code>dict.get(key, default)</code></td><td>없는 키에서 예외 대신 기본값 사용</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="finding">
+        <h3>4. `w`와 `wb`의 차이는 문자열과 바이트의 차이다</h3>
+        <p>`fileio_module.py`는 텍스트 파일을 `open("testa.txt", "wt", encoding="utf-8")`로 열어 `str`을 기록한다. 반면 `fileio_module2.py`와 직원 저장 실습은 `pickle.dump()`를 `wb` 파일 객체에 사용한다. 공식 문서의 `open()` 설명은 텍스트 모드가 `str`을 반환하고 인코딩을 적용하는 반면, 바이너리 모드는 디코딩 없이 `bytes` 객체를 다룬다고 구분한다.</p>
+        <div class="evidence">
+          <div class="note">
+            <strong>노트의 질문</strong>
+            <p>“`wb`랑 `w` 차이. 정확히 `b`로 열어서 `w`로 연 것처럼 작업도 되지 않아?”</p>
+          </div>
+          <div class="doc-note">
+            <strong>정리</strong>
+            <p>`w`는 텍스트 쓰기다. 한글 같은 문자는 지정한 인코딩으로 바이트화된다. `wb`는 바이너리 쓰기다. 이미 바이트인 데이터나 피클 스트림을 직접 기록한다.</p>
+          </div>
+        </div>
+        <pre><code>with open("sample.txt", "w", encoding="utf-8") as f:
+    f.write("안녕\n")
+
+with open("employees.dat", "wb") as f:
+    pickle.dump({"200": ["홍길순", "개발부", 3800000]}, f)</code></pre>
+        <p>즉 `wb`에서 텍스트를 저장하고 싶다면 `"안녕".encode("utf-8")`처럼 직접 바이트로 바꿔야 한다. 이 경우 개행 변환과 인코딩 처리를 개발자가 책임지는 셈이다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>5. `with`는 자원 정리를 “언젠가”가 아니라 “지금”으로 만든다</h3>
+        <p>OOP 노트에는 “메모리 관리도 못하는데 소멸자 만들고 호출할 필요가 있나, 그냥 `with`를 쓰면 되는 것 아닌가”라는 질문이 있었다. 공식 문서의 데이터 모델과 예외 처리 튜토리얼은 열린 파일 같은 외부 자원은 명시적으로 닫는 것이 권장되며, `try/finally`와 `with`가 이를 편하게 만든다고 설명한다.</p>
+        <pre><code>with open("sample.txt", "r", encoding="utf-8") as f:
+    content = f.read()
+# 이 블록을 벗어나면 예외 여부와 관계없이 파일이 닫힌다.</code></pre>
+        <p>`__del__`은 객체가 수거될 때 호출될 수 있지만, 그 시점에 기대는 설계는 파일/네트워크 연결 같은 자원 관리에 불리하다. 실습 코드의 `f.close()`는 학습 단계에서는 명시적이지만, 실제 코드에서는 `with open(...) as f:`가 더 견고한 기본형이다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>6. 클래스는 이름 공간과 어트리뷰트 조회를 조직화한다</h3>
+        <p>`class_sample.py`는 빈 클래스도 인스턴스를 만들 수 있고, 파이썬에서는 실행 중 인스턴스에 새 어트리뷰트를 붙일 수 있음을 보여준다. 공식 클래스 튜토리얼은 인스턴스 데이터 어트리뷰트가 선언 없이 처음 대입될 때 생긴다고 설명한다.</p>
+        <pre><code>class SClass:
+    pass
+
+ref1 = SClass()
+ref2 = SClass()
+ref1.score = 100
+# ref2.score는 아직 존재하지 않는다.</code></pre>
+        <p>`class_oop.py`의 `__num`은 외부 접근을 강제적으로 완전히 막는 접근 제한자가 아니라 이름 맹글링을 통한 충돌 회피 장치에 가깝다. 파이썬의 비공개성은 언어 차원의 절대 격리보다 관례와 API 설계에 더 기대는 편이다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>7. 추상화와 다형성은 “같은 호출, 다른 구현”으로 관찰된다</h3>
+        <p>OOP 노트의 추상화 질문은 `class_oop3.py`에서 바로 확인된다. `Dog`, `Cat`, `Animal`은 모두 `speak()`를 갖지만 객체 타입에 따라 다른 메시지를 낸다. 호출자는 `animal.speak()`만 알고, 내부 구현은 각 클래스가 책임진다.</p>
+        <pre><code>for animal in [Dog(), Cat(), Animal()]:
+    animal.speak()</code></pre>
+        <p>이 구조가 “무엇을 하는지”와 “어떻게 하는지”를 분리한다. 사용자는 공통 인터페이스를 호출하고, 클래스는 자신에게 맞는 행동을 제공한다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>8. 특수 메서드는 파이썬 문법을 내 클래스에 연결한다</h3>
+        <p>`class_oop2.py`는 `__add__`, `__sub__`, `__mul__`, `__truediv__`, `__len__`, `__contains__`, `__getitem__`, `__str__`를 통해 객체가 연산자와 내장 함수에 반응하도록 만든다. 공식 데이터 모델은 이런 이름들을 “특수 메서드”라고 부르고, 클래스가 산술 연산, 서브스크립팅, 컨테이너 동작을 흉내 낼 수 있다고 설명한다.</p>
+        <pre><code>class OOP:
+    def __init__(self, num):
+        self.__num = num
+    def __add__(self, value):
+        return self.__num + value
+
+ref = OOP(100)
+print(ref + 30)  # 130</code></pre>
+        <p>따라서 연산자 오버로딩은 “문법 장난”이 아니라, 사용자 정의 객체를 파이썬의 기존 프로토콜에 참여시키는 방식이다.</p>
+      </article>
+
+      <article class="finding">
+        <h3>9. 예외 처리는 입력 오류를 프로그램 흐름으로 복구한다</h3>
+        <p>`except_sample.py`는 `ValueError`, `IndexError`, `KeyError` 같은 런타임 예외를 다룬다. 공식 예외 튜토리얼은 문법 오류와 실행 중 예외를 구분하고, `try`, `except`, `else`, `finally`, 사용자 정의 예외를 통해 예측 가능한 실패를 처리한다고 설명한다.</p>
+        <pre><code>try:
+    num = int(input("정수를 입력하세요 : "))
+except ValueError:
+    print("정수 숫자만 입력해야 합니다.")
+finally:
+    print("예외 처리 구문 테스트 종료")</code></pre>
+        <p>부트캠프 과제 맥락에서는 점수 범위 오류, 삭제 인덱스 오류, 직원 파일 미존재 같은 문제를 예외로 모델링할 수 있다. 이렇게 하면 입력 검증, 에러 메시지, 정상 루프 복귀를 한 구조 안에서 다룰 수 있다.</p>
+      </article>
+    </section>
+
+    <section id="execution">
+      <h2>작동 결과</h2>
+      <p>아래 결과는 대표 기능을 Python 3.13.5에서 실행해 확인한 값이다. 파일 입출력은 임시 폴더에서 수행했기 때문에 프로젝트 폴더의 원본 파일은 변경하지 않았다.</p>
+
+      <div class="result-block">
+        <h3>컬렉션: 리스트와 튜플</h3>
+        <pre><code>## collection: list and tuple
+last two: [True, False]
+slice 1..6: [2, 3, 'python', 3.45, [11, 22, 33], True]
+mutated: [77, 2, [1.2, 2.3, 3.4], 'python']
+tuple singleton types: int tuple
+unpacked: 4 7</code></pre>
+      </div>
+
+      <div class="result-block">
+        <h3>파일 입출력: 텍스트, 바이너리, 피클</h3>
+        <pre><code>## fileio: text, binary, pickle
+text file object: TextIOWrapper w
+text content: '안녕\nappend\n'
+pickle restored: {'200': ['홍길순', '개발부', 3800000]} dict</code></pre>
+      </div>
+
+      <div class="result-block">
+        <h3>while 메뉴 실습: 성적 관리</h3>
+        <pre><code>0 : [12, '홍길동', 98]
+1 : [15, '김유신', 87]
+2 : [23, '황지니', 45]
+새로운 학생정보가 추가되었습니다.
+0 : [12, '홍길동', 98]
+1 : [15, '김유신', 87]
+2 : [23, '황지니', 45]
+3 : [24, '이순신', 100]
+1번 위치의 아이템이 제거되었습니다.
+현재 저장된 아이템의 갯수는 3개 입니다.
+0 : [12, '홍길동', 98]
+1 : [23, '황지니', 45]
+2 : [24, '이순신', 100]
+성적관리 프로그램이 종료되었습니다.</code></pre>
+      </div>
+
+      <div class="result-block">
+        <h3>딕셔너리와 피클 지속성: 직원 관리</h3>
+        <pre><code>## employee dictionary persisted
+200 : ['홍길순', '851225-1234567', 'hong77@test.com', '010-1234-5678', 3800000, '대리', '개발부']
+200 : ['홍길순', '851225-1234567', 'hong77@test.com', '010-1234-5678', 3800000, '대리', '개발부']</code></pre>
+      </div>
+
+      <div class="result-block">
+        <h3>OOP: 연산자 오버로딩과 다형성</h3>
+        <pre><code>## oop: operator overloading and polymorphism
+ref + 30: 130
+ref * 3: 300
+강아지가 멍멍 짖습니다.
+고양이가 야옹 웁니다.
+동물이 소리를 냅니다.</code></pre>
+      </div>
+
+      <div class="result-block">
+        <h3>예외 처리</h3>
+        <pre><code>## exceptions: try except finally
+handled: ValueError
+finally executed</code></pre>
+      </div>
+    </section>
+
+    <section id="discussion">
+      <h2>논의</h2>
+      <p>이 학습 프로젝트의 좋은 점은 주제가 분리되어 보이지만 실제로는 한 흐름으로 이어진다는 데 있다. 리스트와 딕셔너리를 이해해야 메뉴형 실습의 상태를 저장할 수 있고, 파일 모드를 이해해야 그 상태를 디스크에 남길 수 있으며, 클래스와 예외를 이해해야 데이터와 규칙을 더 명확한 단위로 나눌 수 있다.</p>
+      <p>노트에서 반복되는 “C와 비교하면?”, “내부적으로 어떻게?”, “이 방식이 진짜 맞나?”라는 질문은 초급 문법 학습을 넘어 런타임 모델을 이해하려는 방향이다. 공식 문서 기준으로 재정리하면 파이썬은 모든 값을 객체로 다루고, 객체의 타입이 가능한 연산을 결정하며, 컨테이너는 다른 객체에 대한 참조를 담는다. 이 관점 하나를 잡으면 리스트, 튜플, 딕셔너리, 파일 객체, 클래스 인스턴스가 같은 세계관 안에 놓인다.</p>
+      <div class="warning">
+        <strong>주의할 점</strong>
+        <p>`pickle`은 편하지만 신뢰할 수 없는 파일을 역직렬화하면 보안 위험이 있다. 개인 실습이나 내부 데이터 저장에는 적합하지만, 외부 입력을 받는 서비스에서는 JSON 같은 안전한 형식과 명시적 검증을 우선 고려해야 한다.</p>
+      </div>
+    </section>
+
+    <section id="conclusion">
+      <h2>결론</h2>
+      <p>이 프로젝트는 파이썬 기초 문법의 모음이라기보다, “자료를 메모리에 담고, 파일에 저장하고, 객체로 조직하고, 실패를 예외로 다루는” 작은 프로그램의 뼈대를 단계적으로 만든 기록이다. 리스트와 튜플은 시퀀스의 감각을, 딕셔너리는 이름 붙은 데이터 저장을, 파일 I/O와 `pickle`은 지속성을, OOP와 특수 메서드는 사용자 정의 타입의 행동을 보여준다.</p>
+      <p>다음 학습 단계에서는 현재의 절차형 함수들을 `Student`, `Employee`, `Repository` 같은 클래스로 리팩터링하고, 파일 저장을 `with` 기반으로 정리하며, 예외 클래스를 프로젝트 안에 명시적으로 추가하면 수업 실습이 작은 콘솔 애플리케이션 구조로 자연스럽게 발전할 수 있다.</p>
+    </section>
+
+    <section id="references" class="references">
+      <h2>레퍼런스</h2>
+      <ol>
+        <li><a href="https://docs.python.org/ko/3/tutorial/datastructures.html">Python 공식 튜토리얼: 자료 구조</a> - 리스트 메서드, 튜플과 시퀀스, 딕셔너리, 루프 테크닉.</li>
+        <li><a href="https://docs.python.org/ko/3/reference/datamodel.html#sequences">Python 공식 레퍼런스: 데이터 모델 - 시퀀스</a> - 음수 첨자, 슬라이싱, 리스트/튜플의 가변성 구분.</li>
+        <li><a href="https://docs.python.org/ko/3/reference/datamodel.html#mappings">Python 공식 레퍼런스: 데이터 모델 - 매핑</a> - 딕셔너리와 키 규칙.</li>
+        <li><a href="https://docs.python.org/ko/3/library/functions.html#open">Python 공식 문서: open()</a> - `r`, `w`, `a`, `x`, `b`, `t`, `+` 모드와 텍스트/바이너리 I/O 구분.</li>
+        <li><a href="https://docs.python.org/ko/3/library/pickle.html">Python 공식 문서: pickle</a> - 객체 직렬화, `dump`, `load`, 바이너리 스트림, 보안 경고.</li>
+        <li><a href="https://docs.python.org/ko/3/tutorial/classes.html">Python 공식 튜토리얼: 클래스</a> - 클래스 객체, 인스턴스 어트리뷰트, 상속, 비공개 변수 관례.</li>
+        <li><a href="https://docs.python.org/ko/3/reference/datamodel.html#special-method-names">Python 공식 레퍼런스: 특수 메서드 이름들</a> - 연산자 오버로딩, 컨테이너/숫자형 흉내 내기.</li>
+        <li><a href="https://docs.python.org/ko/3/tutorial/errors.html">Python 공식 튜토리얼: 에러와 예외</a> - `try`, `except`, `else`, `finally`, 사용자 정의 예외.</li>
+        <li>프로젝트 내부 자료: `date.txt`, `notes/리스트.txt`, `notes/fileio_파이썬 w와 wb 모드 차이 - Google Gemini.mhtml`, `notes/oop_파이썬 객체지향 추상화 원리 - Google Gemini.mhtml`.</li>
+        <li>프로젝트 내부 코드: `python_collection`, `python_fileio`, `python_oop` 폴더의 실습 스크립트.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    <div class="page">Generated from local bootcamp notes and project code. This document is intended as a technical learning artifact, not as official course material.</div>
+  </footer>
+</body>
+</html>

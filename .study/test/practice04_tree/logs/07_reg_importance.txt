@@ -1,0 +1,19 @@
+============================================================
+# 07_reg_importance
+============================================================
+[회귀트리 특성 중요도 — 내림차순]
+  alcohol                0.5335  #####################
+  volatile_acidity       0.1554  ######
+  free_sulfur_dioxide    0.1094  ####
+  residual_sugar         0.0492  ##
+  fixed_acidity          0.0406  ##
+  pH                     0.0357  #
+  citric_acid            0.0287  #
+  sulphates              0.0237  #
+  total_sulfur_dioxide   0.0138  #
+  density                0.0100  
+  chlorides              0.0000  
+
+루트 노드가 처음 가른 특성: alcohol
+가장 중요한 특성        : alcohol (0.5335)
+[chart] ch_importance_reg.png 저장

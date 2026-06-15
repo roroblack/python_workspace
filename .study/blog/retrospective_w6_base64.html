@@ -1,0 +1,336 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+:root {
+  color-scheme: light;
+  --ink:#1f2933; --muted:#667085; --line:#d7dee8;
+  --paper:#ffffff; --surface:#ffffff;
+  --accent:#52A97E; --accent-2:#E8875A; --accent-3:#5B9BD5; --accent-4:#9178C4;
+  --accent-soft:#EBF7F1; --warn-soft:#FFF1E8;
+  --code-bg:#1e1e1e; --code-ink:#e5e7eb;
+  --shadow:none;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Nanum Gothic Coding","Segoe UI",Arial,sans-serif;
+  line-height:1.78; font-size:16px; }
+a { color:var(--accent-3); text-underline-offset:3px; }
+.page { width:min(880px, calc(100% - 32px)); margin:0 auto; }
+header.cover { padding:48px 0 24px; border-bottom:3px solid var(--ink); }
+.eyebrow { font-size:0.9rem; color:var(--muted); letter-spacing:0.06em;
+  text-transform:uppercase; margin:0 0 8px; }
+h1 { font-size:2rem; line-height:1.32; margin:6px 0 12px; letter-spacing:-0.01em; }
+.deck { font-size:1.05rem; color:#374151; margin:0 0 18px; }
+.meta-row { display:flex; flex-wrap:wrap; gap:12px 18px;
+  font-size:0.92rem; color:var(--muted); padding-top:10px;
+  border-top:1px solid var(--line); }
+.meta-row strong { color:var(--ink); margin-right:4px; }
+main { padding:36px 0 60px; }
+nav.toc { border-top:3px solid var(--ink); border-bottom:1px solid var(--line);
+  padding:14px 0 18px; margin:0 0 30px; }
+nav.toc h2 { font-size:0.95rem; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+nav.toc ol { margin:0; padding-left:1.3em; font-size:0.95rem; }
+nav.toc a { color:var(--ink); text-decoration:none; border-bottom:1px dashed transparent; }
+nav.toc a:hover { border-bottom-color:var(--accent-3); }
+section { margin:48px 0 0; }
+h2.chap { font-size:1.45rem; margin:0 0 14px; padding:14px 0 8px;
+  border-top:3px solid var(--ink); }
+h2.chap .num { display:inline-block; border:2px solid var(--accent-2);
+  color:var(--accent-2); padding:1px 8px; font-size:0.8rem;
+  margin-right:10px; vertical-align:middle; letter-spacing:0.04em; }
+h2.chap .anchor-link { float:right; color:var(--muted); font-weight:400;
+  text-decoration:none; opacity:0; transition:opacity .15s; }
+h2.chap:hover .anchor-link { opacity:1; }
+h3.step { margin:22px 0 10px; font-size:1.05rem; letter-spacing:0.04em;
+  color:var(--accent-3); border-left:4px solid var(--accent-3); padding-left:10px; }
+p { margin:10px 0; }
+ul, ol { padding-left:1.4em; }
+li { margin:4px 0; }
+strong { color:var(--ink); }
+.qbox { border-left:4px solid var(--accent-3); background:#EBF4FF;
+  padding:12px 16px; margin:14px 0; }
+.qbox .label { display:inline-block; background:var(--accent-3); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.keypoint { border-left:4px solid var(--accent); background:var(--accent-soft);
+  padding:12px 16px; margin:14px 0; }
+.keypoint .label { display:inline-block; background:var(--accent); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.callout { border-left:4px solid var(--accent-2); background:var(--warn-soft);
+  padding:12px 16px; margin:14px 0; }
+.callout .label { display:inline-block; background:var(--accent-2); color:#fff;
+  padding:1px 8px; font-size:0.78rem; font-weight:700;
+  margin-right:10px; letter-spacing:0.04em; }
+.bridge { border-left:4px solid var(--muted); background:#F4F6F9;
+  padding:10px 14px; margin:18px 0 4px; font-size:0.94rem; color:#374151; }
+.bridge strong { color:var(--ink); }
+blockquote.cite { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:12px 16px; margin:14px 0; font-style:normal; }
+blockquote.cite .src { display:block; color:var(--muted);
+  font-size:0.9em; margin-top:6px; }
+code { font-family:"Cascadia Code","Consolas","D2Coding",monospace;
+  background:#EEF0F6; padding:1px 5px; font-size:0.92em; }
+pre { background:var(--code-bg); color:var(--code-ink); padding:16px;
+  overflow-x:auto; font-size:0.88rem; line-height:1.55; margin:14px 0;
+  border:1px solid #2a2a2a; }
+pre code { background:transparent; padding:0; color:inherit;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; }
+.terminal { margin:14px 0; border:1px solid #2a2a2a; }
+.terminal-header { background:#2d2d2d; color:#cbd5e1; padding:6px 12px;
+  font-size:0.82rem; font-family:"Cascadia Code","Consolas",monospace; }
+.terminal-header::before { content:'PS> '; color:var(--accent-2); font-weight:700; }
+.terminal-body { background:#1e1e1e; color:#e5e7eb; padding:14px 16px;
+  margin:0; overflow-x:auto; font-size:0.86rem; line-height:1.55;
+  font-family:"Cascadia Code","Consolas","D2Coding",monospace; white-space:pre; }
+table { border-collapse:collapse; width:100%; margin:14px 0; font-size:0.95rem; }
+th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; }
+th { background:#EEF0F5; color:var(--ink); }
+.hl { background:#EBF7F1; }
+footer { padding:30px 0 60px; border-top:3px solid var(--ink); margin-top:50px;
+  color:var(--muted); font-size:0.9rem; }
+footer p { margin:6px 0; }
+.ref-chain { border-left:4px solid var(--accent-4); background:#F7F5FD;
+  padding:14px 18px; margin:24px 0; }
+.ref-chain .ref-title { color:var(--accent-4); font-weight:700;
+  margin:0 0 8px; letter-spacing:0.04em; }
+.ref-chain ol { padding-left:1.4em; margin:0; }
+.ref-chain li { margin:4px 0; font-size:0.93rem; }
+figure.shot { margin:14px 0 18px; border:1px solid var(--line); background:#fff; padding:8px; }
+figure.shot img { display:block; width:100%; height:auto; max-width:760px; margin:0 auto; }
+figure.shot figcaption { margin-top:8px; font-size:0.86rem; color:var(--muted); text-align:center; letter-spacing:0.02em; }
+.flow { border-top:3px solid var(--ink); border-bottom:1px solid var(--line);
+  padding:14px 0 18px; margin:0 0 30px; }
+.flow h2 { font-size:0.95rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+.flow ol { margin:0; padding-left:1.3em; }
+.flow li { margin:6px 0; }
+.flow .turn { color:var(--accent-2); font-weight:700; }
+  </style>
+
+<div class="page">
+
+<header class="cover">
+  <p class="eyebrow">Python · 6주차 회고 · 교과목 2 단원 2 머신러닝 · 부트캠프</p>
+  <h1>머신러닝 한 주의 지도 — 회귀에서 비지도학습까지</h1>
+  <p class="deck">교과목 2 단원 2 머신러닝의 한 주(0527~0605) 회고다. 한 줄 목표는 분명했다 —
+  <strong>"<code>model.fit(X, y)</code> 한 줄에서 출발해, 한 주 만에 머신러닝의 지도를 그릴 수 있을까."</strong>
+  지도학습(회귀·분류)에서 트리·앙상블을 거쳐 차원 축소와 비지도학습까지, 매일 새 알고리즘과 그에 딸린 의문을 만났다.
+  이 글은 7일을 하나의 흐름으로 잇되, 각 날의 <strong>핵심 의문 → 실측 → 배운 점</strong>을 함께 적어 둔다.
+  (0603은 제9회 전국동시지방선거 공휴일로 수업이 없었다.)</p>
+  <div class="meta-row">
+    <span><strong>기간</strong>2026-05-27 ~ 06-05 (0603 공휴일 제외 7일)</span>
+    <span><strong>범위</strong>머신러닝 Day1~Day7 + 실습 1~7</span>
+    <span><strong>OS</strong>Windows 11 Pro 25H2</span>
+    <span><strong>HW</strong>Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB</span>
+    <span><strong>근거</strong>각 일자/실습 글의 실제 실행 결과(seed=42 재현)</span>
+  </div>
+</header>
+
+<main>
+<nav class="flow">
+  <h2>이 글의 흐름 — 7일을 하나의 지도로</h2>
+  <ol>
+    <li><a href="#ch1">Day1 · 회귀와 데이터 관리 — fit이 정하는 것, 그리고 과대적합</a></li>
+    <li><a href="#ch2">Day2 · 분류와 로지스틱 회귀 — 회귀로 분류를 풀 때</a></li>
+    <li><a href="#ch3">Day3 · SVM — 좋은 경계와 커널</a></li>
+    <li><a href="#ch4">Day4 · 결정트리·회귀트리 — 질문으로 나누기</a></li>
+    <li><a href="#ch5">Day5 · 앙상블 — 약한 모델을 모으면</a></li>
+    <li><a href="#ch6">Day6 · 차원 축소 — 공분산 행렬이라는 '변수들의 지도'</a></li>
+    <li><a href="#ch7">Day7 · 비지도학습 — 정답 없이 구조 찾기, lift는 왜 1보다 큰가</a></li>
+    <li><a href="#ch8">종합 회고 — 7일을 관통한 네 가지 교훈</a></li>
+  </ol>
+</nav>
+
+<div class="bridge">
+  <strong>한 주의 출발</strong> — 첫날 받은 예제의 한가운데엔 늘 <code>model.fit(X, y)</code> 한 줄이 있었다.
+  그 한 줄이 무엇을 정하는지 묻는 데서 시작해, 매일 도구를 하나씩 늘려갔다.
+  돌아보니 7일은 "지도학습(회귀→분류→경계→트리→앙상블) → 차원 축소 → 비지도학습"이라는
+  한 장의 지도였다. 각 날의 핵심 의문과 함께 하루씩 되짚는다.
+</div>
+
+<section id="ch1">
+  <h2 class="chap"><span class="num">Day1</span>회귀와 데이터 관리 — fit이 정하는 것<a href="#ch1" class="anchor-link">#</a></h2>
+  <p>회귀의 <code>fit</code>은 오차 제곱합(SSE)을 최소화하는 계수·절편을 정한다는 데서 출발했다
+  (<a href="day0527_ml_intro.html">day0527</a>). 첫 의문은 점수의 신뢰성이었다 — 전체 데이터로 잰 R2가 0.52라 그럴듯해 보였지만,
+  <code>train_test_split</code>으로 시험을 떼어 보니 test R2는 0.45였다. "더 복잡하게 만들면 더 오르지 않을까" 하고
+  다항 차수를 9까지 올리자, train은 올라가는데 <strong>test R2는 −1132</strong>로 크게 낮아졌다(과대적합).</p>
+  <p>해법은 복잡도를 줄이는 게 아니라 계수를 누르는 규제였다. Ridge로 계수 크기를 13196→50으로 줄이자
+  test R2가 −1132에서 +0.34로 회복됐다. 지하철 이용객 예측 실습(<a href="ml_practice01_subway.html">실습1</a>)에서도 같은 결이었다 —
+  특성을 늘려 강한 RandomForest(R2 0.706)로 갈아탔더니 점수가 내려갔고, 단순한 One-Hot 선형회귀(R2 0.855)가 더 나았다.</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  머신러닝의 절반은 모델이 아니라 <strong>데이터 관리(표준화·train_test_split)와 일반화(규제)</strong>에 있다.
+  "복잡함 = 좋음"은 첫날부터 수치로 깨졌다.</div>
+  <div class="bridge"><strong>다음으로</strong> — 정답이 연속값이 아니라 라벨이면? 회귀의 직선으로 분류를 풀 수 있을까.</div>
+</section>
+
+<section id="ch2">
+  <h2 class="chap"><span class="num">Day2</span>분류와 로지스틱 회귀<a href="#ch2" class="anchor-link">#</a></h2>
+  <p>0/1 라벨에 직선 회귀를 그대로 맞추니 예측이 확률 범위 [0,1]을 벗어났다(−0.40~1.30).
+  시그모이드로 출력을 (0,1)에 가둔 <strong>로지스틱 회귀</strong>가 그 답이었다 (<a href="day0528_classification_logistic.html">day0528</a>).
+  클래스가 셋이면 소프트맥스로 확장되는데, "소프트맥스는 왜 필요한가"라는 의문의 답은 간단했다 —
+  여러 출력을 합이 1인 확률로 정규화하기 위해서다.</p>
+  <p>평가에서 한 번 더 막혔다. breast_cancer 정확도가 0.988인데도 <strong>악성 1건을 놓쳤고</strong>, 그 한 건을 드러낸 것은 정확도가 아니라 재현율이었다.
+  타이타닉 실습(<a href="ml_practice02_titanic.html">실습2</a>)에선 RandomForest 정확도 0.816, 그리고 EDA에서 두드러졌던 Sex보다
+  모델 중요도 1위가 Fare로 나오는 의외의 결과를 봤다.</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  분류는 정확도 한 숫자로 끝내면 안 된다. <strong>정밀도·재현율</strong>이 서로 다른 실수(거짓양성·거짓음성)를 잡는다.</div>
+  <div class="bridge"><strong>다음으로</strong> — 분류 경계를 '좋게' 긋는다는 건 무슨 뜻일까.</div>
+</section>
+
+<section id="ch3">
+  <h2 class="chap"><span class="num">Day3</span>SVM — 좋은 경계와 커널<a href="#ch3" class="anchor-link">#</a></h2>
+  <p>SVM은 두 클래스 사이 마진을 최대화하는 경계를 찾고, 그 경계는 소수의 서포트 벡터만으로 정해진다
+  (<a href="day0529_svm.html">day0529</a>). 선형으로 갈리지 않는 circles 데이터에서 <strong>선형 SVM 0.42 vs RBF 커널 1.0</strong>으로,
+  커널이 비선형 경계를 만드는 효과를 봤다. 다만 C·gamma를 키우면 train 1.0/test 0.81로 과대적합(gap +0.19)했다.</p>
+  <p>실습3(<a href="ml_practice03_svm_knn_nb.html">실습3</a>)에선 실제 데이터로 SVM·KNN·나이브베이즈를 비교하며
+  <strong>스케일링이 거리 기반 모델을 좌우</strong>함을 확인했다(SVM 0.875→0.901, KNN 최적 k=3에서 recall 0.981).</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  문제의 모양(선형/비선형)에 맞는 커널을 고르고, 거리 기반 모델에는 표준화가 전제다.</div>
+  <div class="bridge"><strong>다음으로</strong> — 직선·곡선 경계 대신, if-else 질문으로 데이터를 나누면 어떨까.</div>
+</section>
+
+<section id="ch4">
+  <h2 class="chap"><span class="num">Day4</span>결정트리·회귀트리<a href="#ch4" class="anchor-link">#</a></h2>
+  <p>결정트리는 지니 불순도나 정보이득이 가장 큰 (특성·임계값)을 매 노드에서 골라 데이터를 질문으로 가른다
+  (<a href="day0601_decision_tree.html">day0601</a>). 트리는 루트 노드에서 시작해 더 못 나누는 터미널(잎) 노드에서 끝나는데,
+  깊이를 키우면 train 정확도는 1.0까지 오르지만 test는 깊이 3에서 0.978로 가장 높았다가 그 뒤 정체했다.</p>
+  <p>실습4(<a href="ml_practice04_tree.html">실습4</a>)에선 작은 데이터의 함정을 만났다 — 교차검증으로 고른 best 트리가
+  test에서는 best가 아니었다(CV-best ≠ test-best). 회귀트리는 깊이·잎 조건을 손봐 <strong>R2 −0.55 → +0.20</strong>으로 끌어올렸다.</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  트리는 규칙을 그림으로 보여 주는 해석가능성이 강점이지만, 단독으로는 과대적합하기 쉽고 불안정하다.</div>
+  <div class="bridge"><strong>다음으로</strong> — 불안정한 트리 하나 대신 여럿을 모으면 더 나아질까.</div>
+</section>
+
+<section id="ch5">
+  <h2 class="chap"><span class="num">Day5</span>앙상블 — 약한 모델을 모으면<a href="#ch5" class="anchor-link">#</a></h2>
+  <p>여럿을 모으는 두 길을 비교했다 — 배깅(부트스트랩 샘플로 여러 트리를 학습해 분산을 줄임, 랜덤포레스트)과
+  부스팅(약한 학습기를 순차로 쌓아 이전 오차에 집중, 편향을 줄임, AdaBoost·GBM) (<a href="day0602_ensemble.html">day0602</a>).
+  과대적합 격차가 <strong>단일 0.077 &gt; 배깅 0.049 &gt; RF/GBM 0.042 &gt; AdaBoost 0.028</strong>로,
+  모든 앙상블이 단일 트리보다 일반화가 좋았다.</p>
+  <p>실습5(<a href="ml_practice05_ann.html">실습5</a>)에선 콘크리트 강도를 신경망(MLP)으로 예측했다 — 표준화로 R2 0.84→0.90으로 올랐지만,
+  튜닝 없는 <strong>GradientBoosting(0.923)이 MLP(0.887)보다 높았다</strong>. 신경망이 늘 최선은 아니라는 실측이었다.</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  여럿을 모으면 분산·편향을 줄일 수 있다. 정형(표) 데이터에서는 부스팅이 강하고, 신경망이 항상 정답은 아니다.</div>
+  <div class="bridge"><strong>다음으로</strong> — 특성이 수십·수백 개로 늘면? 줄여야 할 때가 온다.</div>
+</section>
+
+<section id="ch6">
+  <h2 class="chap"><span class="num">Day6</span>차원 축소 — 공분산 행렬이라는 '변수들의 지도'<a href="#ch6" class="anchor-link">#</a></h2>
+  <p>PCA는 분산이 가장 큰 축으로 데이터를 투영해, 정보를 최대한 보존하며 차원을 줄인다
+  (<a href="day0604_dimensionality_reduction.html">day0604</a>). 이날 가장 오래 붙들었던 의문은 그 출발점인 공분산 행렬이었다 —
+  <strong>변수들의 곱을 더해 만든 (d×d) 행렬이 왜 '변수들 사이의 지도'가 되는가.</strong>
+  중심화한 데이터에 <code>Xᵀ_c X_c</code>를 곱하면 대각선은 각 변수의 분산, 비대각선은 두 변수가 함께 움직이는 정도(공분산)가 되어,
+  그 행렬의 고유벡터가 곧 분산이 큰 방향(주성분)이 된다.</p>
+  <p>그다음 의문은 실용적인 것이었다 — <strong>차원 수는 무엇을 기준으로 정하나, 줄이면 무조건 좋아지나.</strong>
+  digits 64차원은 누적 설명분산 90%에 31차원이면 충분했고, 2D로 줄였을 때 군집 응집은 PCA 0.52보다 t-SNE 0.25가 더 또렷했다.
+  실습6(<a href="ml_practice06_pca.html">실습6</a>)에선 유방암 30특성을 15차원(설명분산 0.987)으로 줄여 KNN 정확도가 0.965로 오히려 올랐지만,
+  더 줄이면 정보 손실로 정확도가 떨어지는 손익분기도 함께 봤다 — 차원 축소가 늘 이득은 아니다.</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  차원 축소는 시각화뿐 아니라 차원의 저주 완화·성능 향상의 도구다. 단, PCA 앞에 표준화가 전제이고,
+  지나치게 줄이면 정보 손실로 손해가 난다.</div>
+  <div class="bridge"><strong>다음으로</strong> — 지금까진 정답(y)이 있었다. 정답 없이 구조만으로 묶으려면?</div>
+</section>
+
+<section id="ch7">
+  <h2 class="chap"><span class="num">Day7</span>비지도학습 — 정답 없이 구조 찾기, lift는 왜 1보다 큰가<a href="#ch7" class="anchor-link">#</a></h2>
+  <p>k-means로 군집을, 연관규칙으로 함께 팔리는 품목을 찾았다 (<a href="day0605_unsupervised.html">day0605</a>).
+  k-means에서 떠오른 의문은 시작점이었다 — <strong>처음 중심점을 컴퓨터는 어떻게 잡나.</strong>
+  무작위로 잡으면 나쁜 군집에 빠질 수 있어, 서로 멀리 떨어지게 뽑는 k-means++ 초기화가 쓰인다.
+  iris에서는 엘보우와 실루엣이 정답인 3종이 아니라 <strong>k=2</strong>를 가리켰는데(versicolor·virginica가 겹쳐서), 실제 품종과의 일치는 ARI 0.62였다.</p>
+  <p>연관규칙에서 가장 또렷했던 의문은 lift였다 — <strong>"두 상품이 아무 상관 없다면 기대값 10%만 같이 사야 하는데, 왜 실제로는 15%나 같이 샀지?"</strong>
+  lift는 실제 동시구매 비율을 두 상품이 독립일 때의 기대값으로 나눈 값이라, 1보다 크면 우연 이상으로 함께 팔린다는 뜻이다.
+  confidence가 높아도(조건부 확률) lift가 1 미만이면 의미가 없다는 것도 이때 정리됐다.
+  실습7(<a href="ml_practice07_association.html">실습7</a>)에선 실제 장바구니 9,835건에서 top lift 3.30 규칙을 찾고,
+  품목 분포가 심하게 불균형하다는 점(소수 품목이 거래의 큰 몫)도 함께 봤다.</p>
+  <div class="keypoint"><span class="label">배운 점</span>
+  비지도학습의 '정답 없음'은 곧 <strong>평가의 어려움</strong>이다. 군집 수 k도, 규칙의 임계값도
+  엘보우·실루엣·lift 같은 지표로 정해야 하고, 그 지표가 내 선입견과 다를 때는 데이터를 따른다.</div>
+  <div class="bridge"><strong>그래서</strong> — 매일 다른 알고리즘이었지만, 7일을 돌아보면 반복해 나타난 교훈이 있었다.</div>
+</section>
+
+<section id="ch8">
+  <h2 class="chap"><span class="num">FIN</span>종합 회고 — 7일을 관통한 네 가지 교훈<a href="#ch8" class="anchor-link">#</a></h2>
+  <h3 class="step">한 주의 알고리즘 지도</h3>
+  <table>
+    <tr><th>Day</th><th>알고리즘</th><th>핵심 의문</th><th>대표 실측</th></tr>
+    <tr><td>1</td><td>선형회귀·규제</td><td>전체 점수를 믿어도 되나 / 더 복잡하게 하면?</td><td>9차 test R2 −1132 → Ridge +0.34</td></tr>
+    <tr><td>2</td><td>로지스틱·분류평가</td><td>회귀로 분류를? 정확도면 충분한가</td><td>직선 [0,1] 이탈 → 시그모이드 / 정확도 0.988에 악성 1건 누락</td></tr>
+    <tr><td>3</td><td>SVM·커널</td><td>좋은 경계란 / 비선형은</td><td>circles 선형 0.42 vs RBF 1.0</td></tr>
+    <tr><td>4</td><td>결정·회귀트리</td><td>무엇으로 가르나 / 얼마나 깊게</td><td>깊이3 0.978 정점 / 회귀트리 −0.55→+0.20</td></tr>
+    <tr><td>5</td><td>앙상블·ANN</td><td>여럿을 모으면 / 신경망이 최선인가</td><td>gap 단일 0.077→AdaBoost 0.028 / GBM 0.923 &gt; MLP 0.887</td></tr>
+    <tr><td>6</td><td>PCA·차원축소</td><td>공분산이 왜 '지도'인가 / 줄이면 무조건 좋나</td><td>digits 90%에 31차원 / 유방암 15차원 KNN 0.965</td></tr>
+    <tr><td>7</td><td>k-means·연관규칙</td><td>중심점을 어떻게 잡나 / lift는 왜 1보다 큰가</td><td>엘보우·실루엣 k=2(ARI 0.62) / top lift 3.30</td></tr>
+  </table>
+  <div class="keypoint"><span class="label">관통 교훈 네 가지</span>
+  ① <strong>복잡함이 곧 좋음은 아니다</strong> — 거의 매일 과대적합을 만났다(다항 9차, 깊은 트리, 깊은 MLP). 목표는 일반화다.<br>
+  ② <strong>데이터 관리가 절반</strong> — 표준화·split·차원축소가 모델 선택만큼 결과를 갈랐다.<br>
+  ③ <strong>문제에 맞는 도구</strong> — 선형/비선형, 정형/이미지, 정답 유무에 따라 최선의 모델이 달랐다(RBF·GBM·PCA·k-means).<br>
+  ④ <strong>평가를 의심한다</strong> — 정확도·R2 한 숫자 뒤에 누락·과대적합·군집 겹침이 숨어 있었다(재현율·test 격차·실루엣·lift).</div>
+  <h3 class="step">다음으로</h3>
+  <p>머신러닝의 지도를 한 바퀴 그렸다. 이어지는 단원은 딥러닝(0608~)으로, 퍼셉트론과 신경망 계층 구조에서 시작한다.
+  정형(표) 데이터의 '예측'에서 이미지·언어를 다루는 모델로 넘어가는 것이 다음 한 주의 질문이 될 것이다.</p>
+
+  <div class="ref-chain">
+    <p class="ref-title">📚 이 회고가 종합한 글</p>
+    <ol>
+      <li><strong>Day1</strong> <a href="day0527_ml_intro.html">회귀·데이터관리</a> · <a href="ml_practice01_subway.html">실습1 지하철</a></li>
+      <li><strong>Day2</strong> <a href="day0528_classification_logistic.html">분류·로지스틱</a> · <a href="ml_practice02_titanic.html">실습2 타이타닉</a></li>
+      <li><strong>Day3</strong> <a href="day0529_svm.html">SVM</a> · <a href="ml_practice03_svm_knn_nb.html">실습3 SVM·KNN·NB</a></li>
+      <li><strong>Day4</strong> <a href="day0601_decision_tree.html">결정·회귀트리</a> · <a href="ml_practice04_tree.html">실습4</a></li>
+      <li><strong>Day5</strong> <a href="day0602_ensemble.html">앙상블</a> · <a href="ml_practice05_ann.html">실습5 ANN</a></li>
+      <li><strong>Day6</strong> <a href="day0604_dimensionality_reduction.html">차원축소</a> · <a href="ml_practice06_pca.html">실습6 PCA+KNN</a></li>
+      <li><strong>Day7</strong> <a href="day0605_unsupervised.html">비지도학습</a> · <a href="ml_practice07_association.html">실습7 연관규칙</a></li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>SK 네트웍스 AI Family 32기 · 6주차 머신러닝 회고 (2026-05-27 ~ 06-05, 0603 공휴일 제외)</p>
+  <p>모든 실측 수치는 각 일자/실습 글의 실제 실행 결과(seed=42)를 인용한 것이다.</p>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script>
+(function(){
+  /* ── lightbox ── */
+  var overlay = document.createElement('div');
+  overlay.id = 'lb-overlay';
+  overlay.style.cssText = [
+    'display:none','position:fixed','inset:0','z-index:9999',
+    'background:rgba(0,0,0,.82)','cursor:zoom-out',
+    'align-items:center','justify-content:center'
+  ].join(';');
+  var img = document.createElement('img');
+  img.id = 'lb-img';
+  img.style.cssText = [
+    'max-width:92vw','max-height:92vh','object-fit:contain',
+    'border:2px solid #fff','box-shadow:0 0 40px rgba(0,0,0,.6)',
+    'transition:transform .15s'
+  ].join(';');
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
+
+  function open(src){ img.src=src; overlay.style.display='flex'; }
+  function close(){ overlay.style.display='none'; img.src=''; }
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+
+  /* figure img 클릭 → lightbox */
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if(t.tagName==='IMG' && t.closest('figure')){ e.preventDefault(); open(t.src); }
+  });
+
+  /* figure img hover cursor */
+  var style = document.createElement('style');
+  style.textContent = 'figure img { cursor:zoom-in; transition:opacity .15s; } figure img:hover { opacity:.85; }';
+  document.head.appendChild(style);
+})();
+</script>

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>0516-0519 학습 노트: 첫 단위 프로젝트 — "물로간다" 수소차 통합 대시보드 회고</title>
+  <meta name="description" content="SKN32 1차 단위 프로젝트 4일 회고. 팀 카데이터(4명)가 수소차 등록 현황 · 충전소 · FAQ 데이터를 Playwright/BeautifulSoup4 로 수집해 SQLAlchemy+MySQL 에 저장하고 Streamlit+Altair+Folium 으로 시각화한 과정. ERD 설계, 구글 스프레드시트 협업, 깃 브런치 운영, 자료형 불일치/master 푸시 사고/오토스케줄러 말썽 등 실제 시행착오 추적." />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+    :root { color-scheme: light; --ink:#1f2933; --muted:#667085; --line:#d7dee8; --paper:#ffffff; --surface:#ffffff;
+      --accent:#52A97E; --accent-2:#E8875A; --accent-3:#5B9BD5; --accent-4:#9178C4;
+      --accent-soft:#EBF7F1; --warn-soft:#FFF1E8; --code-bg:#1e1e1e; --code-ink:#e5e7eb; --shadow:none; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:"Nanum Gothic Coding","Segoe UI",Arial,sans-serif; line-height:1.78; font-size:16px; }
+    a { color:var(--accent-3); text-underline-offset:3px; }
+    .page { width:min(880px, calc(100% - 32px)); margin:0 auto; }
+    header.cover { background:#fff; border-bottom:3px solid var(--ink); padding:64px 0 40px; }
+    .cover .eyebrow { border-top:4px solid var(--accent); padding-top:10px; display:inline-block; color:var(--accent); font-weight:800; font-size:0.78rem; letter-spacing:0.12em; text-transform:uppercase; margin:0 0 14px; }
+    .cover h1 { margin:0; font-size:clamp(1.9rem,4.2vw,3.1rem); line-height:1.18; letter-spacing:-0.01em; }
+    .cover .deck { margin:18px 0 0; color:var(--muted); font-size:1.05rem; }
+    .meta-row { display:flex; flex-wrap:wrap; gap:18px 28px; margin-top:30px; padding-top:18px; border-top:2px solid var(--ink); color:var(--muted); font-size:0.92rem; }
+    .meta-row strong { color:var(--ink); margin-right:6px; }
+    main { padding:36px 0 60px; }
+    h2.chap { border-top:3px solid var(--ink); padding-top:16px; margin:56px 0 8px; font-size:1.55rem; letter-spacing:-0.01em; line-height:1.25; }
+    h2.chap .num { display:inline-block; color:var(--accent); font-size:0.85rem; font-weight:800; letter-spacing:0.12em; margin-right:10px; padding:2px 8px; border:2px solid var(--accent); vertical-align:middle; }
+    h3.step { margin:26px 0 8px; font-size:1.08rem; color:var(--ink); }
+    h3.step::before { content:""; display:inline-block; width:4px; height:1.1em; background:var(--accent); margin-right:8px; vertical-align:text-bottom; }
+    p { margin:0 0 12px; } ul,ol { padding-left:22px; margin:6px 0 14px; } li { margin-bottom:6px; }
+    code { font-family:"Cascadia Code","Consolas","D2Coding",monospace; font-size:0.92em; }
+    :not(pre) > code { background:#EEF0F6; border:1px solid #d8e0ea; padding:1px 6px; color:#1f2933; }
+    pre { margin:12px 0 18px; overflow-x:auto; background:var(--code-bg); color:var(--code-ink); padding:18px 20px; font-size:0.9rem; line-height:1.6; tab-size:4; }
+    pre code.language-sql, pre code.language-python { background:transparent; border:none; padding:0; color:inherit; font-size:1em; }
+    .anchor-link { display:inline-block; margin-left:8px; color:var(--accent); text-decoration:none; opacity:0; font-size:0.75em; vertical-align:middle; font-weight:400; transition:opacity 0.15s; }
+    h2.chap:hover .anchor-link { opacity:1; }
+    .qbox,.keypoint,.callout { padding:16px 18px; margin:14px 0 18px; border:1px solid var(--line); background:var(--surface); }
+    .qbox { border-left:4px solid var(--accent-3); background:#EBF4FF; }
+    .qbox .label { display:block; color:var(--accent-3); font-weight:800; font-size:0.84rem; letter-spacing:0.06em; margin-bottom:4px; }
+    .keypoint { border-left:4px solid var(--accent); background:var(--accent-soft); }
+    .keypoint .label { display:block; color:var(--accent); font-weight:800; font-size:0.84rem; letter-spacing:0.06em; margin-bottom:4px; }
+    .callout { border-left:4px solid var(--accent-2); background:var(--warn-soft); }
+    .callout .label { display:block; color:var(--accent-2); font-weight:800; font-size:0.84rem; letter-spacing:0.06em; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:12px 0 18px; background:var(--surface); border:1px solid var(--line); font-size:0.95rem; }
+    th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); }
+    th { background:#EEF0F5; color:#1f2933; font-weight:800; }
+    .toc { background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--ink); padding:18px 22px; margin:24px 0 0; }
+    .toc h4 { margin:0 0 8px; font-size:0.9rem; letter-spacing:0.08em; color:var(--muted); text-transform:uppercase; }
+    .toc ol { margin:0; padding-left:20px; } .toc ol li { margin-bottom:4px; }
+    .toc a { color:var(--ink); text-decoration:none; } .toc a:hover { color:var(--accent-3); }
+    blockquote.cite { border:1px solid #d8d0f0; border-left:4px solid var(--accent-4); background:#F7F5FD; padding:12px 16px; margin:12px 0; font-size:0.95rem; line-height:1.65; }
+    blockquote.cite .src { display:block; color:var(--muted); font-size:0.85em; margin-top:8px; }
+    .bridge { border-left:4px solid var(--muted); background:#F4F6F8; padding:12px 16px; margin:18px 0 8px; font-size:0.92rem; line-height:1.65; color:#3a4250; }
+    .bridge strong { color:var(--ink); }
+    footer { border-top:2px solid var(--ink); color:var(--muted); padding:26px 0 40px; font-size:0.9rem; }
+    footer .refs { padding-left:20px; margin:8px 0 0; } footer .refs li { margin-bottom:6px; }
+    .day-badge { display:inline-block; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:800; letter-spacing:0.1em; padding:2px 8px; margin-right:8px; vertical-align:middle; }
+    .terminal { margin:14px 0 22px; overflow:hidden; border:1px solid #30363d; font-family:"Cascadia Code","Consolas","D2Coding",monospace; }
+    .terminal-header { background:#161b22; border-bottom:1px solid #30363d; padding:9px 16px; font-size:0.8rem; color:#8b949e; display:flex; align-items:center; gap:8px; }
+    .terminal-header::before { content:'PS>'; color:#4ec9b0; font-weight:700; font-size:0.78rem; letter-spacing:0.02em; flex-shrink:0; }
+    .terminal-header .t-label { flex:1; color:#8b949e; }
+    pre.terminal-body { background:#0d1117; color:#e6edf3; margin:0; padding:16px 20px; font-size:0.86rem; line-height:1.6; white-space:pre; overflow-x:auto; }
+    .t-err { color:#f85149; } .t-ok { color:#3fb950; } .t-hdr { color:#6e7681; } .t-sec { color:#58a6ff; }
+  </style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="page">
+    <p class="eyebrow">Team Project · 4주차 · DAY15~19 · 카데이터</p>
+    <h1>0516–0519 학습 노트: 첫 단위 프로젝트 — "물로간다" 수소차 통합 대시보드 회고</h1>
+    <p class="deck">
+      한 사람이 한 줄씩 짜는 것과, 네 사람이 한 시스템을 짜는 것 사이에는 무엇이 다른가.
+      팀 "카데이터" 4명이 4일 동안 ERD 부터 시연·QA 까지 달려간 기록. 수소차 등록 현황·충전소 지도·FAQ 를
+      Playwright/BeautifulSoup4 로 수집해 SQLAlchemy+MySQL 에 저장하고 Streamlit+Altair+Folium 으로 묶었다.
+      자료형 불일치, master 직접 푸시 사고, 크롤링 도메인 합산 버그, 발표 직전 오토스케줄러 말썽까지 — 시행착오와 배운 점을 그대로 남긴다.
+    </p>
+    <div class="meta-row">
+      <span><strong>작성일자</strong> 2026/05/19</span>
+      <span><strong>과정</strong> SK Networks AI Family 32기 · DAY15~19</span>
+      <span><strong>팀</strong> SKN32-1st-3Team · 카데이터 (4 명)</span>
+      <span><strong>역할</strong> 팀장 · 충전소 맵 전담(DB·크롤링·GUI) · 발표·시연·QA</span>
+      <span><strong>스택</strong> Streamlit · MySQL · Playwright · BeautifulSoup4 · Folium · Altair · SQLAlchemy · APScheduler</span>
+    </div>
+    <nav class="toc">
+      <h4>목차</h4>
+      <ol>
+        <li><a href="#ch1">팀 구성과 역할 분담 — 팀장으로 시작한 4일</a></li>
+        <li><a href="#ch2">DB 구조 첫 그림 — 주제 결정과 아이디어 brainstorming</a></li>
+        <li><a href="#ch3">ERD 완성 — regions FK · 크롤링 스텟 · FAQ · 위경도</a></li>
+        <li><a href="#ch4">프로토타입 — Streamlit + Playwright + n차 정규화 + FAQ 폴백</a></li>
+        <li><a href="#ch5">미팅 일정과 깃 브런치 운영 — 5일 협업의 운영체제</a></li>
+        <li><a href="#ch6">디버깅 — repository.py 자료형, master 푸시 사고, 도메인 합산 버그</a></li>
+        <li><a href="#ch7">발표 준비 — 시연·QA·오토스케줄러 말썽</a></li>
+        <li><a href="#ch8">회고 — 잘한 것, 부족한 것, 그리고 감사</a></li>
+        <li><a href="#ch9">총 정리 — 한 주의 도구가 시스템이 된다</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="page">
+
+<div class="bridge" style="margin-top:18px">
+  <strong>이 회고가 추적하는 한 줄 목표</strong> —
+  "네 사람이 한 시스템을 4일 안에 만들 수 있을까?" 5일치 도구(Python · MySQL · 정적/동적 크롤링 · Streamlit)가
+  팀이라는 그릇에 담길 때 무엇이 살아남고, 무엇이 깨지는가. 이 글은 그 차이의 기록이다.
+</div>
+
+<section id="ch1">
+  <h2 class="chap"><span class="num">CH 01</span> 팀 구성과 역할 분담 — 팀장으로 시작한 4일<a class="anchor-link" href="#ch1">#</a></h2>
+  <p><span class="day-badge">DAY 15</span> 5월 15일 금요일, SKN32 1차 단위 프로젝트의 팀이 정해졌다. 4 명으로 구성된 팀에서 처음 한 일은 한 명도 빠짐없이 자기 자리를 잡는 것이었다. 팀장을 자원할 사람이 없어서 내가 손을 들었고, 그렇게 팀 "카데이터" 의 4 일이 시작됐다.</p>
+
+  <p>역할은 빠르게 정렬됐다. 백엔드(SQLAlchemy + MySQL 서비스 레이어) 담당, DB(스키마·시드) 담당, 크롤링 담당, 그리고 팀장인 나는 수소차 충전소 맵 파트를 <strong>DB 구성 · 크롤링 · GUI 까지 전담</strong>하기로 했다. 발표·시연·QA 도 원하는 사람이 없어서 내가 함께 맡았다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    팀장이라는 자리는 "내가 더 많이 하면 굴러가는" 자리일까, 아니면 "남이 하기 좋게 만드는" 자리일까?
+    가설: 4 일이라는 시간 안에서는 후자 — <em>다른 사람의 입력을 줄이는 사람</em> — 이 더 가치 있을 것이다.
+    그래서 충전소 파트를 통째로 가져가는 대신, 회의·기록·검수 같은 "보이지 않는 일"의 채널을 먼저 만들어야 한다.
+  </div>
+
+  <h3 class="step">실제 시행</h3>
+  <p>당일 안에 결정한 것들:</p>
+  <ul>
+    <li><strong>팀명 · 프로젝트명 · 주제</strong> 1차 후보를 좁힘 (자세한 주제 결정은 CH02 에서 다룬다).</li>
+    <li><strong>역할 분담</strong> 백엔드(서비스 레이어) · DB(스키마) · 크롤링 · 충전소 전담(팀장) 4 트랙.</li>
+    <li><strong>발표 라인업</strong> 시연·QA 는 팀장, 개요 발표는 크롤링 담당, PPT 는 DB 담당, HW(노트북) 는 백엔드 담당.</li>
+    <li><strong>커뮤니케이션 채널</strong> 디스코드 음성·텍스트 + 구글 스프레드시트(이후 합류, CH02 참고).</li>
+  </ul>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    팀장은 "혼자 잘하는 사람" 이 아니라 "팀이 잘하게 만드는 사람" 이다. 충전소 파트를 끝까지 책임지면서도,
+    회의·기록·검수의 줄을 동시에 잡고 가는 것이 4 일짜리 프로젝트의 운영 원칙이 됐다.
+    역할이 정해진 다음에는 곧바로 — 코드보다 먼저 — DB 구조의 그림을 그리러 갔다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 역할은 정해졌다. 그러면 무엇을 만들 것인가. 백엔드 팀원의 한 마디 — "ERD 부터 시작합시다" — 가 이후 모든 회의의 출발선이 됐다.
+  </div>
+</section>
+
+<section id="ch2">
+  <h2 class="chap"><span class="num">CH 02</span> DB 구조 첫 그림 — 주제 결정과 아이디어 brainstorming<a class="anchor-link" href="#ch2">#</a></h2>
+  <p><span class="day-badge">DAY 15–16</span> 백엔드 담당 팀원의 의견대로, 우리는 <strong>UI 가 아니라 ERD 부터</strong> 시작했다. 첫 2 일은 회의실 화이트보드와 노션이 가장 바쁜 도구였다.</p>
+
+  <p>주제 후보는 세 갈래로 좁혀졌다.</p>
+  <ul>
+    <li>① <strong>전기차와 충전 스테이션</strong> — 가장 데이터가 풍부하지만 이미 시장에 너무 많은 대시보드가 존재.</li>
+    <li>② <strong>연료별 자동차 등록 현황</strong> — 범위가 너무 넓고 차별점이 약함.</li>
+    <li>③ <strong>수소차와 그 현황</strong> — 데이터 양은 적지만 충전 인프라가 절대적으로 부족한 영역이라 "어디에 충전소가 더 필요한가" 같은 질문이 그대로 가치가 됨.</li>
+  </ul>
+  <p>최종 선택은 ③. 팀명은 "카데이터", 프로젝트명은 "<strong>물로간다</strong>" 로 정해졌다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    수소차는 데이터가 적은데, 적은 데이터로 무엇을 보여줘야 의미가 있는가?
+    가설: <strong>"양" 이 아니라 "분포와 결핍"</strong> 을 보여주면 된다. 즉, 등록 대수의 추이보다도
+    "어디에 수소차는 있는데 충전소는 없는가" 같은 <em>지역 단위의 매칭</em> 이 메시지가 된다.
+  </div>
+
+  <h3 class="step">아이디어 정리 — 채택과 기각</h3>
+  <p>회의에서 나온 아이디어들을 두 묶음으로 분류했다.</p>
+  <table>
+    <thead><tr><th>분류</th><th>아이디어</th><th>결정</th></tr></thead>
+    <tbody>
+      <tr><td>지도</td><td>수소차 충전소 위치 맵</td><td>✅ 채택 (Folium)</td></tr>
+      <tr><td>그래프</td><td>연도·월별 수소차 등록 현황 추이</td><td>✅ 채택 (Altair 선·바·파이)</td></tr>
+      <tr><td>그래프</td><td>지역별 등록 현황 + 비율(%) + 파이</td><td>✅ 채택</td></tr>
+      <tr><td>분해</td><td>차종(승용·승합·화물)별 분해</td><td>❌ 기각 — 표본이 통계적 유의수준에 못 미침</td></tr>
+      <tr><td>분해</td><td>사용 목적(자가·관용·영업)별 분해</td><td>❌ 기각 — 위와 같은 이유</td></tr>
+      <tr><td>정보</td><td>FAQ 페이지 (현대차 수소차 FAQ)</td><td>✅ 채택 — 폴백 5 개 포함</td></tr>
+      <tr><td>수집</td><td>가능하면 정적 크롤링, 안 되면 자동 크롤링</td><td>✅ 채택 — BeautifulSoup4 + Playwright 하이브리드</td></tr>
+      <tr><td>UI</td><td>Streamlit 기본 템플릿에서 출발</td><td>✅ 채택</td></tr>
+      <tr><td>법적</td><td><code>robots.txt</code> 확인 후 가능한 사이트만 수집</td><td>✅ 채택 — 공공데이터 + 공식 도메인 위주</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">시행 — 구글 스프레드시트로 "지라" 만들기</h3>
+  <p>백엔드 팀원이 "회의 내용·작업 목록·디버깅 노트를 한 곳에 두자" 고 제안했고, 내가 구글 스프레드시트로 팀의 임시 지라를 만들었다.</p>
+  <ul>
+    <li>시트 1 · 팀 정보 (이름/역할/연락처)</li>
+    <li>시트 2 · 작업 목록 (담당·상태·기한)</li>
+    <li>시트 3 · 회의 내용 (날짜·결정 사항)</li>
+    <li>시트 4 · 디버깅 노트 (증상·원인·해결)</li>
+  </ul>
+  <p>실제 시트 링크: <a href="https://docs.google.com/spreadsheets/d/10QCpgSJE9i5_fRU6IW2nIoNO0pWymVEwm7qnRn2TKaQ/edit?gid=471644863#gid=471644863" target="_blank" rel="noopener">물로간다 팀작업현황</a></p>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    주제를 좁힐 때는 "데이터 양" 이 아니라 "데이터가 가리키는 질문" 으로 좁혀야 한다.
+    그리고 회의가 많아질수록 — 4 일짜리라도 — <strong>기록의 채널 하나</strong> 가 반드시 필요하다.
+    우리에게는 그것이 구글 스프레드시트였다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 주제와 기능 후보는 정해졌다. 이제 이 모든 것을 담을 ERD 를 실제로 그릴 차례다. 첫 그림은 예쁘지 않았다.
+  </div>
+</section>
+
+<section id="ch3">
+  <h2 class="chap"><span class="num">CH 03</span> ERD 완성 — regions FK · 크롤링 스텟 · FAQ · 위경도<a class="anchor-link" href="#ch3">#</a></h2>
+  <p><span class="day-badge">DAY 16</span> ERD 초안은 내가 그렸다. 첫 버전의 모습은 디스코드에 공유된 그대로다 — <a href="https://cdn.discordapp.com/attachments/1504712295891079259/1505204973707853834/3a98db8f-b136-466c-ad9f-484f2388138a.png" target="_blank" rel="noopener">초기 ERD 스크린샷</a>. 크롤링 결과를 히스토리로 쌓는 구조였고, <code>target_type</code> 의 제약 조건이 <code>UNIQUE</code> 로 잡혀 있는 등 미완성된 흔적이 그대로 남아 있다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    크롤링 결과를 매 회차마다 히스토리로 쌓아야 할까? 4 명이 4 일 만에 만드는 프로젝트에서?
+    가설: <strong>장기 백업·추세 분석이 목적이 아니라면, 최신 1 회만 유지</strong>하는 것으로 충분하다.
+    히스토리 비용(저장·정합성·UI)에 비해 얻는 가치가 작다.
+  </div>
+
+  <h3 class="step">최종 ERD 의 결정 사항</h3>
+  <p>팀 논의 끝에 4 가지 핵심 결정을 내렸다.</p>
+  <ol>
+    <li><strong><code>regions</code> 를 외래키 마스터로 분리</strong> — <code>car_registrations</code>, <code>hydrogen_charging_station</code> 모두 <code>region_id</code> FK 로 연결. "서울/서울특별시/서울시" 같은 표기 흔들림을 원천 차단.</li>
+    <li><strong><code>crawl_stats</code> 는 독립 테이블 + 최신 1 회만</strong> — 원래는 N:1 FK 로 연결해야 하지만, 히스토리가 아니므로 독립 테이블로 두고 <em>이전 데이터를 지우고 새로 쓰는</em> 방식.</li>
+    <li><strong><code>faq</code> 는 독립 테이블</strong> — 다른 도메인과 관계 없음. <code>question</code>, <code>answer</code>, <code>source_url</code> 만.</li>
+    <li><strong>위도·경도 컬럼 추가</strong> — Folium 지도에 그대로 꽂기 위해 <code>hydrogen_charging_station</code> 에 <code>lat</code>, <code>lng</code> 컬럼.</li>
+  </ol>
+
+  <p>최종 ERD 의 모습은 프로젝트 저장소의 <a href="https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN32-1st-3Team" target="_blank" rel="noopener">SKN32-1st-3Team · README</a> 에 스크린샷으로 정리되어 있다. 정리된 텍스트 다이어그램은 다음과 같다.</p>
+
+  <div class="terminal">
+    <div class="terminal-header"><span class="t-label">ERD - 물로간다 v2 (regions 중심 정규화)</span></div>
+<pre class="terminal-body">                        +--------------------------------------------+
+                        | regions                                    |
+                        +--------------------------------------------+
+                        | [PK] region_id    SMALLINT                 |
+                        |      region_name  VARCHAR(20) UNIQUE       |
+                        +--------------------------------------------+
+                                               |
+                       +-----------------------+-----------------------+
+                       |                                               |
+                       v                                               v
++--------------------------------------------+  +--------------------------------------------+
+| car_registrations                          |  | hydrogen_charging_station                  |
++--------------------------------------------+  +--------------------------------------------+
+| [PK] id            BIGINT                  |  | [PK] id            INT                     |
+| [FK] region_id     SMALLINT                |  | [FK] region_id     SMALLINT                |
+|      stat_year     INT                     |  |      station_name  VARCHAR(100)            |
+|      stat_month    INT                     |  |      address       VARCHAR(255)            |
+|      fuel_type     VARCHAR(30)             |  |      lat           DECIMAL(10,7)           |
+|      vehicle_type  VARCHAR(20)             |  |      lng           DECIMAL(10,7)           |
+|      usage_type    VARCHAR(10)             |  |      crawled_at    DATETIME                |
+|      count         INT                     |  +--------------------------------------------+
+|      crawled_at    DATETIME                |
++--------------------------------------------+
+
++----------------------------------------+   +------------------------------------+
+| faq                                    |   | crawl_stats                        |
++----------------------------------------+   +------------------------------------+
+| [PK] faq_id     INT                    |   | [PK] id         INT                |
+|      question   TEXT                   |   |      target     VARCHAR(50)        |
+|      answer     TEXT                   |   |      last_run   DATETIME           |
+|      source_url VARCHAR(255)           |   |      row_count  INT                |
++----------------------------------------+   +------------------------------------+</pre>
+  </div>
+
+  <h3 class="step">테스트 — 첫 쿼리 검토</h3>
+  <p>스키마를 확정하기 전, 핵심 사용 쿼리("지역별 월별 수소차 등록대수 추이") 가 제대로 돌아가는지 먼저 검토했다. 공공 데이터 특성상 <code>usage_type</code> 과 <code>vehicle_type</code> 에 "계 / 소계" 같은 <strong>이미 합쳐진 행</strong> 이 섞여 있어, 잘못 묶으면 데이터가 2~3 배로 부풀려진다.</p>
+  <pre><code class="language-sql">-- 지역별 월별 수소차 등록대수 추이
+SELECT region, stat_year, stat_month, SUM(count) AS total
+FROM car_registration
+WHERE fuel_type IN ('수소', '수소전기')
+  AND usage_type  = '계'      -- 사용목적 합계 행만
+  AND vehicle_type = '소계'   -- 차종 소계 행만
+  AND region != '전국'        -- '전국' 행 중복 합산 방지 (필수)
+GROUP BY region, stat_year, stat_month
+ORDER BY region, stat_year, stat_month;</code></pre>
+  <blockquote class="cite">
+    <code>usage_type = '계'</code>, <code>vehicle_type = '소계'</code> 처럼 최종 합계 행만 필터링한 덕분에 데이터가 2배, 3배로 뻥튀기되는 현상을 완벽하게 방지했습니다. 그리고 <code>region</code> 에 '전국' 데이터가 함께 누적되고 있으므로, 이를 제외하지 않으면 지역별 합산 값에 전국 합계까지 더해져 데이터가 정확히 2배가 됩니다.
+    <span class="src">— Gemini, 0516 수소차 등록 데이터 SQL 쿼리 검토 노트</span>
+  </blockquote>
+
+  <p>그리고 폴더·파일 명명 규칙은 README 의 구조를 그대로 따랐다. <code>crawling/</code>, <code>data/</code>, <code>dbscript/</code>, <code>gui/</code> 로 나뉘는 4 분할이다.</p>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    "ERD 가 잘 깔리면 위층 코드가 거의 자동으로 나온다" 는 말의 의미를 처음으로 체감했다.
+    <code>regions</code> 를 마스터로 두는 한 가지 결정이 — 이후 모든 크롤러·서비스·차트의 "지역" 처리를 통일시켰다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 그림은 완성됐다. 이제 그 그림이 실제로 돌아가는지 — 프로토타입으로 — 보여줄 차례였다.
+  </div>
+</section>
+
+<section id="ch4">
+  <h2 class="chap"><span class="num">CH 04</span> 프로토타입 — Streamlit + Playwright + n차 정규화 + FAQ 폴백<a class="anchor-link" href="#ch4">#</a></h2>
+  <p><span class="day-badge">DAY 16–17</span> ERD 가 잡힌 다음, 팀의 뼈대가 될 프로토타입을 내가 만들어 공유했다. 이후 모든 작업은 이 프로토타입 위에서 살이 붙는 식으로 진행됐다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    프로토타입은 어디까지 만들어야 "다른 사람이 자기 파트를 붙일 수 있는" 상태일까?
+    가설: <strong>"end-to-end 한 줄이 통째로 흐르는 최소 버전"</strong> — 즉, 크롤링 → DB 적재 → Streamlit 화면 한 사이클이 처음부터 끝까지 돌아가야 한다.
+    부분만 완성되면 합칠 때 모두가 길을 잃는다.
+  </div>
+
+  <h3 class="step">프로토타입의 네 축</h3>
+  <ul>
+    <li><strong>Streamlit GUI</strong> — 기본 템플릿 + 사이드바 필터(연도·지역) + 본문 3 섹션(차트·지도·FAQ).</li>
+    <li><strong>크롤러 하이브리드</strong> — 국토부 사이트는 <a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup4</a> 로 정적 파싱, 자동화가 필요한 사이트는 <a href="https://playwright.dev/python/docs/intro" target="_blank" rel="noopener">Playwright</a> 로 동적 수집.</li>
+    <li><strong>n차 정규화 DB</strong> — <code>regions</code> 외래키 중심의 정규화된 5 테이블 + SQLAlchemy 2.0 엔진.</li>
+    <li><strong>FAQ 폴백 5 건</strong> — 크롤링 실패 시에도 항상 5 건이 출력되도록 시드 데이터를 박아두고, 검색 기능 구현.</li>
+  </ul>
+
+  <p>실행 결과 — <strong>연도 + 지역</strong> 을 선택하면 차트·지도·FAQ 가 동시에 반응하는 한 사이클이 끝까지 흘렀다. 이 상태에서 팀원들이 자기 파트를 가지러 갔다.</p>
+
+  <h3 class="step">테스트 — Streamlit dev 모드</h3>
+  <p>여러 사람이 같은 화면을 만지면서 변경을 빠르게 확인하려면 자동 재로드가 필수였다. 프로젝트 루트의 <code>.streamlit/config.toml</code> 한 줄로 해결됐다.</p>
+  <pre><code class="language-ini">[server]
+runOnSave = true
+
+[development]
+showErrorDetails = true</code></pre>
+  <blockquote class="cite">
+    <code>--server.runOnSave true</code>: 코드를 저장(Ctrl+S)할 때마다 브라우저가 알아서 다시 실행(Rerun)됩니다. 캐시(<code>@st.cache_data</code>, <code>@st.cache_resource</code>)와 함께 써야 무거운 연산이 매번 다시 돌지 않습니다.
+    <span class="src">— Gemini, 0519 노트 (Streamlit dev 모드)</span>
+  </blockquote>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    프로토타입의 미덕은 "예쁘게 만든 부분 작품" 이 아니라 "엉성해도 한 줄이 처음부터 끝까지 흐르는 것" 이다.
+    팀원들에게 줄 수 있는 것이 <strong>붙일 자리</strong> 가 명확한 베이스일 때, 그제서야 협업이 가능해진다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 뼈대가 섰다. 이제 4 명이 그 위에 살을 붙이기 위해 — 시간을 어떻게 쪼개고, 코드를 어떻게 합칠지 — 운영의 룰이 필요했다.
+  </div>
+</section>
+
+<section id="ch5">
+  <h2 class="chap"><span class="num">CH 05</span> 미팅 일정과 깃 브런치 운영 — 5일 협업의 운영체제<a class="anchor-link" href="#ch5">#</a></h2>
+  <p>4 일짜리 프로젝트는 결국 "시간을 어떻게 쓸지" 와 "코드를 어떻게 합칠지" 라는 두 운영체제 위에서 굴러갔다.</p>
+
+  <h3 class="step">미팅 일정</h3>
+  <table>
+    <thead><tr><th>날짜</th><th>시간</th><th>주요 활동</th></tr></thead>
+    <tbody>
+      <tr><td>5/15 (금)</td><td>팀 결성 당일</td><td>역할·주제 후보·발표자 결정, ERD 시작</td></tr>
+      <tr><td>5/16 (토)</td><td>저녁 19:30 ~ 20:30</td><td>ERD 확정, 스프레드시트 운영 시작</td></tr>
+      <tr><td>5/17 (일)</td><td>저녁 18:00 ~ 19:00</td><td>브런치 생성, 그래프 출력 기준 논의(연도 기준 vs 현재 월까지), 충전소 기능 통합</td></tr>
+      <tr><td>5/18 (월)</td><td>09:00 ~ 18:00 (강의), 18:00 ~ 21:00 백엔드 팀원과 마무리</td><td>FAQ 출처 표기 추가, 머지·디버깅 본격화</td></tr>
+      <tr><td>5/19 (화)</td><td>09:00 ~ 15:00 (발표 직전까지)</td><td>오토스케줄러 디버깅, 발표 리허설, 시연·QA</td></tr>
+    </tbody>
+  </table>
+  <p>16 일부터 모든 결정 사항은 <a href="https://docs.google.com/spreadsheets/d/10QCpgSJE9i5_fRU6IW2nIoNO0pWymVEwm7qnRn2TKaQ/edit?gid=471644863#gid=471644863" target="_blank" rel="noopener">스프레드시트</a> 에 기록됐다. "어디까지 이야기됐는지" 를 따로 묻지 않아도 되는 상태가 팀의 속도를 가장 크게 바꿨다.</p>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    4 명에게 가장 좋은 깃 브런치 전략은 무엇인가? GitHub Flow ? Trunk-Based ? Git Flow ?
+    가설: <strong>"각자 트랙별 브런치 + 마스터는 머지로만 변경"</strong> 이 4 일짜리에서 가장 안전하다.
+    크롤링 담당의 제안이었다.
+  </div>
+
+  <h3 class="step">실제 브런치 구성</h3>
+  <pre><code class="language-bash">main                  # 마스터 — 머지로만 변경
+├── feature/gui       # GUI 트랙
+├── db-service        # 백엔드(서비스 레이어) 트랙
+├── sora              # DB 담당 작업 (작명 규칙 예외)
+└── jihye             # 크롤링 담당 작업 (작명 규칙 예외)</code></pre>
+  <p>2 명이 작명 규칙(<code>feature/*</code>) 을 따르지 않았지만, 4 명짜리 소규모 구성이라 진행에 문제가 없어 그대로 두기로 했다.</p>
+
+  <h3 class="step">테스트 — 운영 방식의 두 단계</h3>
+  <p>실제로 굴려보니 운영 방식은 두 단계로 진화했다.</p>
+  <ul>
+    <li><strong>17~18 일 (초반)</strong> — 각자 자기 브런치에서 작업 → 회의 시간에 모두 모여서 머지 → 마스터 이상 없으면 푸시. 안전하지만 머지 대기 시간이 길었다.</li>
+    <li><strong>19 일 (후반)</strong> — 시간이 촉박해지자, 모두가 마스터를 최신으로 풀 → 자기 브런치에도 동기화 → 작업 파일만 따로 들고 작업 → 완료되면 <strong>팀장(나)이 검수 후 마스터에 바로 푸시</strong>. 빠르지만 검수 책임이 한 사람에게 집중.</li>
+  </ul>
+
+  <div class="callout">
+    <span class="label">사고 사례 — 5/18, master 직접 푸시로 파일 손실</span>
+    한 팀원이 18 일에 자기 브런치가 아니라 마스터에 바로 푸시하면서, 일부 경로의 파일이 통째로 덮어써져 사라졌다. 다행히 내가 미리 백업해둔 로컬 파일로 복구에 성공했다. 이 사건 이후 19 일에는 "팀장 검수 후 마스터 푸시" 룰이 더 엄격해졌다.
+  </div>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    브런치 작명 규칙보다 더 중요한 건 <strong>"마스터를 누가, 언제 만질 수 있는가" 의 명시적 합의</strong> 다.
+    그리고 그 합의는 "지키자고 말한 적이 있는가" 가 아니라 "지키지 않았을 때 무엇이 깨졌는가" 의 기록으로만 단단해진다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 운영 룰이 정해졌어도 코드는 계속 성립하지 않았다. 그리고 코드를 깬 것은 대부분 — 코드 자체가 아니라 — 사람과 사람 사이의 약속이었다.
+  </div>
+</section>
+
+<section id="ch6">
+  <h2 class="chap"><span class="num">CH 06</span> 디버깅 — repository.py 자료형, master 푸시 사고, 도메인 합산 버그<a class="anchor-link" href="#ch6">#</a></h2>
+  <p>전체 디버깅 목록은 <a href="https://docs.google.com/spreadsheets/d/10QCpgSJE9i5_fRU6IW2nIoNO0pWymVEwm7qnRn2TKaQ/edit?gid=1542101365#gid=1542101365" target="_blank" rel="noopener">스프레드시트 디버깅 시트</a> 에 정리돼 있다. 이 챕터에서는 시트에 적지 못한 2 개를 포함해, 가장 인상 깊었던 3 개만 추적한다.</p>
+
+  <h3 class="step">사례 1 — 첫 머지에서 터진 자료형 불일치</h3>
+  <p>첫 머지 도중 백엔드 팀원의 <code>repository.py</code> 가 내 프로토타입의 자료형·파라미터 시그니처와 어긋났다. 한쪽은 <code>int region_id</code> 를 받는데 다른 쪽은 <code>str</code> 로 넘기는 식이었다. <strong>코드는 빨갛게 안 뜨지만, 데이터가 안 들어왔다.</strong></p>
+
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    자료형 불일치가 왜 머지 직후에야 드러났는가? 사전에 막을 수는 없었나?
+    가설: <strong>"인터페이스(함수 시그니처와 자료형) 를 한 번이라도 같이 종이에 쓴 적이 있었나"</strong> 가 핵심이다.
+    프로토타입은 내가 혼자 만들었고, 다른 사람의 자료형은 회의에서 한 번도 명시적으로 합의된 적이 없었다.
+  </div>
+
+  <p>해결은 단순했다. 양쪽 시그니처를 한 자리에서 펼쳐놓고 — <strong>입력 타입 · 출력 타입 · 예외 처리</strong> — 를 통일한 뒤 다시 머지. 다만, 그 자리에서 PK 처리 방향에 대한 큰 결정도 함께 나왔다.</p>
+
+  <blockquote class="cite">
+    "앞으로 데이터베이스 테이블 ID(PK)는 무조건 '문자열(<code>str</code>)' 로 처리하고, 비즈니스 로직(Service)은 이게 실제 숫자(<code>int</code>) 인지 UUID 인지 신경 쓰지 않게 하라. 진짜 DB 에 넣고 빼는 단계(Repository/DAO)에서만 알아서 타입을 변환해 주도록 책임을 넘기자." 영속성 레이어가 문자열에서 PK 변환을 책임지는 방향으로.
+    <span class="src">— Gemini, 0519 PK 문자열 처리 책임 분리 노트</span>
+  </blockquote>
+
+  <p>구체적으로 <code>MODEL_INSERT_SQL</code> 의 PK 컬럼을 <code>str</code> 인터페이스로 통일하고, 서비스 레이어는 그대로 <code>str</code> 만 다루며, Repository 안에서 <code>int(region_id_str)</code> 캐스팅을 책임지도록 정리했다. <strong>단일 책임 원칙(SRP)</strong> 의 가장 작고 실용적인 적용이었다.</p>
+
+  <h3 class="step">사례 2 — 5/18 master 직접 푸시 → 파일 손실</h3>
+  <p>CH05 의 사고. 한 팀원이 본인 브런치가 아닌 <code>main</code> 에 바로 푸시하면서 일부 폴더의 파일이 덮어써져 사라졌다. 다행히 내가 그날 오전에 떠뒀던 로컬 백업으로 복구.</p>
+  <div class="callout">
+    <span class="label">배운 점</span>
+    "GitHub 에 있으면 안전하다" 는 환상이 가장 위험하다. 브런치 보호 규칙(<code>main</code> 푸시 차단 + PR 강제)을 처음부터 켜뒀어야 했다. 다음 프로젝트의 0 일차 체크리스트에 박았다.
+  </div>
+
+  <h3 class="step">사례 3 — 크롤링 도메인 합산 버그</h3>
+  <p>증상: 수소차 등록 대수가 비정상적으로 크게 나옴 (예: 한 달에 수십만 대). 원인을 추적해 보니 <strong>크롤러가 "전국" 행과 시도별 행을 함께 SUM</strong> 하고 있었다. 공공 데이터의 흔한 함정이다.</p>
+  <pre><code class="language-sql">-- BAD : 전국 행이 합산되어 정확히 2배
+SELECT region, SUM(count) FROM car_registrations GROUP BY region;
+
+-- GOOD : '전국' / '계' 메타 행을 명시적으로 제외
+SELECT region, SUM(count)
+FROM car_registrations
+WHERE region NOT IN ('전국', '계')
+GROUP BY region;</code></pre>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    세 사고의 공통 원인은 <strong>"명시되지 않은 약속"</strong> 이었다 — 자료형의 약속, 마스터 보호의 약속, 데이터 의미(전국=합계 행)의 약속.
+    디버깅을 잘하는 방법은 결국 약속을 미리 적어두는 방법이다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 머지가 멈췄다. 그러나 멈춘 머지를 다시 굴리기 전에, 발표가 다가오고 있었다.
+  </div>
+</section>
+
+<section id="ch7">
+  <h2 class="chap"><span class="num">CH 07</span> 발표 준비 — 시연·QA·오토스케줄러 말썽<a class="anchor-link" href="#ch7">#</a></h2>
+  <p><span class="day-badge">DAY 18–19</span> 발표 라인업은 일찍 정해져 있었다 — PPT 는 DB 담당, 개요는 크롤링 담당, HW(노트북·디스플레이) 는 백엔드 담당, 그리고 <strong>발표·시연·QA 는 나</strong>. 그러나 마지막 날은 정말 어려움이 많았다.</p>
+
+  <h3 class="step">19일에 동시에 터진 것들</h3>
+  <ul>
+    <li><strong>오토스케줄러 (APScheduler) 말썽</strong> — 충전소 5 분 / FAQ 24 시간 자동 갱신 잡이 발표 직전까지 안정화 안 됨. Streamlit 메인 스레드와 APScheduler 백그라운드 잡 간 DB 세션 충돌이 의심됨.</li>
+    <li><strong>GUI 회귀</strong> — 테스트용 더미 테이블 구조체 자료를 제거하면서, 한동안 그 자료에 의존하던 차트 일부가 빈 화면을 띄움.</li>
+    <li><strong>발표 대본 부재</strong> — 시간이 모자라 시연·QA 대본을 따로 쓸 여유가 없었다. 결국 <strong>대본 없이 시연·QA 에 들어감</strong>.</li>
+  </ul>
+
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    대본 없이 시연·QA 에 들어가도 괜찮은가?
+    가설: <strong>"프로젝트 전체를 끝까지 따라간 사람이 있다면" 가능하다.</strong> 단, 그것은 위험 분산이 아니라 위험 집중이다.
+    나는 4 일 동안 모든 파트를 검수해왔기 때문에 구조를 손바닥처럼 알고 있었지만, 그게 항상 가능한 운영 방식은 아니다.
+  </div>
+
+  <h3 class="step">실제 결과</h3>
+  <ul>
+    <li><strong>시연</strong> — 큰 문제 없이 흘러감. 충전소 지도·차트 필터·FAQ 검색이 끝까지 살아 있었다.</li>
+    <li><strong>발표</strong> — 대본 없이도 흐름은 유지. 사전 점검의 효과.</li>
+    <li><strong>QA</strong> — 일부 질문에 완벽하게 답하지 못함. 특히 "확장성 / 데이터 갱신 주기 / 라이선스" 영역에서 준비가 부족했다.</li>
+    <li><strong>안전판</strong> — 만약 마지막 날 DB 단까지 꼬였다면 정말 심각한이었을 텐데, CH03 의 ERD 가 흔들리지 않은 게 큰 위안이 됐다.</li>
+  </ul>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    발표는 "준비한 만큼 나오는 시험" 이 아니라 "준비하지 못한 부분이 드러나는 시험" 이다.
+    그리고 4 일 짜리 프로젝트에서 가장 마지막에 안정화되는 것이 가장 처음에 안정화돼야 했다는 — <strong>역설</strong> — 을 배웠다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 발표가 끝났다. 평가가 끝나는 시점이 아니라, 회고가 시작되는 시점이다.
+  </div>
+</section>
+
+<section id="ch8">
+  <h2 class="chap"><span class="num">CH 08</span> 회고 — 잘한 것, 부족한 것, 그리고 감사<a class="anchor-link" href="#ch8">#</a></h2>
+  <p>혼자 작업할 때는 배울 수 없는 것들을 배웠다. 정리하면 다음과 같다.</p>
+
+  <h3 class="step">잘했던 것 — 다음에도 가져갈 것</h3>
+  <ul>
+    <li><strong>작업 현황 공유 시스템</strong> 을 일찍 만든 것 — 구글 스프레드시트가 지라 역할을 충실히 했다.</li>
+    <li><strong>ERD 와 프로젝트 구성을 코드보다 먼저</strong> 합의한 것 — 마지막까지 DB 가 흔들리지 않은 이유.</li>
+    <li><strong>중요 사안은 회의로</strong> — 주제·기능·발표자·브런치 전략 모두 합의 후 시작.</li>
+    <li><strong>프로토타입 우선</strong> — end-to-end 한 줄이 흐르는 베이스를 먼저 만들고 나서야 4 명이 자기 파트를 가져갈 수 있었다.</li>
+  </ul>
+
+  <h3 class="step">부족했던 것 — 다음에 개선할 것</h3>
+  <ul>
+    <li><strong>팀원과의 초기 아이스브레이킹</strong> — 첫날부터 "잘 해야 한다" 는 모드로 들어가서, 서로의 강점·약점을 파악할 여유가 부족했다.</li>
+    <li><strong>함수·파라미터·반환값·자료형의 사전 설계</strong> — CH06 의 머지 사고를 막을 수 있었던 단계. 다음 프로젝트에선 "인터페이스 합의 시트" 를 0 일차에 만들 것.</li>
+    <li><strong>깃 브런치 보호와 작명 규칙</strong> — <code>main</code> 보호, PR 강제, 작명 위반 시 PR 차단까지.</li>
+    <li><strong>부족함을 솔직하게 공유하기</strong> — 혼자 끌어안고 가다가 마지막 날에 한꺼번에 터지는 패턴을 자주 만들었다.</li>
+  </ul>
+
+  <h3 class="step">의문 → 가설</h3>
+  <div class="qbox">
+    <span class="label">의문 → 가설</span>
+    내가 "팀의 부족함을 메우는 사람" 으로만 일하면 — 단기적으로 프로젝트는 굴러가지만, 팀은 성장하는가?
+    가설: 그렇지 않다. <strong>팀이 성장하려면 — 팀장이라도 — 자기 부족함을 먼저 꺼내 보일 수 있어야 한다.</strong>
+    다른 팀의 발표를 보며 이 부분을 가장 크게 반성했다. "내 모자란 부분을 같이 푸는 방식" 이 있다는 걸 알게 됐다.
+  </div>
+
+  <h3 class="step">감사</h3>
+  <p>주말에도 회의에 참여하고, 강의 끝나고도 늦게까지 남아 코드를 같이 짜준 팀원들에게 — 이 글의 마지막 단락을 가장 진심으로 쓴다. 부족했던 부분은 내가 알아채지 못한 자리에서 누군가가 메워줬다. 다음 프로젝트의 출발선이 어디든, 이번에 함께 달려준 사람들이 있어서 시작점이 한 칸 앞에 있다.</p>
+
+  <h3 class="step">결론(중간)</h3>
+  <div class="keypoint">
+    <span class="label">결론(중간)</span>
+    회고의 가치는 "무엇이 잘됐나" 를 세는 것이 아니라 "다음에 무엇을 다르게 할까" 를 정하는 데 있다.
+    이번 4 일이 남긴 가장 큰 것은 — 도구가 아니라 — 같이 일하는 방식에 대한 첫 감각이다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 챕터로</strong> — 회고가 끝났다. 마지막으로, 한 주의 도구가 어떻게 한 시스템이 됐는지 — 한 장으로 정리한다.
+  </div>
+</section>
+
+<section id="ch9">
+  <h2 class="chap"><span class="num">CH 09</span> 총 정리 — 한 주의 도구가 시스템이 된다<a class="anchor-link" href="#ch9">#</a></h2>
+
+  <h3 class="step">출발 의문 다시 보기</h3>
+  <div class="qbox">
+    <span class="label">출발 의문</span>
+    네 사람이 한 시스템을 4 일 안에 만들 수 있을까?
+    그리고 5 일치 도구(Python · MySQL · 정적/동적 크롤링 · Streamlit)는 팀이라는 그릇에 담길 때 무엇이 살아남고, 무엇이 깨지는가.
+  </div>
+
+  <h3 class="step">9 챕터 한 줄 요약</h3>
+  <table>
+    <thead><tr><th>챕터</th><th>이 챕터의 한 줄</th><th>남긴 룰</th></tr></thead>
+    <tbody>
+      <tr><td>CH01</td><td>팀장은 잘하는 사람이 아니라 팀이 잘하게 만드는 사람</td><td>역할 분담은 0일차에 결정</td></tr>
+      <tr><td>CH02</td><td>주제는 "데이터 양" 이 아니라 "데이터의 질문" 으로 좁힌다</td><td>기록 채널 1 개 필수 (구글 스프레드시트)</td></tr>
+      <tr><td>CH03</td><td>regions 마스터 정규화 한 결정이 모든 위층 코드를 통일</td><td>"전국/계" 메타 행 명시적 제외</td></tr>
+      <tr><td>CH04</td><td>프로토타입은 예쁘게가 아니라 end-to-end 한 줄</td><td>붙일 자리부터 만든다</td></tr>
+      <tr><td>CH05</td><td>마스터를 누가 언제 만지는지의 명시적 합의가 운영체제</td><td>main 보호 + PR 강제 (다음에 적용)</td></tr>
+      <tr><td>CH06</td><td>세 사고의 공통 원인은 "명시되지 않은 약속"</td><td>인터페이스 시트 0일차 작성 / PK는 str 통일, 변환은 영속성 레이어</td></tr>
+      <tr><td>CH07</td><td>마지막 날 안정화되는 것이 첫날 안정화돼야 한다</td><td>스케줄러·QA 대본은 18일 안에 마감</td></tr>
+      <tr><td>CH08</td><td>팀이 성장하려면 팀장이 먼저 부족함을 꺼낸다</td><td>주간 1회 상호 회고 (다음에 적용)</td></tr>
+      <tr><td>CH09</td><td>도구는 사람이 모일 때 비로소 시스템이 된다</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">기술 스택 한 장 정리</h3>
+  <table>
+    <thead><tr><th>레이어</th><th>도구</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td>수집</td><td>Playwright · BeautifulSoup4</td><td>동적 사이트 자동화 + 정적 페이지 파싱 하이브리드</td></tr>
+      <tr><td>저장</td><td>MySQL · SQLAlchemy 2.0 · PyMySQL</td><td>regions FK 중심 5 테이블, .env 기반 접속 관리</td></tr>
+      <tr><td>스케줄</td><td>APScheduler</td><td>충전소 5 분 / FAQ 24 시간 자동 갱신</td></tr>
+      <tr><td>표현</td><td>Streamlit · Altair · Folium</td><td>단일 <code>app.py</code> · 차트 · 인터랙티브 지도</td></tr>
+      <tr><td>운영</td><td>Git · 구글 스프레드시트 · Discord</td><td>브런치 분리 · 작업 현황 공유 · 회의</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="step">최종 결론</h3>
+  <div class="keypoint">
+    <span class="label">최종 결론</span>
+    네 사람이 한 시스템을 4 일 안에 만드는 일은 — <strong>가능</strong>하다.
+    단, 가능하게 만드는 것은 도구가 아니다. 도구는 5 일이면 다 배운다.
+    가능하게 만드는 것은 <strong>약속을 미리 적어두는 사람</strong> 과 <strong>그 약속을 같이 지키려는 사람</strong> 들이다.
+    이번 주의 가장 큰 배움은 — 코드가 아니라 — 그 약속의 자리를 어디에 만들 것인가에 대한 첫 감각이다.
+  </div>
+
+  <div class="bridge">
+    <strong>다음 한 줄</strong> — 다음 프로젝트의 0 일차 체크리스트엔 이미 6 줄이 박혀 있다 — <em>인터페이스 시트 · main 보호 · 작명 규칙 · 사전 회고 · 백업 룰 · 발표 대본 마감일</em>. 그게 이 글의 진짜 결과물이다.
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <p><strong>참고 자료</strong></p>
+    <ul class="refs">
+      <li><a href="https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN32-1st-3Team" target="_blank" rel="noopener">SKN32-1st-3Team · GitHub Repository</a> — 프로젝트 코드와 README, ERD 최종본</li>
+      <li><a href="https://docs.google.com/spreadsheets/d/10QCpgSJE9i5_fRU6IW2nIoNO0pWymVEwm7qnRn2TKaQ/edit?gid=471644863#gid=471644863" target="_blank" rel="noopener">물로간다 팀작업현황 · 구글 스프레드시트</a> — 회의·작업·디버깅 기록</li>
+      <li><a href="https://docs.google.com/spreadsheets/d/10QCpgSJE9i5_fRU6IW2nIoNO0pWymVEwm7qnRn2TKaQ/edit?gid=1542101365#gid=1542101365" target="_blank" rel="noopener">디버깅 노트 시트</a></li>
+      <li><a href="https://docs.streamlit.io/develop/api-reference/caching-and-state/st.cache_resource" target="_blank" rel="noopener">Streamlit · <code>st.cache_resource</code> 공식 문서</a></li>
+      <li><a href="https://docs.streamlit.io/develop/concepts/configuration/options" target="_blank" rel="noopener">Streamlit · Configuration Options (runOnSave)</a></li>
+      <li><a href="https://playwright.dev/python/docs/intro" target="_blank" rel="noopener">Playwright for Python · 공식 문서</a></li>
+      <li><a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup 4 · 공식 문서</a></li>
+      <li><a href="https://docs.sqlalchemy.org/en/20/core/engines.html" target="_blank" rel="noopener">SQLAlchemy · Engine Configuration</a></li>
+      <li><a href="https://altair-viz.github.io/" target="_blank" rel="noopener">Altair · Declarative Visualization in Python</a></li>
+      <li><a href="https://python-visualization.github.io/folium/" target="_blank" rel="noopener">Folium · Documentation</a></li>
+      <li><a href="https://apscheduler.readthedocs.io/" target="_blank" rel="noopener">APScheduler · Documentation</a></li>
+      <li><a href="https://www.data.go.kr/" target="_blank" rel="noopener">공공데이터포털 (수소차 등록 / 충전소 CSV)</a></li>
+      <li><a href="https://www.molit.go.kr/" target="_blank" rel="noopener">국토교통부 (자동차 등록 통계 Excel)</a></li>
+      <li><a href="https://www.ev.or.kr/" target="_blank" rel="noopener">무공해차 통합누리집 (충전소·현황)</a></li>
+      <li><a href="https://www.hyundai.com/kr/ko/e/customer/center/faq" target="_blank" rel="noopener">현대자동차 · FAQ (수소차)</a></li>
+      <li><a href="https://playdatacademy.notion.site/WIL-c369e8df522e4811a76edc4cf74fcf06" target="_blank" rel="noopener">플레이데이터 · WIL 작성 가이드</a></li>
+    </ul>
+
+    <p style="margin-top:18px"><strong>참고한 학습 노트</strong></p>
+    <ul class="refs">
+      <li><code>.study/notes/0516 수소차 등록 데이터 SQL 쿼리 검토 - Google Gemini.mhtml</code></li>
+      <li><code>.study/notes/0519 PK 문자열 처리 책임 분리 - Google Gemini.mhtml</code></li>
+    </ul>
+
+    <p style="margin-top:18px"><strong>참고한 코드</strong></p>
+    <ul class="refs">
+      <li><code>../crawling_project/SKN32-1st-3Team/crawling/crawler_molit.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/crawling/crawler_station.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/crawling/crawler_faq.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/data/db.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/data/service.py</code></li>
+      <li><code>../crawling_project/SKN32-1st-3Team/dbscript/dbscript_table.sql</code></li>
+    </ul>
+
+    <p style="margin-top:18px"><strong>소스 코드</strong></p>
+    <ul class="refs" style="margin-top:4px">
+      <li><a href="https://github.com/roroblack/python_workspace" target="_blank" rel="noopener">GitHub · roroblack/python_workspace</a></li>
+      <li><a href="https://roroblack.github.io/python_workspace" target="_blank" rel="noopener">GitHub Pages · 블로그 목록</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>

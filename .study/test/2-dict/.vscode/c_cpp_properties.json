@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "CPython (Windows)",
+            "includePath": [
+                "C:/cpython/Include",
+                "C:/cpython/Include/internal",
+                "C:/cpython/PC",
+                "C:/cpython/PCbuild/amd64"
+            ],
+            "defines": [
+                "Py_BUILD_CORE",
+                "Py_BUILD_CORE_BUILTIN",
+                "_DEBUG",
+                "WIN32",
+                "_WINDOWS"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c17",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}

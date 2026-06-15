@@ -1,0 +1,43 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "CPython C Debug (python_d.exe)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "C:/cpython/PCbuild/amd64/python_d.exe",
+            "args": ["-c", "d = {}; d['key'] = 'value'; print(d)"],
+            "stopAtEntry": false,
+            "cwd": "C:/cpython",
+            "environment": [],
+            "sourceFileMap": {
+                "C:/cpython": "C:/cpython"
+            },
+            "symbolSearchPath": "C:/cpython/PCbuild/amd64",
+            "visualizerFile": "",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "CPython C Debug: run main.py",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "C:/cpython/PCbuild/amd64/python_d.exe",
+            "args": ["${workspaceFolder}/main.py"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "sourceFileMap": {
+                "C:/cpython": "C:/cpython"
+            },
+            "symbolSearchPath": "C:/cpython/PCbuild/amd64",
+            "console": "integratedTerminal"
+        }
+    ]
+}

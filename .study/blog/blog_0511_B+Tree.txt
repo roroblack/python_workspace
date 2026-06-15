@@ -1,0 +1,159 @@
+blog 글감
+
+-----------------------
+
+B+트리에 대한 html 파일을 그냥 처음부터 다시 만들자. 내가 말하는 것과 GUIDE.txt 파일을
+참고해서 완성해. 아래의 내용을 실제 mysql 서버의 구현코드와 mysql 의 공문서와 
+python 등등을 기존에 하던 방식처럼 
+신뢰할 만한 공문서와 링크들과 자료들을 정확하게 제시하고 링크를 주면서 작성해
+아래는 간단한 목차와 들어가야 할 내용이 담긴 메뉴얼이고 이걸 위 내용과 자료들을
+바탕으로 자세하게 확장하면서 블로그 글을 구성해야 해.
+
+순서 :
+1. mysql 의 구조는 어떻게 되어 있는가? 자료는 어떤 알고리즘으로 저장되는가?
+	컬럼이 저장 될 때 어떻게 되는지 직접 확인해 보자.
+	-> 	내부는 B+트리. B-트리와 차이는?
+		mysql 의 공문서와 깃허브의 mysql 서버 실제 코드로
+		내부에 구현된 코드 헤더로 간단하게 구성 파악하기
+
+2. 레드블랙트리나 다른 알고리즘이 아니라 B+트리를 선택해야만 했던 이유
+	->	big o 가 log n 으로 되는 구성이지만 실제로는 
+		페이지 사이즈 (4KB, 16KB, 64KB) 로 테이블이 구성되서 찾아 들어가는
+		횟수가 ~3회 정도로 나와서 O(1) 에 가까운 실성능
+
+3. O(1) 이 실제로 어떻게 가능해지는가?
+	-> 	mysql 코드를 실제로 테이블 구성을 어떻게 했고 어떤기술을 써서
+		O[1] 에 가까운 성능을 만들었는가? 
+		클러스터형 인덱스, 어뎁티브 해시 인덱스, innoDB 버퍼풀
+
+4. 클러스터형 인덱스, 어뎁티브 해시 인덱스, innoDB 버퍼풀을 써서 성능을 높인다
+	->	그렇다면 이때 이 기술들은 각각 무엇이고 내부 코드와 
+		알고리즘 구성을 어떻게 했는가?
+
+5. 클러스터형 인덱스는 무엇이고 여기서 B+트리의 어디에 쓰이고 
+	어떤 알고리즘으로 되어 있나?
+	->	테이블 자체가 인덱스 - 이건 정확히 무슨 의미인가? 기술적으로 어떻게		어떤 코드와 알고리즘으로 구현했는가?
+		사전(Dictionary)식 구성
+
+6. B+Tree 구조에서 클러스터형 인덱스는 어디에 쓰이나?
+	-> 	B+Tree의 '리프 노드(Leaf Node)' 영역 전체에 쓰임
+		리프노드 : 데이터 페이지 역할
+		루트 및 중간 노드 : 자식페이지 주소와 최소 기본키만 가짐
+		내부 배열이 쓰이는 곳 : 	키와 자식 페이지 주소 포인터
+					페이지 끝의 페이지 디렉터리
+					페이지 내부의 데이터 값들 - 연속된 배열형
+		
+               [ Root Node ] (Page #1)
+               [  id=100   ]
+              /             \
+             /               \
+   [ Intermediate Node ]   [ Intermediate Node ] (Page #2, #3)
+   [ id=10, id=50 ]        [ id=110, id=150 ]
+       /       \               /        \
+      /         \             /          \
+ [ Leaf Node ] [ Leaf Node ] [ Leaf Node ] [ Leaf Node ] (Page #4, #5, #6, #7)
+ [ id=10, data ] [ id=50, data ] [ id=110, data ] [ id=150, data ]
+ [ id=11, data ] [ id=52, data ] [ id=115, data ] [ id=160, data ]
+     <-------- Double Linked List -------->
+
+7. 클러스터형 인덱스 내부 알고리즘은?
+	-> 	데이터를 조회, 삽입, 탐색할 때 사용하는 3가지 핵심 알고리즘 구조
+		- 이진 탐색 기법 알고리즘
+		- 리프노드간 양방향 링크드리스트
+		- 페이지 분할 알고리즘 : 이건 어떻게 구현되어 있나
+
+8. 어뎁티브 해시 인덱스? AHI 이건 무엇?
+	-> 	- 자주 쓰이는 데이터의 주소를 모아서 실제로 O(1) 의 속도로 빠르게
+		접근하는 해시테이블 방식의 구조
+		- 내부 카운터를 통한 탐색 분석
+		- 해시 테이블 빌드 ($O(1)$ 완성)
+		- AHI의 한계와 단점 (주의해야 할 팩트) : 유리하거나 불리한 상황
+
+9. innoDB 버퍼풀은 무엇인가? 어떻게 구성되어 있는가?
+	-> 	3가지 종류의 링크드 리스트로 구성
+		- LRU, 플러시, 프리
+			https://docs.oracle.com/cd/E17952_01/mysql-8.0-en/images/innodb-buffer-pool-list.png
+		- 각각은 어떻게 연결되어 있는가?
+		- OS 캐시가 있는데 왜 DB가 자체 버퍼 풀을 쓸까?
+
+10. 이제 실제로 테이블을 생성하고 컬럼을 삽입하면 이러한 요소들이 어떻게 동작?
+		이미지로 보여줘.
+	-> 	InnoDB 버퍼 풀 인메모리 관리 체계. 출처: Medium
+			https://miro.medium.com/v2/resize:fit:786/format:webp/0*__CZ_SHN58KU9X_r
+		MySQL InnoDB 공식 엔진 아키텍처. 출처: MySQL :: Developer Zone
+			https://dev.mysql.com/doc/refman/8.4/en/images/innodb-architecture-8-0.png
+		PlanetScale 기술 가이드의 B+Tree 인덱스 구조도. 출처: PlanetScale
+			https://planetscale.com/assets-2024/blog/content/the-mysql-adaptive-hash-index/btree-search.jpg
+			https://planetscale.com/blog/the-mysql-adaptive-hash-index
+
+[INSERT 요청] 
+      │
+      ├──> ① [In-Memory / Log Buffer] 변경 이력을 레도 로그 버퍼에 기록
+      │
+      ├──> ② [In-Memory / Buffer Pool] 16KB 데이터 페이지의 내부 '배열' 공간에 레코드 밀어 넣음
+      │         │
+      │         ├──> ⓐ 내부 'Page Directory 배열'을 정렬하여 이진 탐색($O(\log K)$) 공간 확보
+      │         │
+      │         └──> ⓑ 제어 블록 포인터를 작동시켜 [LRU 리스트]와 [Flush 리스트]에 동시에 엮음(Multi-Linking)
+      │
+      ├──> ③ [In-Memory / AHI] 이 삽입/조회 패턴이 빈번해지면 '글로벌 해시 테이블'에 포인터 등록 ($O(1)$ 통로 개설)
+      │
+      └──> ④ [On-Disk / Redo Log] 레도 로그가 SSD에 물리적으로 기록 완료되면 유저에게 성공 반환 (Commit)
+               │ (이후 백그라운드 스레드가 Flush 리스트를 훑으며 users.ibd 디스크 파일에 비동기 Write 수행)
+
+11. 테이블 생성하고 pk 지정하고 AUTO_INCREMENT 지정 될 때 내부 구조에서는 어떤 일들이 일어나지? 구조도로 이미지화해서 알기
+	->	기본키 순차 삽입 시의 데이터 페이지 축적 구조. 출처: Stack Overflow
+			https://i.sstatic.net/w1jXY.png
+		
+12. 중복에 대한 경합 발생시 해결방법은?
+	-> 	과거 : 뮤텍스
+		현재 : 락프리 - 인터락 방식
+		해당 방법에 대해 실제 컬럼이 들어가고 병합이 발생하는 상황을
+		가정하고 이 때 구조도 그림을 제공하고 실제 코드 내부를 보며 값이
+		들어가고 결과가 나오는 과정을 보여줌
+
+13. 어떻게 하면 더 빠르게 할 수 있을까?
+
+14. 총정리
+
+15. CH 15 총 정리 — 출발 의문 회수 : "왜 B+Tree 여야만 했는가"
+
+	이 챕터는 CH01~CH14 전체를 하나의 사슬로 묶어 회수하는 챕터.
+	각 챕터에서 세운 가설과 확인된 핵심 한 줄만 꺼내서 재조립한다.
+
+	구성:
+	1) 출발 의문 재제시
+		INSERT INTO users VALUES(...) 한 줄이 들어갈 때 내부에서 무슨 일이 일어나는가?
+		왜 B+Tree 여야만 했는가?
+
+	2) 챕터별 핵심 한 줄 요약표 (표 형태로 제시)
+		| CH   | 주제                     | 핵심 한 줄                                                           |
+		|------|--------------------------|----------------------------------------------------------------------|
+		| CH01 | B+Tree 자료구조          | InnoDB 의 모든 인덱스는 B+Tree(lv0=leaf). SHOW INDEX → BTREE 확인    |
+		| CH02 | 왜 B+Tree 인가           | 분기계수 B≈1000 → 10억 행도 3단계. 디스크 I/O 횟수가 전부다          |
+		| CH03 | O(1)에 가까운 성능       | 클러스터드 인덱스+AHI+Buffer Pool 3중 합산 → 97% hash 즉답           |
+		| CH04 | 세 기술 개관             | 각 기술은 직렬이 아니라 병렬. 캐시 미스 수준에 따라 단계적 fallback  |
+		| CH05 | 클러스터드 인덱스        | 리프 페이지 == 데이터 페이지. second lookup 0회                       |
+		| CH06 | B+Tree 내 위치           | 내부 배열 3곳: 중간 노드 라우팅 배열 / Page Directory 슬롯 / 레코드  |
+		| CH07 | 내부 알고리즘 3가지      | Page Dir 이진탐색 + FIL_PAGE_NEXT 수평이동 + right-only split         |
+		| CH08 | AHI                      | 내부 카운터가 임계 초과 시 글로벌 해시 빌드 → B+Tree 수직하강 생략   |
+		| CH09 | Buffer Pool              | LRU/Flush/Free 3-list multi-linking. OS 캐시 우회(O_DIRECT)          |
+		| CH10 | INSERT 전체 흐름         | Redo→Buffer Pool→Page Dir→Multi-Link→AHI→디스크 WAL 순서             |
+		| CH11 | AUTO_INCREMENT           | dict_table_t::autoinc 단조증가 → right-only split → 단편화≈0          |
+		| CH12 | 동시성 경합              | mutex → std::atomic(인터락) + 파티셔닝 → 멀티코어 락 경합 제거        |
+		| CH13 | 최적화 포인트            | 커버링 인덱스: secondary만으로 완결 → clustered 재조회 0회            |
+		| CH14 | 전체 구조도              | 7개 자료구조가 mini-transaction 하나로 묶여 동시 작동                  |
+
+	3) 최종 결론 — 출발 의문 회수
+		"왜 B+Tree 여야만 했는가"
+		→ B+Tree 자체가 빠른 게 아니다.
+		→ B+Tree 위에 클러스터드 인덱스 / AHI / Buffer Pool 이라는 가속 장치를
+		  얹기에 가장 적합한 구조이기 때문이다.
+		→ 분기계수가 커서 높이가 3단계에 수렴하고,
+		  리프끼리 이중 연결 리스트로 이어져 범위 검색이 수평이동만으로 끝나며,
+		  right-only split 이 AUTO_INCREMENT 와 맞물려 단편화를 0으로 유지한다.
+		→ 이 세 가지 구조적 특성이 AHI와 Buffer Pool이 제 역할을 할 수 있는
+		  토대를 만든다.
+		→ 결론: O(log_B n) 이지만 B≈1000, 루트/중간 노드는 버퍼풀에 상주,
+		  자주 쓰는 키는 AHI가 O(1)으로 단락 → 운영 환경에서 사실상 O(1).
+

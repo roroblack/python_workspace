@@ -1,0 +1,38 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CPython: Build Debug",
+            "type": "shell",
+            "command": "C:/cpython/PCbuild/build.bat",
+            "args": ["-d"],
+            "options": {
+                "cwd": "C:/cpython"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "CPython: Build Release",
+            "type": "shell",
+            "command": "C:/cpython/PCbuild/build.bat",
+            "args": [],
+            "options": {
+                "cwd": "C:/cpython"
+            },
+            "group": "build",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
+}

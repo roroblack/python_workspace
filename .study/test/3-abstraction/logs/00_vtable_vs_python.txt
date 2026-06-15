@@ -1,0 +1,18 @@
+============================================================
+# 00_vtable_vs_python
+============================================================
+Child.__mro__ : ['Child', 'Base', 'object']
+'method' in Child.__dict__: True
+'method' in Base.__dict__ : True
+Child.method() 호출
+꽥꽥! (Duck)
+꽥꽥 흉내냄 (Person) — Duck 상속 없음
+AttributeError: 'Stone' object has no attribute 'quack'
+로봇: 삐-뽀!
+로봇: 업그레이드됨!
+로봇: 삐-뽀!
+
+[덕 타이핑 장단점]
+장점: 상속 계층 없이도 다형성 — 유연하고 재사용성 높음
+단점: 구현 누락을 컴파일 타임에 잡지 못함 — 런타임 AttributeError
+해결: ABC(명시적 강제) 또는 Protocol(구조적 타입 힌트)으로 보완

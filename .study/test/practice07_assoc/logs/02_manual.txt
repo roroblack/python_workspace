@@ -1,0 +1,13 @@
+============================================================
+# 02_manual
+============================================================
+[수동 계산] 규칙 whole milk -> yogurt
+  support(whole milk)        = 0.2555
+  support(yogurt)            = 0.1395
+  support(whole milk,yogurt) = 0.0560
+  confidence = sup(A,B)/sup(A) = 0.2193
+  lift = confidence/sup(B)     = 1.5717
+
+[mlxtend] 같은 규칙
+  support=0.0560  confidence=0.2193  lift=1.5717
+  → 수동 계산과 일치: True

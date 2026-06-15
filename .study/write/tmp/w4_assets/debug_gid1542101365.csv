@@ -1,0 +1,20 @@
+번호,일자,내용,담당,상태,해결 방법
+1,2026-05-18,"save 도중 region_id 바인딩 불일치 :
+CarRegistrationItem의 필드는 region (문자열)인데, MODEL_INSERT_SQL은 :region_id를 기대함 → _item_to_params()가 region_id 키를 못 찾아 SQL 오류",박회종,Closed,MODEL_INSERT_SQL 를 str 로 작업하게 수정. 영속성 레이어가 문자열에서 PK 변환을 책임지는 방향으로 해서 DB에 넣고 빼는 단계(Repository/DAO)에서만 알아서 타입을 변환해 주도록 함
+2,2026-05-18,"크롤링 과정에서 발생)
+누계 로직 오류 문제 : 분류별 수소차등록 소계를 전부 합산하던 오류",김지혜,Closed,수소에서 다음 분류로 넘어가는 행번호와 '계' 문자의 열번호를 찾아서 그 다음 열 값들의 시트상의 합을 구하여 count 하는 식으로 로직을 수정하여 해결
+3,2026-05-18,수소충전소 테이블 외례키 없음 에러,권소라,Closed,"    FOREIGN KEY (region_id) REFERENCES regions(region_id)
+sql 코드로 외례키를 잡아줘서 해결"
+4,2026-05-18,슬라이더의 최대값이 선형그래프에 반영되지 않던 오류,최연우,Closed,"기간의 라벨을 쓰고 레인지값을 주어서 해결 :  f""기간: **{year_label(year_range[0])} ~ {year_label(year_range[1])}**"""
+5,2026-05-18,월데이터 연동 오류 : crawling 작업에서 최신 월 데이터를 app.py 에 연동하는 기능이 작동을 안함 : 필터 - 등록기간 선택과 연도별수소차등록현황 선형 그래프에 월이 표시되지 않던 오류,최연우,Closed,"crawler_molit.py 파일에서 월 데이터를 가지고 app.py 에서 받아갈 수 있게 제공 => STAT_MONTH: int = st.session_state.get(""stat_month"") 를 전역에 추가하고 month = _ac.last_stat_month 해당 파트에서 month 를 메모리에 받아오고  if month: st.session_state[""stat_month""] = month  # 실제 수집 월을 전역 변수에 반영 (이 때 st 로 가져와서 페이지 갱신시 초기화를 막음)"
+6,2026-05-18,필터의 키값들이 초기화 되는 오류 : 필터를 수정한 뒤에 홈 화면으로 이동한 뒤에 다시 필터가 있는 탭으로 돌아오면 수정한 값들이 초기화되던 오류,최연우,Closed,"쉐도우키를 사용해서 해결 :  스트림릿 세션에 데이터를 저장 =>  st.session_state[""year_range_saved""] = year_range 이후 _default_year_range = st.session_state.get(""year_range_saved"", (year_min, slider_year_max)) 와 같이 데이터를 불러와서 기본값을 사용해서  해결"
+7,2026-05-18,인서트 중첩 문제 : repository.py 의 save 기능이 앱 재시작등으로 반복시마다 크롤링이 발생하며 인서트가 발생하던 문제,박회종,Closed,(UPSERT) == ON DUPLICATE KEY UPDATE count = VALUES(count) 를 car_registratioins 의 insert 문 내에 추가해 있으면 카운트 갱신 없으면 추가하는 방식으로 해결
+8,2026-05-19, 수소충전소 차트 선택 연동 오류 : 인덱스의 행 번호로 저장해서 지역을 바꾸면 같은 행 번호가 다른 충전소를 가리켜서 표시되는 오류,최연우,Closed,region_name + station_name + address + lat + lon 기반의 _station_key로 선택값을 저장하고 지도의 마커키와 비교해서 찾음
+9,2026-05-19,python -m crawling.crawler_faq 이 동작하지 않는 오류,최연우,Closed,프로그램 코드가 정상 동작하지만 실제 자료를 제공해줘야 하는 faq 사이트 중에 무공해차 누리집 (https://ev.or.kr/nportal/partcptn/initFaqAction.do) 의 페이지가 다운되어 자료를 받아오지 못해 에러가 발생. 이 경우 가능한 faq 링크만 사용하고 디폴트 faq 값을 폴백방식으로 잡아줘서 해결
+10,2026-05-19,물결표 2개가 취소선으로 입력되는 마크다운 오류,최연우,Closed,FAQ 본문 출력 시 ~를 &#126; HTML 엔티티로 바꾸도록 수정해서 해결
+11,2026-05-19,사이트에서 저장&불러오기를 한 뒤에 선택 가능한 오브젝트 들이 동작을 안하던 오류,최연우,Closed,"저장된 ZIP 불러오기 처리 흐름이 리런마다 반복되는 문제 : 중복 업로드 방지 토큰, 홈 지표 기준 수정, 차트 라디오 key 들을 보강해서 해결. 코드 :  if uploaded_zip is None:
+    st.session_state.pop(""dataset_upload_token"", None)
+else:
+    uploaded_zip_bytes = uploaded_zip.getvalue()
+    uploaded_zip_token = hashlib.sha256(uploaded_zip_bytes).hexdigest()
+if uploaded_zip is not None and uploaded_zip_token != st.session_state.get(""dataset_upload_token""):"

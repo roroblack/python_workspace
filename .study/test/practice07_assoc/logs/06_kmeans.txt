@@ -1,0 +1,13 @@
+============================================================
+# 06_kmeans
+============================================================
+KMeans k=4, 특성=상위20품목, 거래 9835건
+inertia(군집 내 제곱합): 14808.8
+군집 크기: [1500, 1529, 1789, 5017]
+
+[군집별 대표 품목 — 군집 내 평균 구매율 상위 4]
+  군집 0 (n=1500): soda(1.00), rolls/buns(0.21), whole milk(0.17), bottled water(0.16)
+  군집 1 (n=1529): whole milk(1.00), rolls/buns(0.22), yogurt(0.18), root vegetables(0.15)
+  군집 2 (n=1789): other vegetables(1.00), whole milk(0.41), root vegetables(0.26), yogurt(0.23)
+  군집 3 (n=5017): rolls/buns(0.15), canned beer(0.11), yogurt(0.10), bottled water(0.09)
+[chart] ch06_kmeans.png 저장

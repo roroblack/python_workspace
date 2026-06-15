@@ -1,0 +1,3 @@
+sin·cos 그래프 base64 길이 : 36584 문자
+PNG 저장 : c:\_proj\python_workspace\.study\write\tmp\..\..\test\day0523\logs\01_sin_cos.png
+base64 미리보기 저장 : c:\_proj\python_workspace\.study\write\tmp\..\..\test\day0523\logs\01_sin_cos_b64.txt

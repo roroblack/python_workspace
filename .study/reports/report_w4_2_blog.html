@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>블로그 작성 최종 보고서 — W4-2 (0520~0523)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+
+  :root {
+    --accent: #52A97E;
+    --accent-2: #E8875A;
+    --accent-3: #5B9BD5;
+    --accent-4: #9178C4;
+    --bg: #f9f9f9;
+    --surface: #fff;
+    --border: #d8d8d8;
+    --text: #222;
+    --muted: #666;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', 'Nanum Gothic Coding', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 960px; margin: 0 auto; }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    border-left: 6px solid var(--accent);
+    padding-left: 1rem;
+    margin-bottom: 0.4rem;
+  }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 2.5rem 0 0.8rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.5rem 0 0.5rem;
+    color: var(--accent-3);
+  }
+
+  p { margin-bottom: 0.8rem; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.88rem;
+  }
+  th {
+    background: var(--accent);
+    color: #fff;
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+    font-weight: 700;
+  }
+  td {
+    padding: 0.45rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f4f4f4; }
+
+  .pass  { color: #27ae60; font-weight: 700; }
+  .fail  { color: #e74c3c; font-weight: 700; }
+  .fixed { color: var(--accent-2); font-weight: 700; }
+  .na    { color: var(--muted); }
+
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .summary-box ul { padding-left: 1.3rem; }
+  .summary-box li { margin-bottom: 0.3rem; }
+
+  .file-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  .file-card-header {
+    background: var(--accent-3);
+    color: #fff;
+    padding: 0.6rem 1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .file-card-body { padding: 1rem 1.2rem; }
+
+  code {
+    font-family: 'Nanum Gothic Coding', monospace;
+    background: #f0f0f0;
+    padding: 0.1em 0.35em;
+    font-size: 0.88em;
+    border-radius: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.1em 0.5em;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 0;
+    margin-left: 0.4em;
+  }
+  .badge-pass  { background: #27ae60; color: #fff; }
+  .badge-fixed { background: var(--accent-2); color: #fff; }
+
+  .final-bar {
+    background: var(--accent);
+    color: #fff;
+    padding: 1rem 1.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-top: 2.5rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>블로그 작성 최종 보고서</h1>
+  <p class="subtitle">W4-2 (0520~0523) · SK Networks AI Family 32기 · 교과목 2 · 데이터 분석</p>
+
+  <!-- ===================== 개요 ===================== -->
+  <h2>1. 작업 개요</h2>
+
+  <div class="summary-box">
+    <ul>
+      <li><strong>생성 파일 수</strong> : 4개 (일일 블로그 3편 + 회고 1편)</li>
+      <li><strong>기준 문서</strong> : <code>GUIDE.txt</code> §1~§27 전체 · <code>about.txt</code> · <code>plan_day0521_0523.txt</code></li>
+      <li><strong>출력 경로</strong> : <code>c:\_proj\python_workspace\.study\blog\</code></li>
+      <li><strong>평가→개선 반복</strong> : 생성 후 §1~§27 전항목 검토 → 이슈 발견 시 즉시 수정 → 재검증</li>
+      <li><strong>환경</strong> : Windows 11 · AMD Ryzen 5 8600G · 24 GB LPDDR5 · RTX 4070 Super 12 GB · Python 3.13.5 · VS Code 1.117.0</li>
+    </ul>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>파일명</th>
+        <th>주제</th>
+        <th>날짜</th>
+        <th>크기 (바이트)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>day0521_data_preprocessing.html</code></td>
+        <td>변수 변환 · 결측값 처리</td>
+        <td>0521</td>
+        <td>~30,302</td>
+      </tr>
+      <tr>
+        <td><code>day0522_outlier_normalization.html</code></td>
+        <td>이상값 탐지 · 데이터 정규화</td>
+        <td>0522</td>
+        <td>~30,964</td>
+      </tr>
+      <tr>
+        <td><code>day0523_data_visualization.html</code></td>
+        <td>데이터 시각화 (matplotlib · seaborn)</td>
+        <td>0523</td>
+        <td>~269,167 (base64 이미지 5개 포함)</td>
+      </tr>
+      <tr>
+        <td><code>retrospective_w4_2.html</code></td>
+        <td>4주차-2 회고 (0520~0522)</td>
+        <td>—</td>
+        <td>~20,000</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== GUIDE 준수 현황 ===================== -->
+  <h2>2. GUIDE.txt §1~§27 준수 현황</h2>
+
+  <p>아래 표는 4개 파일에 공통 적용된 규칙을 나타낸다.
+  <span class="pass">PASS</span> = 준수 확인,
+  <span class="fixed">FIXED</span> = 초기 누락 → 수정 완료,
+  <span class="na">N/A</span> = 해당 없음.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>섹션</th>
+        <th>규칙 요약</th>
+        <th>0521</th>
+        <th>0522</th>
+        <th>0523</th>
+        <th>retro</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>§1</td>
+        <td>파일명 형식 day<code>MMDD</code>_<em>slug</em>.html / retrospective_<em>tag</em>.html</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§2-A</td>
+        <td>서사 사슬 : 도입bridge → CH01~N 구조</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§2-B</td>
+        <td>챕터 bridge <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt; — …</code></td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+      </tr>
+      <tr>
+        <td>§3</td>
+        <td>OG/Twitter 메타태그 (<code>og:title</code>, <code>og:description</code>, <code>twitter:title</code>, <code>twitter:description</code>)</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+      </tr>
+      <tr>
+        <td>§4</td>
+        <td>CSS <code>--shadow: none</code> (Swiss 스타일 유지)</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+      </tr>
+      <tr>
+        <td>§5</td>
+        <td>터미널 블록 : runner.py 실행 결과, <code>PS&gt;</code> 프롬프트, 맥 dot(●●●) 금지</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="na">N/A</td>
+      </tr>
+      <tr>
+        <td>§7</td>
+        <td>최종 챕터 keypoint에 FINAL CONCLUSION 레이블</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§9</td>
+        <td>표지 : eyebrow / headline / deck / 메타(날짜·커리큘럼·환경·HW)</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td><code>div.terminal</code> 수 == <code>pre.terminal-body</code> 수 (짝 일치)</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="na">N/A</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td>외부 URL <code>img src="http…"</code> 0개</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS (base64)</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td><code>language-python</code> 클래스 코드블록에 부착</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="na">N/A</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td><code>h2.chap</code>에 앵커 링크 포함</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td>Prism.js CDN — body 닫기 직전</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td>모든 <code>qbox</code> 앞 <code>h3.step "의문"</code> 레이블</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="na">N/A</td>
+      </tr>
+      <tr>
+        <td>§12</td>
+        <td>모든 <code>keypoint</code> 앞 <code>h3.step "결론"</code> 레이블</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§15</td>
+        <td>Google Fonts <code>&lt;link&gt;</code> + <code>@import url(…)</code> 이중 선언</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+        <td class="fixed">FIXED</td>
+      </tr>
+      <tr>
+        <td>§17</td>
+        <td><code>blockquote.cite</code> 챕터당 1~2개 · ref-chain 글 끝 1회</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§18</td>
+        <td>eyebrow = "Python · 5주차 · 교과목 2 · 데이터 분석"</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§20</td>
+        <td>저장 경로 : <code>.study\blog\*.html</code></td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§22</td>
+        <td>ASCII 박스 : non-ASCII = 2× visual col 기준</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+      </tr>
+      <tr>
+        <td>§24</td>
+        <td>t-label : "실행내용 — 확인내용" 형식</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="na">N/A</td>
+      </tr>
+      <tr>
+        <td>§25</td>
+        <td>코드 상단 경로 주석 · 한국어 인라인 주석 · <code>if __name__=='__main__'</code></td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="pass">PASS</td>
+        <td class="na">N/A</td>
+      </tr>
+      <tr>
+        <td>§26</td>
+        <td>이미지 base64 data URI 인라인 (외부 URL 금지)</td>
+        <td class="na">N/A (이미지 없음)</td>
+        <td class="na">N/A (이미지 없음)</td>
+        <td class="pass">PASS (5개 내장)</td>
+        <td class="na">N/A (이미지 없음)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== 파일별 세부 평가 ===================== -->
+  <h2>3. 파일별 세부 평가</h2>
+
+  <!-- 0521 -->
+  <div class="file-card">
+    <div class="file-card-header">day0521_data_preprocessing.html — 변수 변환 · 결측값 처리</div>
+    <div class="file-card-body">
+      <h3>챕터 구성</h3>
+      <table>
+        <tr><th>챕터</th><th>주제</th></tr>
+        <tr><td>CH 01</td><td>dtype · NaN · Inf — NumPy 배열의 기초 타입 시스템</td></tr>
+        <tr><td>CH 02</td><td>벡터화 연산 — 루프 없이 빠르게</td></tr>
+        <tr><td>CH 03</td><td>iloc · loc 인덱싱 — 위치 vs 라벨</td></tr>
+        <tr><td>CH 04</td><td>fillna 전략 비교 — 결측값 처리의 선택</td></tr>
+        <tr><td>CH 05</td><td>astype · log · cut — 변수 변환 3종</td></tr>
+        <tr><td>CH 06</td><td>FINAL CONCLUSION — 전처리 파이프라인 통합</td></tr>
+      </table>
+
+      <h3>발견된 이슈 및 수정 내역</h3>
+      <ul style="padding-left:1.3rem; font-size:0.9rem; margin-bottom:1rem;">
+        <li><span class="fixed">FIXED</span> twitter:title / twitter:description 초기 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> CSS <code>@import url(…)</code> 누락 → <code>&lt;style&gt;</code> 블록 최상단에 추가</li>
+        <li><span class="fixed">FIXED</span> <code>--shadow: none</code> 누락 → <code>:root</code>에 추가</li>
+        <li><span class="fixed">FIXED</span> 메타 행(HW 정보) Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> 5개 챕터 bridge 텍스트 → <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt; — …</code> 패턴으로 수정</li>
+      </ul>
+
+      <p><strong>최종 상태 :</strong> 모든 GUIDE 항목 PASS. 서사 사슬 완전, 터미널 블록 4개 정상, 외부 img 0개.</p>
+    </div>
+  </div>
+
+  <!-- 0522 -->
+  <div class="file-card">
+    <div class="file-card-header">day0522_outlier_normalization.html — 이상값 탐지 · 데이터 정규화</div>
+    <div class="file-card-body">
+      <h3>챕터 구성</h3>
+      <table>
+        <tr><th>챕터</th><th>주제</th></tr>
+        <tr><td>CH 01</td><td>MultiIndex — 계층적 인덱스 구조</td></tr>
+        <tr><td>CH 02</td><td>describe() — auto-mpg 분포 탐색</td></tr>
+        <tr><td>CH 03</td><td>IQR vs Z-score — 이상값 탐지 비교</td></tr>
+        <tr><td>CH 04</td><td>이상값 처리 3전략 — 제거 · 대체 · 캡핑</td></tr>
+        <tr><td>CH 05</td><td>MinMaxScaler vs StandardScaler</td></tr>
+        <tr><td>CH 06</td><td>FINAL CONCLUSION — 스케일링 선택 가이드</td></tr>
+      </table>
+
+      <h3>발견된 이슈 및 수정 내역</h3>
+      <ul style="padding-left:1.3rem; font-size:0.9rem; margin-bottom:1rem;">
+        <li><span class="fixed">FIXED</span> twitter:title / twitter:description 초기 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> CSS <code>@import url(…)</code> 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> <code>--shadow: none</code> 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> HW 메타 행 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> 5개 챕터 bridge → <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt;</code> 패턴 적용</li>
+      </ul>
+
+      <p><strong>최종 상태 :</strong> 모든 GUIDE 항목 PASS. IQR/Z-score 수치 비교표 포함, 외부 img 0개.</p>
+    </div>
+  </div>
+
+  <!-- 0523 -->
+  <div class="file-card">
+    <div class="file-card-header">day0523_data_visualization.html — 데이터 시각화 (matplotlib · seaborn)</div>
+    <div class="file-card-body">
+      <h3>챕터 구성</h3>
+      <table>
+        <tr><th>챕터</th><th>주제</th></tr>
+        <tr><td>CH 01</td><td>Figure · Axes 기초 — 객체 기반 시각화 구조</td></tr>
+        <tr><td>CH 02</td><td>histogram · boxplot — 분포 탐색</td></tr>
+        <tr><td>CH 03</td><td>scatter plot · heatmap — 관계 시각화</td></tr>
+        <tr><td>CH 04</td><td>countplot · barplot — 범주형 시각화</td></tr>
+        <tr><td>CH 05</td><td>DatetimeIndex 시계열 라인 차트</td></tr>
+        <tr><td>CH 06</td><td>FINAL CONCLUSION — 시각화 선택 가이드</td></tr>
+      </table>
+
+      <h3>이미지 처리</h3>
+      <p>§26 규칙에 따라 외부 URL img 사용 금지. Python 스크립트
+      (<code>gen_day0523_html.py</code>)로 5개 차트를 base64 data URI로 인라인 임베드했다.
+      총 파일 크기 269,167 bytes.</p>
+      <table>
+        <tr><th>이미지 키</th><th>내용</th><th>base64 길이(chars)</th></tr>
+        <tr><td>01_sin_cos</td><td>Figure/Axes sin·cos 기초</td><td>36,584</td></tr>
+        <tr><td>02_hist_box</td><td>histogram · boxplot</td><td>23,440</td></tr>
+        <tr><td>03_scatter_heatmap</td><td>scatter plot · heatmap</td><td>81,252</td></tr>
+        <tr><td>04_countplot_barplot</td><td>countplot · barplot</td><td>21,388</td></tr>
+        <tr><td>05_timeseries</td><td>DatetimeIndex 시계열</td><td>77,848</td></tr>
+      </table>
+
+      <h3>발견된 이슈 및 수정 내역</h3>
+      <ul style="padding-left:1.3rem; font-size:0.9rem; margin-bottom:1rem;">
+        <li><span class="fixed">FIXED</span> twitter:title / twitter:description 초기 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> CSS <code>@import url(…)</code> 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> <code>--shadow: none</code> 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> HW 메타 행 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> 5개 챕터 bridge → <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt;</code> 패턴 적용</li>
+        <li><span class="pass">PASS</span> 도입 bridge : <code>&lt;strong&gt;도입&lt;/strong&gt;</code> 형식 — 변경하지 않음 (올바른 형식)</li>
+      </ul>
+
+      <p><strong>최종 상태 :</strong> 모든 GUIDE 항목 PASS. base64 이미지 5개 내장, 외부 img 0개.</p>
+    </div>
+  </div>
+
+  <!-- retrospective -->
+  <div class="file-card">
+    <div class="file-card-header">retrospective_w4_2.html — 4주차-2 회고 (0520~0522)</div>
+    <div class="file-card-body">
+      <h3>챕터 구성</h3>
+      <table>
+        <tr><th>챕터</th><th>주제</th></tr>
+        <tr><td>CH 01</td><td>5주차 전환 — 단위 프로젝트 → 데이터 분석</td></tr>
+        <tr><td>CH 02</td><td>0520 NumPy — ndarray · 브로드캐스팅 · dtype</td></tr>
+        <tr><td>CH 03</td><td>0521 결측값 처리 — fillna 전략 비교</td></tr>
+        <tr><td>CH 04</td><td>0522 이상값 탐지 · 정규화 — IQR/Z-score/스케일링</td></tr>
+        <tr><td>CH 05</td><td>3일 연결 — 전처리 파이프라인 통합</td></tr>
+        <tr><td>CH 06</td><td>회고 — 잘한 점 / 부족한 점 / 다음 한 수</td></tr>
+      </table>
+
+      <h3>발견된 이슈 및 수정 내역</h3>
+      <ul style="padding-left:1.3rem; font-size:0.9rem; margin-bottom:1rem;">
+        <li><span class="fixed">FIXED</span> twitter:title / twitter:description 초기 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> CSS <code>@import url(…)</code> 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> <code>--shadow: none</code> 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> HW 메타 행 누락 → 추가</li>
+        <li><span class="fixed">FIXED</span> 5개 챕터 bridge → <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt;</code> 패턴 적용</li>
+        <li><span class="pass">PASS</span> 소개부 bridge : <code>&lt;strong&gt;3일의 출발 목표&lt;/strong&gt;</code> — 도입 형식으로 올바름</li>
+      </ul>
+
+      <p><strong>최종 상태 :</strong> 모든 GUIDE 항목 PASS. 이미지 없음(이미지 규칙 N/A), 터미널 블록 없음(N/A).</p>
+    </div>
+  </div>
+
+  <!-- ===================== 이슈·수정 타임라인 ===================== -->
+  <h2>4. 이슈·수정 타임라인 (공통 항목)</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>이슈</th>
+        <th>GUIDE 섹션</th>
+        <th>원인</th>
+        <th>수정 방법</th>
+        <th>적용 파일</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>twitter:title / twitter:description 누락</td>
+        <td>§3</td>
+        <td>초기 생성 시 og: 태그만 포함, twitter: 메타 생략</td>
+        <td><code>&lt;meta name="twitter:title"&gt;</code> · <code>&lt;meta name="twitter:description"&gt;</code> 추가</td>
+        <td>4개 전체</td>
+      </tr>
+      <tr>
+        <td><code>@import url(…)</code> 누락</td>
+        <td>§15</td>
+        <td><code>&lt;link&gt;</code> 태그만 있고 CSS <code>&lt;style&gt;</code> 블록에 <code>@import</code> 미선언</td>
+        <td>CSS <code>:root</code> 선언 바로 위에 <code>@import url('https://fonts.googleapis.com/…')</code> 1행 추가</td>
+        <td>4개 전체</td>
+      </tr>
+      <tr>
+        <td><code>--shadow: none</code> 누락</td>
+        <td>§4 (Swiss 스타일)</td>
+        <td>초기 <code>:root</code>에 <code>--shadow</code> CSS 변수 미정의</td>
+        <td><code>:root</code> 블록에 <code>--shadow: none;</code> 추가</td>
+        <td>4개 전체</td>
+      </tr>
+      <tr>
+        <td>HW 정보 메타 행 누락</td>
+        <td>§9</td>
+        <td>메타 행에 소프트웨어 환경만 기재, 하드웨어(Asrock x600 · Ryzen 8600G · 24GB LPDDR5 · RTX 4070 Super 12GB) 미기재</td>
+        <td>커버 메타 행에 HW 정보 td 셀 추가</td>
+        <td>4개 전체</td>
+      </tr>
+      <tr>
+        <td>챕터 bridge 패턴 미준수</td>
+        <td>§2-B</td>
+        <td>bridge 텍스트가 "X를 했다 → Y로 넘어간다" 형식만으로 작성됨; <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt; — …</code> 접두 없음</td>
+        <td>5개 bridge 각각에 <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt; — </code> 접두 추가</td>
+        <td>4개 전체 (각 5개 bridge = 총 20개)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== plan 준수 확인 ===================== -->
+  <h2>5. plan_day0521_0523.txt 준수 확인</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>계획서 항목</th>
+        <th>준수 여부</th>
+        <th>비고</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>eyebrow = "Python · 5주차 · 교과목 2 · 데이터 분석"</td>
+        <td class="pass">PASS</td>
+        <td>4개 파일 동일</td>
+      </tr>
+      <tr>
+        <td>0521 headline = "NumPy·Pandas로 배우는 변수 변환과 결측값 처리"</td>
+        <td class="pass">PASS</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>0522 headline = "이상값 탐지와 스케일링 — IQR·Z-score·정규화"</td>
+        <td class="pass">PASS</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>0523 주제 = "데이터 시각화 (matplotlib · seaborn)" (계획서 잠정 추정)</td>
+        <td class="pass">PASS</td>
+        <td>about.txt 미기재 항목을 커리큘럼 흐름으로 확정</td>
+      </tr>
+      <tr>
+        <td>runner.py 실제 실행 결과 기반 터미널 블록</td>
+        <td class="pass">PASS</td>
+        <td>0521·0522 각 4~5개 터미널 블록</td>
+      </tr>
+      <tr>
+        <td>base64 인라인 이미지 (0523)</td>
+        <td class="pass">PASS</td>
+        <td><code>gen_day0523_html.py</code> + <code>_b64_dict.json</code> 활용, 5개 차트 내장</td>
+      </tr>
+      <tr>
+        <td>저장 경로 <code>.study\blog\*.html</code></td>
+        <td class="pass">PASS</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Python 버전 표기 (계획서: 3.14.2)</td>
+        <td class="fixed">FIXED</td>
+        <td>실제 venv 버전 3.13.5로 수정 기재</td>
+      </tr>
+      <tr>
+        <td>OS = Windows 11 Pro 25H2</td>
+        <td class="pass">PASS</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== about.txt 준수 확인 ===================== -->
+  <h2>6. about.txt 준수 확인</h2>
+
+  <div class="summary-box">
+    <ul>
+      <li><strong>블로그 URL</strong> : <code>https://devroro.blogspot.com/</code> — 도메인 정보 커버에 반영</li>
+      <li><strong>0521 학습 출처</strong> : <code>test_numpy/</code>, <code>test_pandas/</code> — 코드 예제 source 명시</li>
+      <li><strong>0522 학습 출처</strong> : <code>test_pandas/pandas_test3~5.py</code> — 코드 예제 source 명시</li>
+      <li><strong>0523 학습 출처</strong> : about.txt 미기재 → 커리큘럼 흐름(전처리→정규화→시각화) 및 <code>test/day0523/</code> 디렉터리 실습 결과 반영</li>
+      <li><strong>회고 기간</strong> : about.txt 기준 0520~0522 3일 — retrospective_w4_2에서 CH02~CH04로 각 날 개별 정리</li>
+    </ul>
+  </div>
+
+  <!-- ===================== 최종 결론 ===================== -->
+  <h2>7. 최종 결론</h2>
+
+  <div class="summary-box">
+    <p><strong>4개 파일 모두 GUIDE.txt §1~§27 전 항목 최종 PASS.</strong></p>
+    <p>초기 생성 후 발견된 이슈(twitter 메타, @import, --shadow, HW 정보, bridge 패턴)는
+    일괄 검토 → 수정 → 재검증 반복으로 해소했다.
+    총 20개 bridge 텍스트(파일당 5개)에 <code>&lt;strong&gt;다음 챕터로 가는 다리&lt;/strong&gt;</code>
+    접두 패턴을 적용해 서사 사슬 요건을 완전히 충족했다.</p>
+    <ul>
+      <li>day0521 : CH 6개 · 터미널 블록 4개 · bridge 5개 ✔</li>
+      <li>day0522 : CH 6개 · 터미널 블록 5개 · bridge 5개 ✔</li>
+      <li>day0523 : CH 6개 · base64 이미지 5개 · bridge 5개 ✔</li>
+      <li>retrospective_w4_2 : CH 6개 · bridge 5개 (+ 도입 bridge 1개) ✔</li>
+    </ul>
+  </div>
+
+  <div class="final-bar">
+    보고서 생성 완료 — report_w4_2_blog.html · c:\_proj\python_workspace\.study\reports\
+  </div>
+
+</div>
+</body>
+</html>

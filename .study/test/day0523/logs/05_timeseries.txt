@@ -1,0 +1,8 @@
+DatetimeIndex  freq=<Day>  dtype=datetime64[us]
+기간 : 2024-01-01 ~ 2024-03-30
+mean=134.8  min=84  max=180
+
+문자열 인덱스 dtype : str
+DatetimeIndex dtype : datetime64[us]
+→ 문자열은 정렬·간격 계산 불가, DatetimeIndex 변환 필수
+PNG 저장 : c:\_proj\python_workspace\.study\write\tmp\..\..\test\day0523\logs\05_timeseries.png  (base64 길이: 77848 문자)

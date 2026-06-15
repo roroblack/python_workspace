@@ -1,0 +1,8 @@
+============================================================
+# 08_bootcamp_link
+============================================================
+강아지가 멍멍 짖습니다.
+고양이가 야옹 웁니다.
+TypeError: Can't instantiate abstract class Animal without an implementation for abstract method 'speak'
+isinstance(Dog(), Animal): True
+issubclass(Dog, Animal):   True

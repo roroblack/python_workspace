@@ -1,0 +1,2 @@
+mpg  count=392  mean=23.45  std=7.81  min=9.0  max=46.6
+PNG 저장 : c:\_proj\python_workspace\.study\write\tmp\..\..\test\day0523\logs\02_hist_box.png  (base64 길이: 23440 문자)

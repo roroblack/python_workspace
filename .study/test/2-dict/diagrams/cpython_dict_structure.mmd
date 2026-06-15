@@ -1,0 +1,27 @@
+flowchart TB
+    D["PyDictObject\nma_used: 실제 항목 수\nma_keys -> PyDictKeysObject\nma_values -> PyDictValues 또는 NULL"]
+
+    K["PyDictKeysObject\ndk_log2_size: 해시테이블 크기 로그\ndk_log2_index_bytes: indices 바이트 크기 로그\ndk_kind: GENERAL / UNICODE / SPLIT\ndk_usable: 더 넣을 수 있는 엔트리 수\ndk_nentries: entries에 쌓인 엔트리 수"]
+
+    I["dk_indices[]\n실제 해시 테이블\n값: entry 인덱스 또는 -1 EMPTY / -2 DUMMY"]
+    E1["dk_entries[]: PyDictKeyEntry\nme_hash\nme_key\nme_value"]
+    E2["dk_entries[]: PyDictUnicodeEntry\nme_key\nme_value"]
+    V["PyDictValues\nvalues[]: split table의 값 배열\n삽입 순서 배열도 뒤쪽에 저장"]
+
+    D --> K
+    K --> I
+    K --> E1
+    K --> E2
+    D -. "combined table: ma_values == NULL" .-> C["값은 entry.me_value 안에 있음"]
+    D -. "split table: ma_values != NULL" .-> V
+    K -. "split/unicode keys" .-> E2
+    V -. "entry index와 같은 위치" .-> E2
+
+    H["lookup/insert\nhash(key) & mask"] --> I
+    I -- "ix >= 0" --> E1
+    I -- "ix >= 0" --> E2
+    I -- "DKIX_EMPTY" --> N["키 없음 / 삽입 가능"]
+    I -- "DKIX_DUMMY" --> P["삭제 흔적: probe 계속"]
+
+    R["resize\nUSABLE_FRACTION ~= 2/3 초과 시"] --> NK["새 PyDictKeysObject 할당"]
+    NK --> RI["entries 재배치 후 indices 재구축"]

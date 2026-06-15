@@ -1,0 +1,3 @@
+=== fix_duplicate_pre.py 2026-05-10 00:45:33.768483 ===
+잔여 pre 제거: 11개
+수정 후 div.terminal=11  pre.terminal-body=14

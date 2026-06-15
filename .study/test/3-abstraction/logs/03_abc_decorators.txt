@@ -1,0 +1,11 @@
+============================================================
+# 03_abc_decorators
+============================================================
+  항목 수: 3
+  MyBox[0] = 10
+  항목 수: 3
+  MyList[0] = a
+20 in box: True
+'b' in lst: True
+str(lst)  = ['a', 'b', 'c']
+TypeError: Can't instantiate abstract class IncompleteCol without an implementation for abstract method '__getitem__'

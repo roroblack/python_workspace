@@ -1,0 +1,6 @@
+반복문   처리시간 : 5.529 ms  결과 앞 5개=[10002 10004 10006 10008 10010]
+벡터화   처리시간 : 0.0934 ms  결과 앞 5개=[10002 10004 10006 10008 10010]
+hstack (2×3)+(2×4) → shape=(2, 7)
+vstack (2×3)+(3×3) → shape=(5, 3)
+vstack (3×4)+(3×5) → ValueError: all the input array dimensions except for the concatenation axis must match exactly, but along dimension 1, the array at index 0 has size 4 and the array at index 1 has size 5
+dstack (3×4)+(3×4) → shape=(3, 4, 2)
